@@ -1,0 +1,1191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.report.mapper.ReportMapper">
+
+
+
+    <select id="getAllKeyItemOfAfterToday" resultType="org.springblade.modules.report.entity.KeyScheduleReport">
+        select * from (
+        SELECT
+            A.*,
+            CASE
+                WHEN p.biz_type IS NULL AND LEFT ( A.po_code, 2 ) = 'PO' THEN '0'
+                WHEN p.biz_type IS NULL AND LEFT ( A.po_code, 2 ) = 'WW' THEN '1'
+                WHEN p.biz_type IS NOT NULL THEN p.biz_type
+            END biz_type
+        FROM
+            BI_Supdeliv_Plan_Data_Detail_Ribao_OneMin A
+            LEFT JOIN atw_u9_pr p ON ( A.pr_code = p.pr_code AND A.pr_ln = p.pr_ln )
+        ) m
+        WHERE
+            m.biz_type &lt;&gt; 1 and m.pr_code not like 'WX%' and
+            (LEFT ( m.item_code, 2 ) IN ( '10', '11' )OR LEFT ( m.item_code, 4 ) IN ( '1251', '1252', '1303', '1226', '1249', '1401', '1403', '1501', '1511', '1502', '1505' ))
+            <if test="caiGouScheduleReq !=null and caiGouScheduleReq.planDateStart !=null and caiGouScheduleReq.planDateStart !='' ">
+                AND m.plan_date &gt;= #{caiGouScheduleReq.planDateStart}
+            </if>
+            <if test="caiGouScheduleReq !=null and caiGouScheduleReq.planDateEnd !=null and caiGouScheduleReq.planDateEnd !='' ">
+                AND m.plan_date &lt;= #{caiGouScheduleReq.planDateEnd}
+            </if>
+    </select>
+
+    <select id="getAllWWItemOfAfterToday" resultType="org.springblade.modules.report.entity.KeyScheduleReport">
+        SELECT * from
+            (SELECT
+                    A.*,
+                    CASE
+                            WHEN p.biz_type IS NULL AND LEFT ( A.po_code, 2 ) = 'PO' THEN '0'
+                            WHEN p.biz_type IS NULL AND LEFT ( A.po_code, 2 ) = 'WW' THEN '1'
+                            WHEN p.biz_type IS NOT NULL THEN p.biz_type
+                    END biz_type
+            FROM
+                    BI_Supdeliv_Plan_Data_Detail_Ribao_OneMin A
+                    LEFT JOIN atw_u9_pr p ON ( A.pr_code = p.pr_code AND A.pr_ln = p.pr_ln )
+            )m
+        WHERE m.biz_type = 1 or m.pr_code like 'WX%'
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.planDateStart !=null and caiGouScheduleReq.planDateStart !='' ">
+            AND m.plan_date &gt;= #{caiGouScheduleReq.planDateStart}
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.planDateEnd !=null and caiGouScheduleReq.planDateEnd !='' ">
+            AND m.plan_date &lt;= #{caiGouScheduleReq.planDateEnd}
+        </if>
+    </select>
+
+
+    <select id="getAllNotKeyItemOfAfterToday" resultType="org.springblade.modules.report.entity.KeyScheduleReport">
+         SELECT * from
+            (SELECT
+                    A.*,
+                    CASE
+                            WHEN p.biz_type IS NULL AND LEFT ( A.po_code, 2 ) = 'PO' THEN '0'
+                            WHEN p.biz_type IS NULL AND LEFT ( A.po_code, 2 ) = 'WW' THEN '1'
+                            WHEN p.biz_type IS NOT NULL THEN p.biz_type
+                    END biz_type
+            FROM
+                    BI_Supdeliv_Plan_Data_Detail_Ribao_OneMin A
+                    LEFT JOIN atw_u9_pr p ON ( A.pr_code = p.pr_code AND A.pr_ln = p.pr_ln )
+            ) m
+        WHERE
+            LEFT ( m.item_code, 2 ) not IN ( '10', '11' )
+            AND LEFT ( m.item_code, 4 ) not IN ( '1251', '1252', '1303', '1226', '1249', '1401', '1403', '1501', '1511', '1502', '1505' )
+            AND IF (m.biz_type ='1',
+                    locate('QPQ',m.item_name) = 0 and locate('线切割',m.item_name) = 0 and locate('LT',m.item_name) = 0
+                    and locate('抛光',m.item_name) = 0 and locate('PT',m.item_name) = 0 and locate('PH',m.item_name) = 0
+                    ,1=1)
+            AND IF(m.pr_code like 'WX%',
+                    locate('QPQ',m.item_name) = 0 and locate('G50',m.item_name) = 0 and locate('G51',m.item_name) = 0
+                    and locate('阀座',m.item_name) = 0 and locate('阀帽',m.item_name) = 0
+                    ,1=1)
+            <if test="caiGouScheduleReq !=null and caiGouScheduleReq.planDateStart !=null and caiGouScheduleReq.planDateStart !='' ">
+                AND m.plan_date &gt;= #{caiGouScheduleReq.planDateStart}
+            </if>
+            <if test="caiGouScheduleReq !=null and caiGouScheduleReq.planDateEnd !=null and caiGouScheduleReq.planDateEnd !='' ">
+                AND m.plan_date &lt;= #{caiGouScheduleReq.planDateEnd}
+            </if>
+    </select>
+
+    <select id="getItemDailyDetailReport" resultType="org.springblade.modules.supplier.entity.CaiGouSchedule">
+         SELECT * from
+            (SELECT
+                    A.*,
+                    CASE
+                            WHEN p.biz_type IS NULL AND LEFT ( A.po_code, 2 ) = 'PO' THEN '0'
+                            WHEN p.biz_type IS NULL AND LEFT ( A.po_code, 2 ) = 'WW' THEN '1'
+                            WHEN p.biz_type IS NOT NULL THEN p.biz_type
+                    END biz_type
+            FROM
+                    BI_Supdeliv_Plan_Data_Detail_Ribao_OneMin A
+                    LEFT JOIN atw_u9_pr p ON ( A.pr_code = p.pr_code AND A.pr_ln = p.pr_ln )
+            ) m
+        WHERE
+            1 = 1
+            <if test='caiGouScheduleReq !=null and caiGouScheduleReq.overdue !=null and caiGouScheduleReq.overdue !="" and caiGouScheduleReq.overdue =="A" '>
+                and DATEDIFF(m.check_update_date,m.req_date) &gt;= 1
+                and DATEDIFF(m.check_update_date,m.req_date) &lt;= 3
+            </if>
+            <if test='caiGouScheduleReq !=null and caiGouScheduleReq.overdue !=null and caiGouScheduleReq.overdue !="" and caiGouScheduleReq.overdue =="B" '>
+                and DATEDIFF(m.check_update_date,m.req_date) &gt;= 4
+                and DATEDIFF(m.check_update_date,m.req_date) &lt;= 7
+            </if>
+            <if test='caiGouScheduleReq !=null and caiGouScheduleReq.overdue !=null and caiGouScheduleReq.overdue !="" and caiGouScheduleReq.overdue =="C" '>
+                and DATEDIFF(m.check_update_date,m.req_date) &gt; 7
+            </if>
+            <if test='caiGouScheduleReq !=null and caiGouScheduleReq.overdue !=null and caiGouScheduleReq.overdue !="" and caiGouScheduleReq.overdue =="D" '>
+                and DATEDIFF(m.check_update_date,m.req_date) = 1
+            </if>
+            <if test='caiGouScheduleReq !=null and caiGouScheduleReq.overdue !=null and caiGouScheduleReq.overdue !="" and caiGouScheduleReq.overdue =="E" '>
+                and DATEDIFF(m.check_update_date,m.req_date) = 2
+            </if>
+            <if test='caiGouScheduleReq !=null and caiGouScheduleReq.overdue !=null and caiGouScheduleReq.overdue !="" and caiGouScheduleReq.overdue =="F" '>
+                and DATEDIFF(m.check_update_date,m.req_date) &gt; 2
+            </if>
+
+            <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="FX" '>
+                and m.biz_type &lt;&gt; 1 and m.pr_code not like 'WX%'
+                and left(m.item_code,4) in ('1251','1252','1303','1226','1249')
+            </if>
+            <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="ZJ" '>
+                and m.biz_type &lt;&gt; 1 and m.pr_code not like 'WX%'
+                and left(m.item_code,4) in ('1501','1511')
+            </if>
+            <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="DJ" '>
+                and m.biz_type &lt;&gt; 1 and m.pr_code not like 'WX%'
+                and left(m.item_code,4) in ('1502','1505')
+            </if>
+            <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="QKJ" '>
+                and m.biz_type &lt;&gt; 1 and m.pr_code not like 'WX%'
+                and left(m.item_code,4) in ('1401')
+            </if>
+            <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="WGF" '>
+                and m.biz_type &lt;&gt; 1 and m.pr_code not like 'WX%'
+                and left(m.item_code,2) in ('10','11')
+            </if>
+            <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="QGZXQ" '>
+                and m.biz_type &lt;&gt; 1 and m.pr_code not like 'WX%'
+                and left(m.item_code,4) in ('1043')
+            </if>
+            <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="ALLKEY" '>
+                and m.biz_type &lt;&gt; 1 and m.pr_code not like 'WX%' and
+                (LEFT ( m.item_code, 2 ) IN ( '10', '11' )OR LEFT ( m.item_code, 4 ) IN ( '1251', '1252', '1303', '1226', '1249', '1401', '1403', '1501', '1511', '1502', '1505' ))
+            </if>
+            <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="NOTKEY" '>
+                And LEFT ( m.item_code, 2 ) not IN ( '10', '11' )
+                AND LEFT ( m.item_code, 4 ) not IN ( '1251', '1252', '1303', '1226', '1249', '1401', '1403', '1501', '1511', '1502', '1505' )
+                AND IF (m.biz_type ='1',
+                locate('QPQ',m.item_name) = 0 and locate('线切割',m.item_name) = 0 and locate('LT',m.item_name) = 0
+                and locate('抛光',m.item_name) = 0 and locate('PT',m.item_name) = 0 and locate('PH',m.item_name) = 0
+                ,1=1)
+                AND IF(m.pr_code like 'WX%',
+                locate('QPQ',m.item_name) = 0 and locate('G50',m.item_name) = 0 and locate('G51',m.item_name) = 0
+                and locate('阀座',m.item_name) = 0 and locate('阀帽',m.item_name) = 0
+                ,1=1)
+            </if>
+            <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="QPQWW" '>
+                and m.biz_type = 1
+                and locate('QPQ',m.item_name) > 0
+            </if>
+            <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="XQGWW" '>
+                and m.biz_type = 1
+                and locate('线切割',m.item_name) > 0
+            </if>
+            <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="SLWW" '>
+                and m.biz_type = 1
+                and locate('LT',m.item_name) > 0
+            </if>
+            <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="PGWW" '>
+                and m.biz_type = 1
+                and locate('抛光',m.item_name) > 0
+            </if>
+            <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="PTPH" '>
+                and m.biz_type = 1
+                and (locate('PT',m.item_name) > 0 or locate('PH',m.item_name) > 0)
+            </if>
+            <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="ALLWW" '>
+                and m.biz_type = 1
+                and (locate('QPQ',m.item_name) > 0 or locate('线切割',m.item_name) > 0 or locate('LT',m.item_name) > 0 or locate('抛光',m.item_name) > 0 or locate('PT',m.item_name) > 0 or locate('PH',m.item_name) > 0)
+            </if>
+            <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="QPQWX" '>
+                and m.pr_code like 'WX%'
+                and  locate('QPQ',m.item_name) > 0
+            </if>
+            <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="G50G51WX" '>
+                and m.pr_code like 'WX%'
+                and (locate('G50',m.item_name) > 0 or locate('G51',m.item_name) > 0)
+            </if>
+            <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="ZJDJWX" '>
+                and m.pr_code like 'WX%'
+                and  (locate('阀体',m.item_name) > 0 or locate('阀帽',m.item_name) > 0)
+            </if>
+            <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="ZJDJWX" '>
+                and m.pr_code like 'WX%'
+                and  (locate('QPQ',m.item_name) > 0 or locate('G50',m.item_name) = 0 or locate('G51',m.item_name) = 0 or locate('阀座',m.item_name) = 0 or locate('阀帽',m.item_name) = 0)
+            </if>
+            <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="ALLWX" '>
+                and m.biz_type = 1 or m.pr_code like 'WX%'
+                AND IF (m.biz_type ='1',
+                locate('QPQ',m.item_name) > 0 or locate('线切割',m.item_name) > 0 or locate('LT',m.item_name) > 0
+                or locate('抛光',m.item_name) > 0 or locate('PT',m.item_name) > 0 or locate('PH',m.item_name) > 0
+                ,1=1)
+                AND IF(m.pr_code like 'WX%',
+                locate('QPQ',m.item_name) > 0 or locate('G50',m.item_name) > 0 or locate('G51',m.item_name) > 0
+                or locate('阀座',m.item_name) > 0 or locate('阀帽',m.item_name) > 0
+                ,1=1)
+            </if>
+            <if test="caiGouScheduleReq !=null and caiGouScheduleReq.planDateStart !=null and caiGouScheduleReq.planDateStart !='' ">
+                AND m.plan_date &gt;= #{caiGouScheduleReq.planDateStart}
+            </if>
+            <if test="caiGouScheduleReq !=null and caiGouScheduleReq.planDateEnd !=null and caiGouScheduleReq.planDateEnd !='' ">
+                AND m.plan_date &lt;= #{caiGouScheduleReq.planDateEnd}
+            </if>
+            <if test="caiGouScheduleReq !=null and caiGouScheduleReq.person !=null and caiGouScheduleReq.person !='' ">
+                AND m.person LIKE concat('%', #{caiGouScheduleReq.person}, '%')
+            </if>
+    </select>
+
+    <select id="getItemDailyDetailList" resultType="org.springblade.modules.supplier.entity.CaiGouSchedule">
+        SELECT * from
+        (SELECT
+        A.*,
+        CASE
+        WHEN p.biz_type IS NULL AND LEFT ( A.po_code, 2 ) = 'PO' THEN '0'
+        WHEN p.biz_type IS NULL AND LEFT ( A.po_code, 2 ) = 'WW' THEN '1'
+        WHEN p.biz_type IS NOT NULL THEN p.biz_type
+        END biz_type
+        FROM
+        BI_Supdeliv_Plan_Data_Detail_Ribao_OneMin A
+        LEFT JOIN atw_u9_pr p ON ( A.pr_code = p.pr_code AND A.pr_ln = p.pr_ln )
+        ) m
+        WHERE
+        1 = 1
+        <if test='caiGouScheduleReq !=null and caiGouScheduleReq.overdue !=null and caiGouScheduleReq.overdue !="" and caiGouScheduleReq.overdue =="A" '>
+            and DATEDIFF(m.check_update_date,m.req_date) &gt;= 1
+            and DATEDIFF(m.check_update_date,m.req_date) &lt;= 3
+        </if>
+        <if test='caiGouScheduleReq !=null and caiGouScheduleReq.overdue !=null and caiGouScheduleReq.overdue !="" and caiGouScheduleReq.overdue =="B" '>
+            and DATEDIFF(m.check_update_date,m.req_date) &gt;= 4
+            and DATEDIFF(m.check_update_date,m.req_date) &lt;= 7
+        </if>
+        <if test='caiGouScheduleReq !=null and caiGouScheduleReq.overdue !=null and caiGouScheduleReq.overdue !="" and caiGouScheduleReq.overdue =="C" '>
+            and DATEDIFF(m.check_update_date,m.req_date) &gt; 7
+        </if>
+        <if test='caiGouScheduleReq !=null and caiGouScheduleReq.overdue !=null and caiGouScheduleReq.overdue !="" and caiGouScheduleReq.overdue =="D" '>
+            and DATEDIFF(m.check_update_date,m.req_date) = 1
+        </if>
+        <if test='caiGouScheduleReq !=null and caiGouScheduleReq.overdue !=null and caiGouScheduleReq.overdue !="" and caiGouScheduleReq.overdue =="E" '>
+            and DATEDIFF(m.check_update_date,m.req_date) = 2
+        </if>
+        <if test='caiGouScheduleReq !=null and caiGouScheduleReq.overdue !=null and caiGouScheduleReq.overdue !="" and caiGouScheduleReq.overdue =="F" '>
+            and DATEDIFF(m.check_update_date,m.req_date) &gt; 2
+        </if>
+
+        <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="FX" '>
+            and m.biz_type &lt;&gt; 1 and m.pr_code not like 'WX%'
+            and left(m.item_code,4) in ('1251','1252','1303','1226','1249')
+        </if>
+        <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="ZJ" '>
+            and m.biz_type &lt;&gt; 1 and m.pr_code not like 'WX%'
+            and left(m.item_code,4) in ('1501','1511')
+        </if>
+        <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="DJ" '>
+            and m.biz_type &lt;&gt; 1 and m.pr_code not like 'WX%'
+            and left(m.item_code,4) in ('1502','1505')
+        </if>
+        <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="QKJ" '>
+            and m.biz_type &lt;&gt; 1 and m.pr_code not like 'WX%'
+            and left(m.item_code,4) in ('1401')
+        </if>
+        <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="WGF" '>
+            and m.biz_type &lt;&gt; 1 and m.pr_code not like 'WX%'
+            and left(m.item_code,2) in ('10','11')
+        </if>
+        <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="QGZXQ" '>
+            and m.biz_type &lt;&gt; 1 and m.pr_code not like 'WX%'
+            and left(m.item_code,4) in ('1043')
+        </if>
+        <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="ALLKEY" '>
+            and m.biz_type &lt;&gt; 1 and m.pr_code not like 'WX%' and
+            (LEFT ( m.item_code, 2 ) IN ( '10', '11' )OR LEFT ( m.item_code, 4 ) IN ( '1251', '1252', '1303', '1226', '1249', '1401', '1403', '1501', '1511', '1502', '1505' ))
+        </if>
+        <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="NOTKEY" '>
+            And LEFT ( m.item_code, 2 ) not IN ( '10', '11' )
+            AND LEFT ( m.item_code, 4 ) not IN ( '1251', '1252', '1303', '1226', '1249', '1401', '1403', '1501', '1511', '1502', '1505' )
+            AND IF (m.biz_type ='1',
+            locate('QPQ',m.item_name) = 0 and locate('线切割',m.item_name) = 0 and locate('LT',m.item_name) = 0
+            and locate('抛光',m.item_name) = 0 and locate('PT',m.item_name) = 0 and locate('PH',m.item_name) = 0
+            ,1=1)
+            AND IF(m.pr_code like 'WX%',
+            locate('QPQ',m.item_name) = 0 and locate('G50',m.item_name) = 0 and locate('G51',m.item_name) = 0
+            and locate('阀座',m.item_name) = 0 and locate('阀帽',m.item_name) = 0
+            ,1=1)
+        </if>
+        <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="QPQWW" '>
+            and m.biz_type = 1
+            and locate('QPQ',m.item_name) > 0
+        </if>
+        <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="XQGWW" '>
+            and m.biz_type = 1
+            and locate('线切割',m.item_name) > 0
+        </if>
+        <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="SLWW" '>
+            and m.biz_type = 1
+            and locate('LT',m.item_name) > 0
+        </if>
+        <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="PGWW" '>
+            and m.biz_type = 1
+            and locate('抛光',m.item_name) > 0
+        </if>
+        <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="PTPH" '>
+            and m.biz_type = 1
+            and (locate('PT',m.item_name) > 0 or locate('PH',m.item_name) > 0)
+        </if>
+        <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="ALLWW" '>
+            and m.biz_type = 1
+            and (locate('QPQ',m.item_name) > 0 or locate('线切割',m.item_name) > 0 or locate('LT',m.item_name) > 0 or locate('抛光',m.item_name) > 0 or locate('PT',m.item_name) > 0 or locate('PH',m.item_name) > 0)
+        </if>
+        <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="QPQWX" '>
+            and m.pr_code like 'WX%'
+            and  locate('QPQ',m.item_name) > 0
+        </if>
+        <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="G50G51WX" '>
+            and m.pr_code like 'WX%'
+            and (locate('G50',m.item_name) > 0 or locate('G51',m.item_name) > 0)
+        </if>
+        <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="ZJDJWX" '>
+            and m.pr_code like 'WX%'
+            and  (locate('阀体',m.item_name) > 0 or locate('阀帽',m.item_name) > 0)
+        </if>
+        <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="ZJDJWX" '>
+            and m.pr_code like 'WX%'
+            and  (locate('QPQ',m.item_name) > 0 or locate('G50',m.item_name) = 0 or locate('G51',m.item_name) = 0 or locate('阀座',m.item_name) = 0 or locate('阀帽',m.item_name) = 0)
+        </if>
+        <if test='caiGouScheduleReq !=null and caiGouScheduleReq.itemType !=null and caiGouScheduleReq.itemType !="" and caiGouScheduleReq.itemType =="ALLWX" '>
+            and m.biz_type = 1 or m.pr_code like 'WX%'
+            AND IF (m.biz_type ='1',
+            locate('QPQ',m.item_name) > 0 or locate('线切割',m.item_name) > 0 or locate('LT',m.item_name) > 0
+            or locate('抛光',m.item_name) > 0 or locate('PT',m.item_name) > 0 or locate('PH',m.item_name) > 0
+            ,1=1)
+            AND IF(m.pr_code like 'WX%',
+            locate('QPQ',m.item_name) > 0 or locate('G50',m.item_name) > 0 or locate('G51',m.item_name) > 0
+            or locate('阀座',m.item_name) > 0 or locate('阀帽',m.item_name) > 0
+            ,1=1)
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.planDateStart !=null and caiGouScheduleReq.planDateStart !='' ">
+            AND m.plan_date &gt;= #{caiGouScheduleReq.planDateStart}
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.planDateEnd !=null and caiGouScheduleReq.planDateEnd !='' ">
+            AND m.plan_date &lt;= #{caiGouScheduleReq.planDateEnd}
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.person !=null and caiGouScheduleReq.person !='' ">
+            AND m.person LIKE concat('%', #{caiGouScheduleReq.person}, '%')
+        </if>
+    </select>
+
+    <select id="getKeyItemFixedExcel" resultType="org.springblade.modules.report.vo.KeyItemFixedExcel">
+        SELECT
+        DATEDIFF(A.check_update_date,A.req_date),
+        A.pro_no,
+        A.pro_num,
+        A.plan_date,
+        A.po_code_ln,
+        A.item_code,
+        A.item_name,
+        A.check_update_date,
+        A.req_date
+        FROM
+        BI_Supdeliv_Plan_Data_Detail_Ribao_OneMin A
+        LEFT JOIN atw_u9_pr p ON ( A.pr_code = p.pr_code AND A.pr_ln = p.pr_ln )
+        WHERE
+        A.pro_no IS NOT NULL
+        and p.biz_type &lt;&gt; 1
+        and A.pr_code not like 'WX%'
+        and (LEFT ( A.item_code, 2 ) IN ( '10', '11' )OR LEFT ( A.item_code, 4 ) IN ( '1251', '1252', '1303', '1226', '1249', '1401', '1403', '1501', '1511', '1502', '1505' ))
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.planDateStart !=null and caiGouScheduleReq.planDateStart !='' ">
+            AND A.plan_date &gt;= #{caiGouScheduleReq.planDateStart}
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.planDateEnd !=null and caiGouScheduleReq.planDateEnd !='' ">
+            AND A.plan_date &lt;= #{caiGouScheduleReq.planDateEnd}
+        </if>
+        group by
+        A.pro_no
+        ORDER BY
+        A.pro_no,
+        DATEDIFF(A.check_update_date,A.req_date) desc
+    </select>
+
+    <select id="getOrderOtdBasicInfo" resultType="org.springblade.modules.report.entity.OrderOtdReport">
+        SELECT
+            po.sup_code,
+            po.sup_name,
+            pr.item_code,
+            pr.item_name,
+            pr.tc_uom,
+            po.tc_num,
+            concat( pr.pr_code, ' ', pr.pr_ln ) pr_code_ln,
+            concat( po.po_code,' ' , po.po_ln ) po_code_ln,
+            FROM_UNIXTIME(IFNULL(pr.req_date,po.req_date),'%Y-%m-%d') req_date,
+            FROM_UNIXTIME(po.sup_confirm_date,'%Y-%m-%d') sup_confirm_date,
+            left(pr.create_time,10) pr_check_date,
+            left(po.create_time,10) po_check_date,
+            item.purch_name
+        FROM
+            `atw_u9_pr` pr
+            LEFT JOIN atw_po_item po ON pr.id = po.pr_id
+            left join atw_item item on item.code = pr.item_code
+        WHERE
+            pr.is_deleted = 0
+            and po.is_deleted = 0
+            and po.po_code is not null
+            <if test="req !=null and req.poCheckDateStart !=null and req.poCheckDateStart !='' ">
+                AND DATE_FORMAT( po.create_time, '%Y-%m-%d' ) &gt;= #{req.poCheckDateStart}
+            </if>
+            <if test="req !=null and req.poCheckDateEnd !=null and req.poCheckDateEnd !='' ">
+                AND DATE_FORMAT( po.create_time, '%Y-%m-%d' ) &lt;= #{req.poCheckDateEnd}
+            </if>
+            <if test="req.poCheckDateEnd == null and req.poCheckDateStart ==null ">
+                AND DATE_FORMAT( po.create_time, '%Y-%m-%d' ) &gt;=  DATE_ADD(curdate(),interval -day(curdate())+1 day)
+            </if>
+            <if test="req !=null and req.purchName !=null and req.purchName !='' ">
+                AND item.purch_name like concat('%', #{req.purchName}, '%')
+            </if>
+        ORDER BY
+            po.create_time desc
+    </select>
+
+    <select id="getOrderOtdBasicInfoList" resultType="org.springblade.modules.report.entity.OrderOtdReport">
+        SELECT
+        po.sup_code,
+        po.sup_name,
+        pr.item_code,
+        pr.item_name,
+        pr.tc_uom,
+        po.tc_num,
+        concat( pr.pr_code, ' ', pr.pr_ln ) pr_code_ln,
+        concat( po.po_code,' ' , po.po_ln ) po_code_ln,
+        FROM_UNIXTIME(IFNULL(pr.req_date,po.req_date),'%Y-%m-%d') req_date,
+        FROM_UNIXTIME(po.sup_confirm_date,'%Y-%m-%d') sup_confirm_date,
+        left(pr.create_time,10) pr_check_date,
+        left(po.create_time,10) po_check_date,
+        item.purch_name
+        FROM
+        `atw_u9_pr` pr
+        LEFT JOIN atw_po_item po ON pr.id = po.pr_id
+        left join atw_item item on item.code = pr.item_code
+        WHERE
+        pr.is_deleted = 0
+        and po.is_deleted = 0
+        and po.po_code is not null
+        <if test="req !=null and req.poCheckDateStart !=null and req.poCheckDateStart !='' ">
+            AND DATE_FORMAT( po.create_time, '%Y-%m-%d' ) &gt;= #{req.poCheckDateStart}
+        </if>
+        <if test="req !=null and req.poCheckDateEnd !=null and req.poCheckDateEnd !='' ">
+            AND DATE_FORMAT( po.create_time, '%Y-%m-%d' ) &lt;= #{req.poCheckDateEnd}
+        </if>
+        <if test="req.poCheckDateEnd == null and req.poCheckDateStart ==null ">
+            AND DATE_FORMAT( po.create_time, '%Y-%m-%d' ) &gt;=  DATE_ADD(curdate(),interval -day(curdate())+1 day)
+        </if>
+        <if test="req !=null and req.purchName !=null and req.purchName !='' ">
+            AND item.purch_name like concat('%', #{req.purchName}, '%')
+        </if>
+        ORDER BY
+        po.create_time desc
+    </select>
+    <select id="getAutoOrderOtdInfo" resultType="org.springblade.modules.report.entity.AutoOrderOtdReport">
+        SELECT
+        pr.pr_code || ' ' || pr.pr_ln pr_code_ln,
+        po.po_code || ' ' || po.po_ln po_code_ln,
+        item.purch_name,
+        po.sup_name,
+        item.IS_STANDARD,
+        item.S_OR_N,
+        pr.item_code,
+        pr.item_name,
+        pr.tc_uom,
+        po.tc_num,
+        NVL ( pr.req_date, po.req_date ) req_date,
+        sup_confirm_date,
+        pr.U9_STATUS LINESTATUS,
+        to_char ( p.approvedon, 'yyyy-mm-dd' ) pr_check_date,
+        to_char ( o.approvedon, 'yyyy-mm-dd' ) po_check_date,
+        case when lib.is_deleted is not null then 1 else 0 end isAutoOrder,
+        pr.is_need_check
+        FROM
+        atwsrm.atw_u9_pr pr
+        LEFT JOIN atwsrm.atw_po_item po ON pr.pr_code = po.pr_code and pr.pr_ln = po.pr_ln
+        LEFT JOIN atwsrm.atw_item item ON item.CODE = pr.item_code
+        LEFT JOIN ATWERP.PM_PURCHASEORDER o ON po.po_code = o.docNO
+        LEFT JOIN ATWERP.PR_PR P ON pr.pr_code = p.docno
+        left join atwsrm.atw_price_lib lib on (item.code = lib.item_code and to_char ( o.approvedon, 'yyyy-mm-dd' ) &gt;= to_char ( lib.effective_date, 'yyyy-mm-dd' )  and to_char ( o.approvedon, 'yyyy-mm-dd' ) &lt;= to_char ( lib.expiration_date, 'yyyy-mm-dd' )
+             and lib.status = 30
+            )
+        WHERE
+        pr.is_deleted = 0
+        AND po.is_deleted = 0
+        AND po.po_code IS NOT NULL
+        <if test="req !=null and req.approvedonStart !=null and req.approvedonStart !='' ">
+            AND to_char ( o.approvedon, 'yyyy-mm-dd' ) &gt;= #{req.approvedonStart}
+        </if>
+        <if test="req !=null and req.approvedonEnd !=null and req.approvedonEnd !='' ">
+            AND to_char ( o.approvedon, 'yyyy-mm-dd' ) &lt;= #{req.approvedonEnd}
+        </if>
+        <if test="req.approvedonEnd == null and req.approvedonStart ==null ">
+            AND to_char ( o.approvedon, 'yyyy-mm-dd' ) &gt;=to_char(add_months(sysdate,-1),'yyyy-mm-dd')
+        </if>
+
+        <if test="req.purchname != null and req.purchname !='' ">
+            AND item.purch_name= #{req.purchname}
+        </if>
+
+        <if test="req.isstandard != null and req.isstandard !=''">
+            AND item.IS_STANDARD= #{req.isstandard}
+        </if>
+
+        <if test="req.autoordertype == '白名单'">
+            AND ( ( lib.is_deleted is not null ) and (pr.is_need_check ='1' or pr.is_need_check ='0') )
+        </if>
+
+        <if test="req.autoordertype == '框架（PO不审核）'">
+            AND ( ( lib.is_deleted is  null ) and (pr.is_need_check ='1') )
+        </if>
+
+        <if test="req.autoordertype == '框架（PO需审核）'">
+            AND ( ( lib.is_deleted is  null ) and (pr.is_need_check ='2') )
+        </if>
+
+
+
+    </select>
+
+    <select id="getAutoOrderOtdList" resultType="org.springblade.modules.report.entity.AutoOrderOtdReport">
+        SELECT
+            pr.pr_code || ' ' || pr.pr_ln pr_code_ln,
+            po.po_code || ' ' || po.po_ln po_code_ln,
+            item.purch_name,
+            po.sup_name,
+            item.IS_STANDARD,
+            item.S_OR_N,
+            pr.item_code,
+            pr.item_name,
+            pr.tc_uom,
+            po.tc_num,
+            NVL ( pr.req_date, po.req_date ) req_date,
+            sup_confirm_date,
+            pr.U9_STATUS LINESTATUS,
+            to_char ( p.approvedon, 'yyyy-mm-dd' ) pr_check_date,
+            to_char ( o.approvedon, 'yyyy-mm-dd' ) po_check_date,
+            case when lib.is_deleted is not null then 1 else 0 end isAutoOrder,
+            pr.is_need_check
+        FROM
+            atwsrm.atw_u9_pr pr
+                LEFT JOIN atwsrm.atw_po_item po ON pr.pr_code = po.pr_code and pr.pr_ln = po.pr_ln
+                LEFT JOIN atwsrm.atw_item item ON item.CODE = pr.item_code
+                LEFT JOIN ATWERP.PM_PURCHASEORDER o ON po.po_code = o.docNO
+                LEFT JOIN ATWERP.PR_PR P ON pr.pr_code = p.docno
+                left join atwsrm.atw_price_lib lib on (item.code = lib.item_code and to_char ( o.approvedon, 'yyyy-mm-dd' ) &gt;= to_char ( lib.effective_date, 'yyyy-mm-dd' )  and to_char ( o.approvedon, 'yyyy-mm-dd' ) &lt;= to_char ( lib.expiration_date, 'yyyy-mm-dd' )
+                and lib.status = 30
+                    )
+        WHERE
+            pr.is_deleted = 0
+          AND po.is_deleted = 0
+          AND po.po_code IS NOT NULL
+        <if test="req !=null and req.approvedonStart !=null and req.approvedonStart !='' ">
+            AND to_char ( o.approvedon, 'yyyy-mm-dd' ) &gt;= #{req.approvedonStart}
+        </if>
+        <if test="req !=null and req.approvedonEnd !=null and req.approvedonEnd !='' ">
+            AND to_char ( o.approvedon, 'yyyy-mm-dd' ) &lt;= #{req.approvedonEnd}
+        </if>
+        <if test="req.approvedonEnd == null and req.approvedonStart ==null ">
+            AND to_char ( o.approvedon, 'yyyy-mm-dd' ) &gt;=to_char(add_months(sysdate,-1),'yyyy-mm-dd')
+        </if>
+
+        <if test="req !=null and req.approvedonStart !=null and req.approvedonStart !='' ">
+            AND to_char ( o.approvedon, 'yyyy-mm-dd' ) &gt;= #{req.approvedonStart}
+        </if>
+        <if test="req !=null and req.approvedonEnd !=null and req.approvedonEnd !='' ">
+            AND to_char ( o.approvedon, 'yyyy-mm-dd' ) &lt;= #{req.approvedonEnd}
+        </if>
+        <if test="req.approvedonEnd == null and req.approvedonStart ==null ">
+            AND to_char ( o.approvedon, 'yyyy-mm-dd' ) &gt;=to_char(add_months(sysdate,-1),'yyyy-mm-dd')
+        </if>
+
+        <if test="req.purchname != null and req.purchname !='' ">
+            AND item.purch_name= #{req.purchname}
+        </if>
+
+        <if test="req.isstandard != null and req.isstandard !=''">
+            AND item.IS_STANDARD= #{req.isstandard}
+        </if>
+
+        <if test="req.autoordertype == '白名单'">
+            AND ( ( lib.is_deleted is not null ) and (pr.is_need_check ='1' or pr.is_need_check ='0') )
+        </if>
+
+        <if test="req.autoordertype == '框架（PO不审核）'">
+            AND ( ( lib.is_deleted is  null ) and (pr.is_need_check ='1') )
+        </if>
+
+        <if test="req.autoordertype == '框架（PO需审核）'">
+            AND ( ( lib.is_deleted is  null ) and (pr.is_need_check ='2') )
+        </if>
+
+    </select>
+    <select id="getOrderAmountOtdInfo" resultType="org.springblade.modules.report.entity.OrderAmountOtdReport">
+        SELECT
+        api.sup_name,
+        ass.template_type,
+        ass.type_name main_name,
+        SUM( amount ) totalamount
+        FROM
+        atw_po_item api
+        LEFT JOIN atw_item ai ON api.item_code = ai.CODE
+        left join atw_supplier ass on api.sup_code=ass.code
+        WHERE
+        u9_status = '自然关闭'
+        <if test="req !=null and req.creatimeEnd !=null and req.creatimeEnd !='' ">
+            AND DATE_FORMAT ( api.create_time, '%Y-%m-%d' ) &lt;= #{req.creatimeEnd}
+        </if>
+        <if test="req !=null and req.creatimeStart !=null and req.creatimeStart !='' ">
+            AND DATE_FORMAT ( api.create_time, '%Y-%m-%d' ) &gt;= #{req.creatimeStart}
+        </if>
+        <if test="req !=null and req.supName !=null and req.supName !='' ">
+            and api.sup_name=#{req.supName}
+        </if>
+        GROUP BY
+        api.sup_name
+    </select>
+    <select id="getOrderAmountOtdList" resultType="org.springblade.modules.report.entity.OrderAmountOtdReport">
+        SELECT
+        api.sup_name,
+        ass.template_type,
+        ass.type_name  main_name,
+        SUM( amount ) totalamount
+        FROM
+        atw_po_item api
+        LEFT JOIN atw_item ai ON api.item_code = ai.CODE
+        left join atw_supplier ass on api.sup_code=ass.code
+        WHERE
+        u9_status = '自然关闭'
+        <if test="req !=null and req.creatimeEnd !=null and req.creatimeEnd !='' ">
+            AND DATE_FORMAT ( api.create_time, '%Y-%m-%d' ) &lt;= #{req.creatimeEnd}
+        </if>
+        <if test="req !=null and req.creatimeStart !=null and req.creatimeStart !='' ">
+            AND DATE_FORMAT ( api.create_time, '%Y-%m-%d' ) &gt;= #{req.creatimeStart}
+        </if>
+        <if test="req !=null and req.mainName !=null and req.mainName !='' ">
+            and type_name=#{req.mainName}
+        </if>
+        GROUP BY
+        api.sup_name
+
+    </select>
+    <select id="getOrderAmountOtdLastYearList"
+            resultType="org.springblade.modules.report.entity.OrderAmountOtdReport">
+        SELECT
+        api.sup_name,
+        ass.template_type,
+        ass.type_name  main_name,
+        SUM( amount ) totalamount
+        FROM
+        atw_po_item api
+        LEFT JOIN atw_item ai ON api.item_code = ai.CODE
+        left join atw_supplier ass on api.sup_code=ass.code
+        WHERE
+        u9_status = '自然关闭'
+        <if test="req !=null and req.creatimeEnd !=null and req.creatimeEnd !='' ">
+            AND DATE_FORMAT ( api.create_time, '%Y-%m-%d' ) &lt;= subdate( DATE( #{req.creatimeEnd} ), INTERVAL 1 YEAR )
+        </if>
+        <if test="req !=null and req.creatimeStart !=null and req.creatimeStart !='' ">
+            AND DATE_FORMAT ( api.create_time, '%Y-%m-%d' ) &gt;= subdate( DATE( #{req.creatimeStart} ), INTERVAL 1 YEAR )
+        </if>
+        <if test="req !=null and req.supName !=null and req.supName !='' ">
+            and sup_name=#{req.supName}
+        </if>
+
+        GROUP BY
+        api.sup_name
+
+    </select>
+    <select id="getOrderAmountOtdLastYear2List"
+            resultType="org.springblade.modules.report.entity.OrderAmountOtdReport">
+
+        SELECT
+        IFNULL(sum( totalamount ) ,0)    totalamount
+        FROM
+        (
+        SELECT
+        api.sup_name,
+        ass.template_type,
+        ass.type_name main_name,
+        SUM( amount ) totalamount
+        FROM
+        atw_po_item api
+        LEFT JOIN atw_item ai ON api.item_code = ai.
+        CODE LEFT JOIN atw_supplier ass ON api.sup_code = ass.CODE
+        WHERE
+        u9_status = '自然关闭'
+        <if test="req !=null and req.supName !=null and req.supName !='' ">
+            and sup_name=#{req.supName}
+        </if>
+        AND year(api.create_time)=year(date_sub(now(),interval 1 year))
+        GROUP BY
+        api.sup_name
+        ) totalamount
+
+    </select>
+    <select id="getOrderAmountOtdtotalList"
+            resultType="org.springblade.modules.report.entity.OrderAmountOtdReport">
+        SELECT
+        IFNULL(sum( totalamount ) ,0)    totalamount
+        FROM
+        (
+        SELECT
+        api.sup_name,
+        ass.template_type,
+        ass.type_name  main_name,
+        SUM( amount ) totalamount
+        FROM
+        atw_po_item api
+        LEFT JOIN atw_item ai ON api.item_code = ai.CODE
+        left join atw_supplier ass on api.sup_code=ass.code
+        WHERE
+        u9_status = '自然关闭'
+        <if test="req !=null and req.creatimeEnd !=null and req.creatimeEnd !='' ">
+            AND DATE_FORMAT ( api.create_time, '%Y-%m-%d' ) &lt;= #{req.creatimeEnd}
+        </if>
+        <if test="req !=null and req.creatimeStart !=null and req.creatimeStart !='' ">
+            AND DATE_FORMAT ( api.create_time, '%Y-%m-%d' ) &gt;= #{req.creatimeStart}
+        </if>
+        <if test="req !=null and req.mainName !=null and req.mainName !='' ">
+            AND ass.type_name= #{req.mainName}
+        </if>
+        GROUP BY
+        api.sup_name
+        ) totalamount
+
+    </select>
+    <select id="getMouldManagementReport" resultType="org.springblade.modules.report.entity.MouldManagementEntity">
+        select * from mould_management where is_deleted=0
+
+        <if test="req !=null and req.mouldStandards !=null and req.mouldStandards !='' ">
+            AND mould_standards like concat('%', #{req.mouldStandards}, '%')
+        </if>
+    </select>
+
+
+
+    <select id="getMouldManagementReportList"
+            resultType="org.springblade.modules.report.entity.MouldManagementEntity">
+        select * from mould_management where is_deleted=0
+
+        <if test="req !=null and req.mouldStandards !=null and req.mouldStandards !='' ">
+            AND mould_standards like concat('%', #{req.mouldStandards}, '%')
+        </if>
+    </select>
+    <select id="getJitManagementReport" resultType="org.springblade.modules.report.entity.JitManagementEntity">
+        select * from jit_management where is_deleted=0
+        <if test="req !=null and req.id !=null and req.id !='' ">
+            AND id = #{ req.id}
+        </if>
+
+    </select>
+    <select id="getJitManagementReportList" resultType="org.springblade.modules.report.entity.JitManagementEntity">
+        select * from jit_management where is_deleted=0
+        <if test="req !=null and req.id !=null and req.id !='' ">
+            AND id = #{ req.id}
+        </if>
+    </select>
+
+    <select id="getMouldManagementWholeReport"  resultType="org.springblade.modules.report.entity.MouldManagementWholeEntity">
+        select * from mould_management_whole where 1=1
+        <if test="null != req.id and '' != req.id ">
+            and id = #{req.id}
+        </if>
+        <if test="null != req.valveType and '' != req.valveType ">
+            and valve_type = #{req.valveType}
+        </if>
+        <if test="null != req.material and '' != req.material ">
+            and material = #{req.material}
+        </if>
+        <if test="null != req.zjSupCode and '' != req.zjSupCode ">
+            and zj_sup_code = #{req.zjSupCode}
+        </if>
+        <if test="null != req.mjSupCode and '' != req.mjSupCode ">
+            and mj_sup_code = #{req.mjSupCode}
+        </if>
+        <if test="null != req.sampleMaterial and '' != req.sampleMaterial ">
+            and sample_material = #{req.sampleMaterial}
+        </if>
+        <if test="null != req.isFinish and '' != req.isFinish ">
+            and real_date10 is not null
+        </if>
+        <if test="null != req.isOverdue and '' != req.isOverdue ">
+            and ((real_date10 is null and plan_date10&lt;=DATE_FORMAT(NOW(),'%Y-%m-%d'))
+            or (real_date9 is null and plan_date9&lt;=DATE_FORMAT(NOW(),'%Y-%m-%d'))
+            or (real_date8 is null and plan_date8&lt;=DATE_FORMAT(NOW(),'%Y-%m-%d'))
+            or (real_date7 is null and plan_date7&lt;=DATE_FORMAT(NOW(),'%Y-%m-%d'))
+            or (real_date6 is null and plan_date6&lt;=DATE_FORMAT(NOW(),'%Y-%m-%d'))
+            or (real_date5 is null and plan_date5&lt;=DATE_FORMAT(NOW(),'%Y-%m-%d'))
+            or (real_date4 is null and plan_date4&lt;=DATE_FORMAT(NOW(),'%Y-%m-%d'))
+            or (real_date3 is null and plan_date3&lt;=DATE_FORMAT(NOW(),'%Y-%m-%d'))
+            or (real_date2 is null and plan_date2&lt;=DATE_FORMAT(NOW(),'%Y-%m-%d'))
+            or (real_date1 is null and plan_date1&lt;=DATE_FORMAT(NOW(),'%Y-%m-%d'))
+            )
+        </if>
+        <if test="null != req.creatimeStart and '' != req.creatimeStart and  (null == req.creatimeEnd or '' == req.creatimeEnd)">
+            and (plan_date1 &gt;= #{req.creatimeStart}
+            or plan_date2 &gt;= #{req.creatimeStart}
+            or plan_date3 &gt;= #{req.creatimeStart}
+            or plan_date4 &gt;= #{req.creatimeStart}
+            or plan_date5 &gt;= #{req.creatimeStart}
+            or plan_date6 &gt;= #{req.creatimeStart}
+            or plan_date7 &gt;= #{req.creatimeStart}
+            or plan_date8 &gt;= #{req.creatimeStart}
+            or plan_date9 &gt;= #{req.creatimeStart}
+            or plan_date10 &gt;= #{req.creatimeStart})
+        </if>
+        <if test="null != req.creatimeEnd and '' != req.creatimeEnd and (null == req.creatimeStart or '' == req.creatimeStart)">
+            and (plan_date1 &lt;= #{req.creatimeEnd}
+            or plan_date2 &lt;= #{req.creatimeEnd}
+            or plan_date3 &lt;= #{req.creatimeEnd}
+            or plan_date4 &lt;= #{req.creatimeEnd}
+            or plan_date5 &lt;= #{req.creatimeEnd}
+            or plan_date6 &lt;= #{req.creatimeEnd}
+            or plan_date7 &lt;= #{req.creatimeEnd}
+            or plan_date8 &lt;= #{req.creatimeEnd}
+            or plan_date9 &lt;= #{req.creatimeEnd}
+            or plan_date10 &lt;= #{req.creatimeEnd})
+        </if>
+
+        <if test="null != req.creatimeEnd and '' != req.creatimeEnd and  null != req.creatimeStart and '' != req.creatimeStart">
+            and ((plan_date1 &gt;= #{req.creatimeStart} and plan_date1 &lt;= #{req.creatimeEnd})
+            or (plan_date2 &gt;= #{req.creatimeStart} and plan_date2 &lt;= #{req.creatimeEnd})
+            or (plan_date3 &gt;= #{req.creatimeStart} and plan_date3 &lt;= #{req.creatimeEnd})
+            or (plan_date4 &gt;= #{req.creatimeStart} and plan_date4 &lt;= #{req.creatimeEnd})
+            or (plan_date5 &gt;= #{req.creatimeStart} and plan_date5 &lt;= #{req.creatimeEnd})
+            or (plan_date6 &gt;= #{req.creatimeStart} and plan_date6 &lt;= #{req.creatimeEnd})
+            or (plan_date7 &gt;= #{req.creatimeStart} and plan_date7 &lt;= #{req.creatimeEnd})
+            or (plan_date8 &gt;= #{req.creatimeStart} and plan_date8 &lt;= #{req.creatimeEnd})
+            or (plan_date9 &gt;= #{req.creatimeStart} and plan_date9 &lt;= #{req.creatimeEnd})
+            or (plan_date10 &gt;= #{req.creatimeStart} and plan_date10 &lt;= #{req.creatimeEnd}))
+        </if>
+    </select>
+
+    <insert id="insertMouldManagementWholeReport" parameterType="org.springblade.modules.report.entity.MouldManagementWholeEntity">
+        INSERT INTO mould_management_whole
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+
+            <if test="null != valveType and '' != valveType">
+                valve_type,
+            </if>
+            <if test="null != material and '' != material">
+                material,
+            </if>
+            <if test="null != series and '' != series">
+                series,
+            </if>
+            <if test="null != zjSupCode and '' != zjSupCode">
+                zj_sup_code,
+            </if>
+            <if test="null != mjSupCode and '' != mjSupCode">
+                mj_sup_code,
+            </if>
+            <if test="null != sampleMaterial and '' != sampleMaterial">
+                sample_material,
+            </if>
+            <if test="null != mjVersion and '' != mjVersion">
+                mj_version,
+            </if>
+            <if test="null != mjStatus and '' != mjStatus">
+                mj_status,
+            </if>
+            <if test="null != sampleApplyDate ">
+                sample_apply_date,
+            </if>
+            <if test="null != prDate ">
+                pr_date,
+            </if>
+            <if test="null != mjPaperUpdate ">
+                mj_paper_update,
+            </if>
+            <if test="null != planDate1 ">
+                plan_date1,
+            </if>
+            <if test="null != realDate1 ">
+                real_date1,
+            </if>
+            <if test="null != planDate2 ">
+                plan_date2,
+            </if>
+            <if test="null != realDate2 ">
+                real_date2,
+            </if>
+            <if test="null != planDate3 ">
+                plan_date3,
+            </if>
+            <if test="null != realDate3 ">
+                real_date3,
+            </if>
+            <if test="null != planDate4 ">
+                plan_date4,
+            </if>
+            <if test="null != realDate4 ">
+                real_date4,
+            </if>
+            <if test="null != planDate5 ">
+                plan_date5,
+            </if>
+            <if test="null != realDate5 ">
+                real_date5,
+            </if>
+            <if test="null != planDate6 ">
+                plan_date6,
+            </if>
+            <if test="null != realDate6 ">
+                real_date6,
+            </if>
+            <if test="null != planDate7 ">
+                plan_date7,
+            </if>
+            <if test="null != realDate7 ">
+                real_date7,
+            </if>
+            <if test="null != planDate8 ">
+                plan_date8,
+            </if>
+            <if test="null != realDate8 ">
+                real_date8,
+            </if>
+            <if test="null != planDate9 ">
+                plan_date9,
+            </if>
+            <if test="null != realDate9 ">
+                real_date9,
+            </if>
+            <if test="null != planDate10 ">
+                plan_date10,
+            </if>
+            <if test="null != realDate10 ">
+                real_date10,
+            </if>
+            <if test="null != smallLotTest and '' != smallLotTest">
+                small_lot_test,
+            </if>
+            <if test="null != maturity and '' != maturity">
+                maturity,
+            </if>
+            <if test="null != priority and '' != priority">
+                priority,
+            </if>
+            <if test="null != projectLinkNum and '' != projectLinkNum">
+                project_link_num,
+            </if>
+            <if test="null != remark and '' != remark">
+                remark,
+            </if>
+            <if test="null != currentState and '' != currentState">
+                current_state,
+            </if>
+            <if test="null != problemDesc and '' != problemDesc">
+                problem_desc,
+            </if>
+            <if test="null != solution and '' != solution">
+                solution,
+            </if>
+            <if test="null != createUser and '' != createUser">
+                create_user,
+            </if>
+            <if test="null != createDept and '' != createDept">
+                create_dept,
+            </if>
+            <if test="null != createTime ">
+                create_time,
+            </if>
+            <if test="null != updateUser and '' != updateUser">
+                update_user,
+            </if>
+            <if test="null != updateTime ">
+                update_time,
+            </if>
+            <if test="null != status and '' != status">
+                status,
+            </if>
+            <if test="null != isDeleted and '' != isDeleted">
+                is_deleted
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="null != valveType and '' != valveType">
+                #{valveType},
+            </if>
+            <if test="null != material and '' != material">
+                #{material},
+            </if>
+            <if test="null != series and '' != series">
+                #{series},
+            </if>
+            <if test="null != zjSupCode and '' != zjSupCode">
+                #{zjSupCode},
+            </if>
+            <if test="null != mjSupCode and '' != mjSupCode">
+                #{mjSupCode},
+            </if>
+            <if test="null != sampleMaterial and '' != sampleMaterial">
+                #{sampleMaterial},
+            </if>
+            <if test="null != mjVersion and '' != mjVersion">
+                #{mjVersion},
+            </if>
+            <if test="null != mjStatus and '' != mjStatus">
+                #{mjStatus},
+            </if>
+            <if test="null != sampleApplyDate ">
+                #{sampleApplyDate},
+            </if>
+            <if test="null != prDate ">
+                #{prDate},
+            </if>
+            <if test="null != mjPaperUpdate ">
+                #{mjPaperUpdate},
+            </if>
+            <if test="null != planDate1 ">
+                #{planDate1},
+            </if>
+            <if test="null != realDate1 ">
+                #{realDate1},
+            </if>
+            <if test="null != planDate2 ">
+                #{planDate2},
+            </if>
+            <if test="null != realDate2 ">
+                #{realDate2},
+            </if>
+            <if test="null != planDate3 ">
+                #{planDate3},
+            </if>
+            <if test="null != realDate3 ">
+                #{realDate3},
+            </if>
+            <if test="null != planDate4 ">
+                #{planDate4},
+            </if>
+            <if test="null != realDate4 ">
+                #{realDate4},
+            </if>
+            <if test="null != planDate5 ">
+                #{planDate5},
+            </if>
+            <if test="null != realDate5 ">
+                #{realDate5},
+            </if>
+            <if test="null != planDate6 ">
+                #{planDate6},
+            </if>
+            <if test="null != realDate6 ">
+                #{realDate6},
+            </if>
+            <if test="null != planDate7 ">
+                #{planDate7},
+            </if>
+            <if test="null != realDate7 ">
+                #{realDate7},
+            </if>
+            <if test="null != planDate8 ">
+                #{planDate8},
+            </if>
+            <if test="null != realDate8 ">
+                #{realDate8},
+            </if>
+            <if test="null != planDate9 ">
+                #{planDate9},
+            </if>
+            <if test="null != realDate9 ">
+                #{realDate9},
+            </if>
+            <if test="null != planDate10 ">
+                #{planDate10},
+            </if>
+            <if test="null != realDate10 ">
+                #{realDate10},
+            </if>
+            <if test="null != smallLotTest and '' != smallLotTest">
+                #{smallLotTest},
+            </if>
+            <if test="null != maturity and '' != maturity">
+                #{maturity},
+            </if>
+            <if test="null != priority and '' != priority">
+                #{priority},
+            </if>
+            <if test="null != projectLinkNum and '' != projectLinkNum">
+                #{projectLinkNum},
+            </if>
+            <if test="null != remark and '' != remark">
+                #{remark},
+            </if>
+            <if test="null != currentState and '' != currentState">
+                #{currentState},
+            </if>
+            <if test="null != problemDesc and '' != problemDesc">
+                #{problemDesc},
+            </if>
+            <if test="null != solution and '' != solution">
+                #{solution},
+            </if>
+            <if test="null != createUser and '' != createUser">
+                #{createUser},
+            </if>
+            <if test="null != createDept and '' != createDept">
+                #{createDept},
+            </if>
+            <if test="null != createTime ">
+                #{createTime},
+            </if>
+            <if test="null != updateUser and '' != updateUser">
+                #{updateUser},
+            </if>
+            <if test="null != updateTime ">
+                #{updateTime},
+            </if>
+            <if test="null != status and '' != status">
+                #{status},
+            </if>
+            <if test="null != isDeleted and '' != isDeleted">
+                #{isDeleted}
+            </if>
+        </trim>
+    </insert>
+
+    <update id="updateMouldManagementWholeReport" parameterType="org.springblade.modules.report.entity.MouldManagementWholeEntity">
+        UPDATE mould_management_whole
+        <set>
+            <if test="null != valveType and '' != valveType">valve_type = #{valveType},</if>
+            <if test="null != material and '' != material">material = #{material},</if>
+            <if test="null != series and '' != series">series = #{series},</if>
+            <if test="null != zjSupCode and '' != zjSupCode">zj_sup_code = #{zjSupCode},</if>
+            <if test="null != mjSupCode and '' != mjSupCode">mj_sup_code = #{mjSupCode},</if>
+            <if test="null != sampleMaterial and '' != sampleMaterial">sample_material = #{sampleMaterial},</if>
+            <if test="null != mjVersion and '' != mjVersion">mj_version = #{mjVersion},</if>
+            <if test="null != mjStatus and '' != mjStatus">mj_status = #{mjStatus},</if>
+            <if test="null != sampleApplyDate ">sample_apply_date = #{sampleApplyDate},</if>
+            <if test="null != prDate ">pr_date = #{prDate},</if>
+            <if test="null != mjPaperUpdate ">mj_paper_update = #{mjPaperUpdate},</if>
+            <if test="null != planDate1 ">plan_date1 = #{planDate1},</if>
+            <if test="null != realDate1 ">real_date1 = #{realDate1},</if>
+            <if test="null != planDate2 ">plan_date2 = #{planDate2},</if>
+            <if test="null != realDate2 ">real_date2 = #{realDate2},</if>
+            <if test="null != planDate3 ">plan_date3 = #{planDate3},</if>
+            <if test="null != realDate3 ">real_date3 = #{realDate3},</if>
+            <if test="null != planDate4 ">plan_date4 = #{planDate4},</if>
+            <if test="null != realDate4 ">real_date4 = #{realDate4},</if>
+            <if test="null != planDate5 ">plan_date5 = #{planDate5},</if>
+            <if test="null != realDate5 ">real_date5 = #{realDate5},</if>
+            <if test="null != planDate6 ">plan_date6 = #{planDate6},</if>
+            <if test="null != realDate6 ">real_date6 = #{realDate6},</if>
+            <if test="null != planDate7 ">plan_date7 = #{planDate7},</if>
+            <if test="null != realDate7 ">real_date7 = #{realDate7},</if>
+            <if test="null != planDate8 ">plan_date8 = #{planDate8},</if>
+            <if test="null != realDate8 ">real_date8 = #{realDate8},</if>
+            <if test="null != planDate9 ">plan_date9 = #{planDate9},</if>
+            <if test="null != realDate9 ">real_date9 = #{realDate9},</if>
+            <if test="null != planDate10 ">plan_date10 = #{planDate10},</if>
+            <if test="null != realDate10 ">real_date10 = #{realDate10},</if>
+            <if test="null != smallLotTest and '' != smallLotTest">small_lot_test = #{smallLotTest},</if>
+            <if test="null != maturity and '' != maturity">maturity = #{maturity},</if>
+            <if test="null != priority and '' != priority">priority = #{priority},</if>
+            <if test="null != projectLinkNum and '' != projectLinkNum">project_link_num = #{projectLinkNum},</if>
+            <if test="null != remark and '' != remark">remark = #{remark},</if>
+            <if test="null != currentState and '' != currentState">current_state = #{currentState},</if>
+            <if test="null != problemDesc and '' != problemDesc">problem_desc = #{problemDesc},</if>
+            <if test="null != solution and '' != solution">solution = #{solution},</if>
+            <if test="null != createUser and '' != createUser">create_user = #{createUser},</if>
+            <if test="null != createDept and '' != createDept">create_dept = #{createDept},</if>
+            <if test="null != createTime ">create_time = #{createTime},</if>
+            <if test="null != updateUser and '' != updateUser">update_user = #{updateUser},</if>
+            <if test="null != updateTime ">update_time = #{updateTime},</if>
+            <if test="null != status and '' != status">status = #{status},</if>
+            <if test="null != isDeleted and '' != isDeleted">is_deleted = #{isDeleted}</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+
+
+</mapper>

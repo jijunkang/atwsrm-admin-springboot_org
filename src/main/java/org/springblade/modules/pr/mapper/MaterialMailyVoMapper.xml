@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.pr.mapper.MaterialMailyVoMapper">
+
+    <select id="selectItemName" resultType="org.springblade.modules.pr.vo.MaterialMaliyVO">
+        select * from atw_maily_material  where  `external_diameter` = #{externalDiameter} and `internal_diamete` = #{internalDiamete}
+    </select>
+    <select id="selectTheMaterial" resultType="java.lang.Double">
+        SELECT `the_material_price` FROM atw_maily_material_price WHERE the_material  =  #{theMaterial} and external_diameter_range = #{range}
+    </select>
+    <select id="selectSprayingPrice" resultType="org.springblade.modules.pr.vo.MaterialMaliyVO">
+        select  * from atw_maily_spraying_price where coating  =  #{coating}
+    </select>
+
+    <select id="selectProcessPrice" resultType="org.springblade.modules.pr.vo.MaterialMaliyVO">
+        select  * from  atw_maily_processing_fee
+        where
+            `external_diameter` = #{externalDiameter} and
+            `internal_diamete` = #{internalDiamete} and
+            `length` between #{length} and #{length} +30 limit 1
+    </select>
+    <select id="selectLengthProcessPrice" resultType="org.springblade.modules.pr.vo.MaterialMaliyVO">
+        select  * from atw_maily_processing_fee  where length between #{length} and #{length} +30 limit 1
+    </select>
+
+
+    <!--分割线-->
+    <select id="selectItemNameMin" resultType="org.springblade.modules.pr.vo.MaterialMaliyVO">
+        select * from atw_maily_material where `external_diameter` between #{externalDiameter} and #{externalDiameter}+8 and `internal_diamete`  between #{internalDiamete}-5 and #{internalDiamete}
+    </select>
+
+    <select id="selectMinPrice" resultType="java.lang.Double">
+        SELECT `the_material_price` FROM atw_maily_material_price WHERE the_material  =  #{theMaterial} and external_diameter_range = #{range}
+    </select>
+    <select id="selectSprayingPriceMin" resultType="org.springblade.modules.pr.vo.MaterialMaliyVO"
+            parameterType="java.lang.String">
+        select  * from atw_maily_spraying_price where coating  =  #{coating}
+    </select>
+    <!--and  `supplier_name` = #{supplierName}-->
+    <select id="selectItemNameMax" resultType="org.springblade.modules.pr.vo.MaterialMaliyVO">
+        select *
+        from atw_maily_material
+        where `external_diameter` between #{externalDiameter} and #{externalDiameter} + 10
+          and `internal_diamete` between #{internalDiamete} - 10 and #{internalDiamete}
+    </select>
+    <select id="selectMaxPrice" resultType="java.lang.Double">
+        SELECT * FROM atw_maily_material_price WHERE the_material  =  #{theMaterial} and external_diameter_range = #{range}
+    </select>
+    <select id="selectSprayingMaxPrice" resultType="org.springblade.modules.pr.vo.MaterialMaliyVO"
+            parameterType="java.lang.String">
+        select  * from atw_maily_spraying_price
+        where
+            coating  =  #{coating} and  the_material  =  #{theMaterial}
+    </select>
+    <select id="selectProcessMaxPrice" resultType="org.springblade.modules.pr.vo.MaterialMaliyVO">
+        select  * from  atw_maily_processing_fee
+        where
+            `external_diameter` = #{externalDiameter} and
+            `internal_diamete` = #{internalDiamete} and
+            `length` between #{length} and #{length} +30 limit 1
+    </select>
+    <select id="selectMaxProcessPrice" resultType="org.springblade.modules.pr.vo.MaterialMaliyVO">
+        select  * from  atw_maily_processing_fee
+        where
+            `external_diameter` = #{externalDiameter} and
+            `internal_diamete` = #{internalDiamete} and
+            `length` between #{length} and #{length} +30 limit 1
+    </select>
+    <!--查找多家供应商-->
+    <select id="selectSupName" resultType="org.springblade.modules.pr.vo.MaterialMaliyVO">
+        select * from atw_maily_spraying_price where   coating  =  #{coating} and FIND_IN_SET(#{theMaterial},the_material)
+    </select>
+
+
+    <select id="selectMax" resultType="org.springblade.modules.pr.vo.MaterialMaliyVO">
+        select  * from  `atw_maily_material`
+        where `external_diameter` between #{externalDiameter} and #{externalDiameter} + 10
+          and `internal_diamete` between #{internalDiamete} - 10 and #{internalDiamete}
+    </select>
+    <select id="selectPrice" resultType="java.lang.Double">
+        select  `coating_price` from atw_maily_spraying_price
+        where
+            coating  =  #{coating} and the_material  =  #{theMaterial}
+    </select>
+    <select id="selectMaterilaList" resultType="org.springblade.modules.pr.vo.MaterialMaliyVO">
+        select * from atw_maily_spraying_price where   coating  =  #{coating} and FIND_IN_SET(#{theMaterial},the_material)
+    </select>
+
+
+    <!--材料费-->
+    <select id="selectMaterialPrice" resultType="org.springblade.modules.pr.vo.MaterialMaliyVO">
+        select * from atw_maily_material  where  `external_diameter` = #{externalDiameter} and `internal_diamete` = #{internalDiamete}
+    </select>
+    <select id="selectSupName8" resultType="org.springblade.modules.pr.vo.MaterialMaliyVO">
+        select * from atw_maily_material where `external_diameter` between #{externalDiameter} and #{externalDiameter}+8 and `internal_diamete`  between #{internalDiamete}-5 and #{internalDiamete}  ORDER BY `external_diameter` ASC,`internal_diamete` desc limit 1
+    </select>
+    <select id="selectSupName10" resultType="org.springblade.modules.pr.vo.MaterialMaliyVO">
+        select * from atw_maily_material where `external_diameter` between #{externalDiameter} and #{externalDiameter}+10 and `internal_diamete`  between #{internalDiamete}-10 and #{internalDiamete}  ORDER BY `external_diameter` ASC,`internal_diamete` desc limit 1
+    </select>
+    <select id="selectSprayList" resultType="org.springblade.modules.pr.vo.MaterialMaliyVO">
+        select  * from atw_maily_spraying_price where coating  =  #{coating} and supplier_code =#{supplierCode}
+    </select>
+    <select id="selectSprayPrice" resultType="java.lang.Double">
+        select  `coating_price` from atw_maily_spraying_price
+        where
+            coating  =  #{coating} and the_material  =  #{theMaterial}  and supplier_code =#{supplierCode}
+    </select>
+    <select id="selectTheMaterialPrice" resultType="java.lang.Double">
+       SELECT
+        the_material_price
+        FROM
+        atw_maily_material_price
+        WHERE
+        supplier_code = #{supplierCode}
+        AND
+        IF
+        (
+        external_diameter_range != '',
+        IF
+        (
+        external_diameter_range IS NOT NULL,
+        SUBSTRING_INDEX( external_diameter_range, ',', 1 ) &lt; #{range}+0 AND SUBSTRING_INDEX( external_diameter_range, ',',- 1 ) >= #{range}+0,1 = 1 ),1=1)
+        AND FIND_IN_SET(#{theMaterial},the_material)
+    </select>
+
+    <select id="selectMaterialPriceVO"
+            resultType="org.springblade.modules.pr.entity.ItemInfoMaterialPriceMaliy">
+        SELECT
+            *
+        FROM
+            atw_maily_material_price
+        WHERE
+            supplier_code = #{supplierCode}
+          AND
+            IF
+                (
+                external_diameter_range != '',
+                IF
+                    (
+                    external_diameter_range IS NOT NULL,
+                    SUBSTRING_INDEX( external_diameter_range, ',', 1 ) &lt; #{range}+0 AND SUBSTRING_INDEX( external_diameter_range, ',',- 1 ) >= #{range}+0,1 = 1 ),1=1)
+          AND FIND_IN_SET(#{theMaterial},the_material)
+
+
+    </select>
+
+    <select id="selectProcessPrices" resultType="org.springblade.modules.pr.vo.MaterialMaliyVO">
+        select  * from  atw_maily_processing_fee
+        where
+            `external_diameter` = #{externalDiameter} and
+            `internal_diamete` = #{internalDiamete} and
+            supplier_code =#{supplierCode} and
+            `length` between #{length} and #{length} +30 ORDER BY length ASC limit 1
+    </select>
+    <select id="selectBySprayPrice" resultType="java.lang.Double">
+        select  `coating_price` from atw_maily_spraying_price where coating  =  #{coating} and supplier_code = #{supplierCode} and  FIND_IN_SET(#{theMaterial},the_material)
+    </select>
+    <select id="selectMaterial" resultType="java.lang.Double">
+        select * from  atw_maily_material_price where `the_material` = '20' and supplier_code = #{supplierCode}
+    </select>
+    <select id="selectExter" resultType="org.springblade.modules.pr.vo.MaterialMaliyVO">
+        select * from atw_maily_material where `external_diameter` <![CDATA[ >= ]]> #{externalDiameter}  ORDER BY `external_diameter` ASC  limit 1
+    </select>
+    <select id="selectInner" resultType="org.springblade.modules.pr.vo.MaterialMaliyVO">
+        select * from  atw_maily_material where `external_diameter`=#{externalDiameter} and   `internal_diamete` <![CDATA[ <= ]]> #{internalDiamete} ORDER BY `internal_diamete` desc limit 1
+    </select>
+    <select id="selectExter10inner" resultType="org.springblade.modules.pr.vo.MaterialMaliyVO">
+        select * from atw_maily_material where `external_diameter` = #{externalDiameter}+10 and `internal_diamete` = #{internalDiamete}-10
+    </select>
+    <select id="selectTheMaterialPriceMax" resultType="java.lang.Double">
+        SELECT
+        the_material_price
+        FROM
+        atw_maily_material_price
+        WHERE
+        supplier_code = #{supplierCode}
+        AND
+        IF
+        (
+        external_diameter_range != '',
+        IF
+        (
+        external_diameter_range IS NOT NULL,
+        SUBSTRING_INDEX( external_diameter_range, ',', 1 ) &lt; #{range}+0 AND SUBSTRING_INDEX( external_diameter_range, ',',- 1 ) >= #{range}+0,1 = 1 ),1=1)
+        AND FIND_IN_SET(#{theMaterial},the_material)
+    </select>
+    <select id="selectBySprayPriceMax" resultType="java.lang.Double">
+        select  `coating_price` from atw_maily_spraying_price where coating  =  #{coating} and  FIND_IN_SET(#{theMaterial},the_material)
+    </select>
+    <select id="selectProcessPricesMax" resultType="org.springblade.modules.pr.vo.MaterialMaliyVO">
+        select  * from  atw_maily_processing_fee
+        where
+            `external_diameter` = #{externalDiameter} and
+            `internal_diamete` = #{internalDiamete} and
+            `supplier_code` = #{supplierCode} and
+            `length` between #{length} and #{length} +30 ORDER BY length ASC limit 1
+    </select>
+
+
+</mapper>

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.po.mapper.CraftCtrlNodeMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="dictResultMap" type="org.springblade.modules.po.entity.CraftCtrlNodeEntity">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="parent_id" property="parentId"/>
+        <result column="code" property="code"/>
+        <result column="name" property="name"/>
+        <result column="sort" property="sort"/>
+        <result column="remark" property="remark"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+    <resultMap id="treeNodeResultMap" type="org.springblade.core.tool.node.TreeNode">
+        <id column="id" property="id"/>
+        <result column="parent_id" property="parentId"/>
+        <result column="title" property="title"/>
+        <result column="value" property="value"/>
+        <result column="key" property="key"/>
+    </resultMap>
+
+    <select id="getValue" resultType="java.lang.String">
+        select
+            dict_value
+        from blade_dict_biz where code = #{param1} and dict_key = #{param2} and is_deleted = 0
+    </select>
+
+    <!-- oracle 版本 -->
+    <!--<select id="getValue" resultType="java.lang.String">
+        select
+            dict_value
+        from blade_dict_biz where code = #{param1, jdbcType=VARCHAR} and dict_key = #{param2} and dict_key >= 0  rownum 1
+    </select>-->
+
+    <select id="getList" resultMap="dictResultMap">
+        select code, name, sort, remark from atw_craftctrl_node where code = #{code}  and is_sealed = 0 and is_deleted = 0
+    </select>
+
+    <select id="tree" resultMap="treeNodeResultMap">
+        select id, parent_id, name as title, id as "value", id as "key" from atw_craftctrl_node where is_deleted = 0
+    </select>
+
+    <select id="getMaxCode" resultType="java.lang.String">
+        SELECT MAX(code) FROM atw_craftctrl_node
+    </select>
+
+    <select id="getdtos" resultType="org.springblade.modules.po.dto.CraftCtrlNodeDTO">
+        SELECT
+            a.NAME AS parentName,
+            b.sort AS sort,
+            b.NAME AS childName ,
+            b.remark AS remark
+        FROM
+            atw_craftctrl_node a
+            INNER JOIN atw_craftctrl_node b ON a.id = b.parent_id
+        WHERE
+        a.is_deleted = 0
+        AND b.is_deleted = 0
+        AND a.is_sealed = 0
+        AND b.is_sealed = 0
+        <if test="craftCtrlNodeEntity.name != null and craftCtrlNodeEntity.name != ''">
+            AND a.name LIKE CONCAT('%', #{craftCtrlNodeEntity.name}, '%')
+        </if>
+        ORDER BY
+            a.NAME
+    </select>
+</mapper>

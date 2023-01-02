@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.supplier.mapper.SupplierTendencyMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="supplierTendencyResultMap" type="org.springblade.modules.supplier.entity.SupplierTendency">
+    <id column="id" property="id"/>
+    <result column="create_user" property="createUser"/>
+    <result column="create_dept" property="createDept"/>
+    <result column="create_time" property="createTime"/>
+    <result column="update_user" property="updateUser"/>
+    <result column="update_time" property="updateTime"/>
+    <result column="status" property="status"/>
+    <result column="is_deleted" property="isDeleted"/>
+    <result column="sup_code" property="supCode"/>
+    <result column="sup_name" property="supName"/>
+    <result column="item_code" property="itemCode"/>
+    <result column="item_name" property="itemName"/>
+    <result column="arv_rate" property="arvRate"/>
+    <result column="pass_rate" property="passRate"/>
+    <result column="sync_date" property="syncDate"/>
+</resultMap>
+
+
+
+
+    <!-- 产品合格率-->
+    <select id="getAvgTendency" resultMap="supplierTendencyResultMap">
+        SELECT
+        sup_code,
+        avg( arv_rate ) arv_rate,
+        avg( pass_rate ) pass_rate
+        FROM
+        atw_supplier_tendency
+        WHERE
+            sync_date BETWEEN  #{startTime}
+            AND  #{endTime}
+
+       <if test ="supplierTendency !=null and supplierTendency.supCode !=null">
+           AND sup_code = #{supplierTendency.supCode}
+       </if>
+
+       <if test ="supplierTendency !=null and supplierTendency.supName !=null">
+           AND sup_name = #{supplierTendency.supName}
+       </if>
+
+    </select>
+
+</mapper>

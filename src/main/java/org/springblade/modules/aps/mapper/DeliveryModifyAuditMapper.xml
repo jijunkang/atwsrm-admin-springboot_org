@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.aps.mapper.DeliveryModifyAuditMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="deliveryModifyAuditResultMap" type="org.springblade.modules.aps.entity.DeliveryModifyAuditEntity">
+        <result column="id" property="id"/>
+        <result column="pro_no_sub" property="proNoSub"/>
+        <result column="po_code" property="poCode"/>
+        <result column="po_ln" property="poLn"/>
+        <result column="item_code" property="itemCode"/>
+        <result column="item_name" property="itemName"/>
+        <result column="tc_num" property="tcNum"/>
+        <result column="pro_req_num" property="proReqNum"/>
+        <result column="delivery_date" property="deliveryDate"/>
+        <result column="review_modify_deli_date" property="reviewModifyDeliDate"/>
+        <result column="apply_modify_deli_date" property="applyModifyDeliDate"/>
+        <result column="remark" property="remark"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="sys_log" property="sysLog"/>
+    </resultMap>
+
+
+    <select id="getByProNoSubAndItemCodeLimit" resultType="org.springblade.modules.aps.entity.DeliveryModifyAuditEntity">
+        SELECT * FROM atw_delivery_modify_audit
+        WHERE is_deleted = 0
+        AND pro_no_sub = #{proNoSub}
+        AND item_code = #{itemCode}
+        ORDER BY apply_modify_deli_date DESC
+        LIMIT 1
+    </select>
+
+</mapper>

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.material.mapper.MaterialPriceNewMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="materialPriceResultMap" type="org.springblade.modules.material.entity.MaterialPriceNewEntity">
+        <result column="id" property="id"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+        <result column="material" property="material"/>
+        <result column="technic" property="technic"/>
+        <result column="material_price" property="materialPrice"/>
+        <result column="material_desc" property="materialDesc"/>
+    </resultMap>
+
+
+    <select id="getlist" resultType="org.springblade.modules.material.entity.MaterialPriceNewEntity">
+        SELECT * FROM atw_material_price_new
+        WHERE
+            1=1
+        <if test="req.material != null and req.material !=''">
+            and `material` = #{req.material}
+        </if>
+        <if test="req.technic != null and req.technic !=''">
+            and `technic` = #{req.technic}
+        </if>
+        <if test="req.materialPrice != null and req.materialPrice !=''">
+            and `material_price` = #{req.materialPrice}
+        </if>
+        <if test="req.status != null and req.status !=''">
+            and `status` = #{req.status}
+        </if>
+
+    </select>
+
+    <select id="getlistnohistory" resultType="org.springblade.modules.material.entity.MaterialPriceNewEntity">
+        SELECT * FROM atw_material_price_new
+        WHERE
+        status !=40
+        <if test="req.material != null and req.material !=''">
+            and `material` = #{req.material}
+        </if>
+        <if test="req.technic != null and req.technic !=''">
+            and `technic` = #{req.technic}
+        </if>
+        <if test="req.materialPrice != null and req.materialPrice !=''">
+            and `material_price` = #{req.materialPrice}
+        </if>
+        <if test="req.status != null and req.status !=''">
+            and `status` = #{req.status}
+        </if>
+
+    </select>
+
+</mapper>

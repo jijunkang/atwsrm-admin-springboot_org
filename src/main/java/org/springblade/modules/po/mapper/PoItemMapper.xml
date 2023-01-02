@@ -1,0 +1,1103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.po.mapper.PoItemMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="po_itemResultMap" type="org.springblade.modules.po.entity.PoItemEntity">
+        <result column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="po_id" property="poId"/>
+        <result column="po_code" property="poCode"/>
+        <result column="po_ln" property="poLn"/>
+        <result column="item_code" property="itemCode"/>
+        <result column="item_name" property="itemName"/>
+        <result column="sup_code" property="supCode"/>
+        <result column="sup_name" property="supName"/>
+        <result column="price_num" property="priceNum"/>
+        <result column="price_uom" property="priceUom"/>
+        <result column="tc_num" property="tcNum"/>
+        <result column="tc_uom" property="tcUom"/>
+        <result column="pr_id" property="prId"/>
+        <result column="pr_code" property="prCode"/>
+        <result column="pr_ln" property="prLn"/>
+        <result column="pro_no" property="proNo"/>
+        <result column="sup_confirm_date" property="supConfirmDate"/>
+        <result column="req_date" property="reqDate"/>
+        <result column="sup_update_date" property="supUpdateDate"/>
+        <result column="price" property="price"/>
+        <result column="tax_price" property="taxPrice"/>
+        <result column="amount" property="amount"/>
+        <result column="tax_rate" property="taxRate"/>
+        <result column="purch_code" property="purchCode"/>
+        <result column="purch_name" property="purchName"/>
+        <result column="rcv_goods_num" property="rcvGoodsNum"/>
+        <result column="arv_goods_num" property="arvGoodsNum"/>
+        <result column="pro_goods_num" property="proGoodsNum"/>
+        <result column="return_goods_num" property="returnGoodsNum"/>
+        <result column="fill_goods_num" property="fillGoodsNum"/>
+        <result column="create_at" property="createAt"/>
+        <result column="update_at" property="updateAt"/>
+        <result column="u9_status" property="u9Status"/>
+        <result column="u9_status_code" property="u9StatusCode"/>
+        <result column="last_sync_time" property="lastSyncTime"/>
+        <result column="winbid_time" property="winbidTime"/>
+        <result column="tc_uom_code" property="tcUomCode"/>
+        <result column="price_uom_code" property="priceUomCode"/>
+        <result column="is_persent" property="isPersent"/>
+        <result column="labor_cost" property="laborCost"/>
+        <result column="material_cost" property="materialCost"/>
+        <result column="remark" property="remark"/>
+        <result column="source" property="source"/>
+        <result column="source_id" property="sourceId"/>
+        <result column="end_user" property="endUser"/>
+        <result column="pre_tax_price" property="preTaxPrice"/>
+        <result column="is_deliverables_full" property="isDeliverablesFull"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+    <select id="getHighestPrice" resultType="java.math.BigDecimal">
+        SELECT  MAX(price) FROM  atw_po_item WHERE item_code = #{itemCode} AND status !=10
+    </select>
+
+    <select id="getLowestPrice" resultType="java.math.BigDecimal">
+        SELECT  MIN(price) FROM  atw_po_item WHERE item_code = #{itemCode} AND status !=10
+    </select>
+
+    <select id="getLastPoInfo" resultType="org.springblade.modules.po.entity.PoItemEntity">
+        SELECT  * FROM  atw_po_item WHERE item_code = #{itemCode} AND item_name = #{itemName} AND status !=10
+        order by create_time DESC    limit 1
+    </select>
+
+    <select id="pageWithPr" resultType="org.springblade.modules.po.vo.PoItemVO">
+        SELECT
+            pi.*,
+            pr.biz_type,
+            pr.is_urgent,
+            pr.is_havesup AS is_havesup,
+            IFNULL(pr.available_quantity,outpr.available_quantity) available_quantity,
+            IFNULL(pr.project_occupancy_num,outpr.project_occupancy_num) project_occupancy_num,
+            IFNULL(pr.requisition_remark,outpr.requisition_remark) requisition_remark,
+            ai.purch_mix,
+            ai.stock_lower_limit,
+            ai.is_vmi,
+            ai.s_or_n codeType
+        FROM
+            atw_po_item pi
+        LEFT JOIN atw_u9_pr pr ON left(pi.pr_code,2)='PR'
+            AND pi.pr_code = pr.pr_code
+            AND pi.pr_ln = pr.pr_ln
+            AND pr.is_deleted = 0
+        <if test="poItem.bizType != null and poItem.bizType == 1">
+            AND pr.`biz_type` = 1
+        </if>
+        LEFT JOIN atw_out_pr_item outpr ON left(pi.pr_code,2)='WX'
+            AND pi.pr_code = outpr.pr_code
+            AND outpr.is_deleted = 0
+        LEFT JOIN atw_item ai ON pi.item_code = ai.CODE
+        WHERE
+            pi.is_deleted = 0
+            and (outpr.available_quantity is not null or pr.available_quantity is not null)
+        <if test="poItem.isVmi!= null and poItem.isVmi !=''">
+            AND ai.is_vmi = #{poItem.isVmi}
+        </if>
+        <if test="poItem.orgCode!= null and poItem.orgCode !=''">
+            AND pi.org_code = #{poItem.orgCode}
+        </if>
+        <if test="poItem.bizType != null and poItem.bizType == 0">
+            AND pr.`biz_type` = #{poItem.bizType} and ai.is_vmi = '0'
+        </if>
+        <if test="poItem.bizType != null and poItem.bizType == 1">
+            AND  ai.is_vmi != '1'
+        </if>
+        <if test="poItem.status!= null and poItem.status !=''">
+          AND pi.status = #{poItem.status}
+        </if>
+        <if test="poItem.isByWeight!= null and poItem.isByWeight !=''">
+            AND pi.is_by_weight = #{poItem.isByWeight}
+        </if>
+        <if test="poItem.prCode!= null and poItem.prCode !=''">
+          AND pi.pr_code LIKE CONCAT('%',#{poItem.prCode},'%')
+        </if>
+        <if test="poItem.poCode!= null and poItem.poCode !=''">
+          AND pi.po_code LIKE CONCAT('%',#{poItem.poCode},'%')
+        </if>
+        <if test="poItem.supCode!= null and poItem.supCode !=''">
+          AND pi.sup_code LIKE CONCAT('%',#{poItem.supCode},'%')
+        </if>
+        <if test="poItem.purchCode!= null and poItem.purchCode !=''">
+            and if(left(pi.pr_code,2)='PR',pr.purch_code=#{poItem.purchCode},outpr.purch_code=#{poItem.purchCode})
+        </if>
+        <if test="poItem.supName!= null and poItem.supName !=''">
+          AND pi.sup_name LIKE CONCAT('%',#{poItem.supName},'%')
+        </if>
+        <if test="poItem.itemCode!= null and poItem.itemCode !=''">
+          AND pi.item_code LIKE CONCAT('%',#{poItem.itemCode},'%')
+        </if>
+        <if test="poItem.itemName!= null and poItem.itemName !=''">
+          AND pi.item_name LIKE CONCAT('%',#{poItem.itemName},'%')
+        </if>
+        <if test="poItem.reqDateStart!= null and poItem.reqDateStart !=''">
+          AND pi.req_date &gt;= #{poItem.reqDateStart}
+        </if>
+        <if test="poItem.reqDateEnd!= null and poItem.reqDateEnd !=''">
+            AND pi.req_date &lt;= #{poItem.reqDateEnd}
+        </if>
+
+        <if test="poItem.isDeliverablesFull!= null and poItem.isDeliverablesFull !=''">
+          AND pi.is_deliverables_full LIKE CONCAT('%',#{poItem.isDeliverablesFull},'%')
+        </if>
+        <if test="poItem.isHavesup!= null and poItem.isHavesup !=''">
+          AND pr.is_havesup LIKE CONCAT('%',#{poItem.isHavesup},'%')
+        </if>
+        <if test="poItem.isComBill != null and poItem.isComBill != ''">
+            <choose>
+                <when test="poItem.isComBill == 1">
+                    AND pi.biz_branch IS NOT NULL
+                </when>
+                <otherwise>
+                    AND pi.biz_branch IS NULL
+                </otherwise>
+            </choose>
+        </if>
+        order by pi.pr_code,pi.pr_ln,pi.item_code
+    </select>
+    <!-- 交期偏移 -->
+
+
+    <select id="pageWithItemPoContract" resultType="org.springblade.modules.po.vo.PoItemVO">
+        SELECT
+            id,
+            source_id,
+            last_sync_time,
+            first_delivery_num,
+            sup_code,
+            amount_update,
+            sup_update_date_check,
+            tc_num,
+            item_code,
+            pr_id,
+            is_by_weight,
+            pr_code,
+            last_trace_time,
+            source,
+            pr_ln,
+            pro_no,
+            item_name,
+            purch_code,
+            price,
+            arv_goods_num,
+            sup_name,
+            tc_uom_code,
+            fill_goods_num,
+            price_num,
+            second_delivery_num,
+            weight,
+            u9_status,
+            second_delivery_date,
+            is_persent,
+            last_tracer,
+            u9_status_code,
+            is_sup_update,
+            mo_no,
+            first_delivery_date,
+            tax_rate,
+            tc_uom,
+            is_auto_order,
+            labor_cost,
+            STATUS,
+            operation_date,
+            sup_update_date,
+            sup_confirm_date,
+            remark,
+            material_cost,
+            pro_goods_num,
+            sub_bom_desc,
+            po_id,
+            biz_branch,
+            price_update,
+            third_delivery_num,
+            price_uom,
+            attachment,
+            req_date,
+            is_deleted,
+            po_ln,
+            furnace_no,
+            po_code,
+            trace_name,
+            is_spilt,
+            third_delivery_date,
+            return_goods_num,
+            update_price_remark,
+            winbid_time,
+            pre_tax_price,
+            amount,
+            rcv_goods_num,
+            update_user,
+            update_time,
+            is_deliverables_full,
+            price_uom_code,
+            trace_code,
+            end_user,
+            purch_name,
+            create_dept,
+            create_time,
+            tax_price,
+            create_user ,
+            (select vmi_contract_new from atw_ap_req_settle rs  where rs.req_po_code=po_code and rs.req_po_ln=po_ln LIMIT 1 ) vmi_contract
+        FROM
+            atw_po_item
+        WHERE
+            is_deleted = 0
+        <if test="poItem.poCode != null and poItem.poCode != ''">
+            AND po_code LIKE CONCAT('%', #{poItem.poCode} ,'%')
+        </if>
+
+
+    </select>
+
+    <select id="getPoItemReqRepotTotal" resultType="org.springblade.modules.po.entity.PoItemReqRepotTotal">
+        SELECT a.sup_code, a.sup_name, a.item_code, a.item_name, SUM(a.price_num) AS total, a.pro_no
+        FROM atw_po_item a
+        WHERE
+        (( a.status = 20 AND a.pro_goods_num > 0) OR (a.status = 10 and a.biz_branch IS NOT NULL))
+        AND
+            CASE
+                WHEN a.sup_update_date IS NOT NULL AND a.sup_update_date != ''
+                THEN a.sup_update_date > UNIX_TIMESTAMP(DATE_FORMAT(curdate(),'%Y-%m-%d'))
+                ELSE a.sup_confirm_date > UNIX_TIMESTAMP(DATE_FORMAT(curdate(),'%Y-%m-%d'))
+            END
+        <if test="poItemEntity.supCode != null">
+            AND sup_code LIKE '%${poItemEntity.supCode}%'
+        </if>
+        <if test="poItemEntity.itemCode != null">
+            AND item_code LIKE '%${poItemEntity.itemCode}%'
+        </if>
+        <if test="poItemEntity.supName != null">
+            AND sup_name LIKE '%${poItemEntity.supName}%'
+        </if>
+        <if test="poItemEntity.itemName != null">
+            AND item_name LIKE '%${poItemEntity.itemName}%'
+        </if>
+        GROUP BY a.item_code,a.sup_code
+    </select>
+    <select id="getPoItems" resultType="org.springblade.modules.po.entity.PoItemEntity">
+        SELECT po_code, po_ln
+        FROM atw_po_item
+        WHERE
+        (( status = 20 AND pro_goods_num > 0) OR (status = 10 and biz_branch IS NOT NULL))
+        <if test="supCode != null">
+            AND sup_code =  #{supCode}
+        </if>
+        <if test="itemCode != null">
+            AND item_code =  #{itemCode}
+        </if>
+    </select>
+    <select id="getCurrMouth" resultType="org.springblade.modules.po.dto.PoItemReqRepotCurrMonthDTO">
+        SELECT
+        CASE
+        WHEN sup_update_date IS NOT NULL AND sup_update_date != ''
+        THEN FROM_UNIXTIME( sup_update_date, '%Y-%m-%d' )
+        ELSE FROM_UNIXTIME( sup_confirm_date, '%Y-%m-%d' )
+        END AS `date`,
+        SUM(price_num) AS qty
+        FROM atw_po_item
+        WHERE
+        (( status = 20 AND pro_goods_num > 0) OR (status = 10 and biz_branch IS NOT NULL))
+        <if test="supCode != null">
+            AND sup_code =  #{supCode}
+        </if>
+        <if test="itemCode != null">
+            AND item_code =  #{itemCode}
+        </if>
+        GROUP BY `date`
+        HAVING `date` = #{time}
+    </select>
+    <select id="getNexHalfYear" resultType="org.springblade.modules.po.dto.PoItemReqRepotCurrMonthDTO">
+        SELECT
+        CASE
+        WHEN sup_update_date IS NOT NULL AND sup_update_date != ''
+        THEN FROM_UNIXTIME( sup_update_date, '%Y-%m' )
+        ELSE FROM_UNIXTIME( sup_confirm_date, '%Y-%m' )
+        END AS `date`,
+        SUM(price_num) AS qty
+        FROM atw_po_item a
+        WHERE pro_goods_num > 0
+        AND status = 20
+        AND u9_status_code = 2
+        <if test="supCode != null">
+            AND sup_code =  #{supCode}
+        </if>
+        <if test="itemCode != null">
+            AND item_code =  #{itemCode}
+        </if>
+        GROUP BY `date`
+        HAVING `date` = #{time}
+    </select>
+
+
+    <select id="getNexHalfYearPredict" resultType="org.springblade.modules.po.dto.PoItemReqRepotCurrMonthDTO">
+        SELECT
+        CASE
+        WHEN sup_update_date IS NOT NULL AND sup_update_date != ''
+        THEN FROM_UNIXTIME( sup_update_date, '%Y/%m' )
+        ELSE FROM_UNIXTIME( sup_confirm_date, '%Y/%m' )
+        END AS `date`,
+        SUM(price_num) AS qty
+        FROM atw_po_item
+        WHERE pro_goods_num > 0
+        AND status = 10
+        AND biz_branch IS NOT NULL
+        <if test="supCode != null">
+            AND sup_code =  #{supCode}
+        </if>
+        <if test="itemCode != null">
+            AND item_code =  #{itemCode}
+        </if>
+        GROUP BY `date`
+        HAVING `date` = #{time}
+    </select>
+
+    <select id="connectProNoByPoCode" resultType="java.lang.String">
+        SELECT group_concat(DISTINCT `pro_no`) as pro_no
+        FROM atw_po_item
+        WHERE po_code IN
+        <foreach collection="poCodes" index="index" item="item" open="(" separator="," close=")">
+        #{item}
+    </foreach>
+    </select>
+
+    <select id="getRemindPoCodes" resultType="java.lang.String">
+        SELECT tt.po_code FROM
+        (
+        SELECT po_code , MIN( IFNULL(sup_update_date,sup_confirm_date)) AS confirm_date  FROM atw_po_item
+        WHERE po_code IS NOT NULL  AND `status` = 20
+        GROUP BY po_code
+        HAVING (confirm_date - UNIX_TIMESTAMP() )/(24*60*60) &lt;= ${days}
+        ) tt
+    </select>
+
+    <select id="getPoItemEntity" resultType="org.springblade.modules.po.entity.PoItemEntity">
+        SELECT
+        a.*
+        FROM
+        atw_po_item a
+        INNER JOIN atw_item b ON a.item_code = b.CODE
+        WHERE
+        a.is_deleted = 0
+        AND a.pro_goods_num > 0
+        AND a.STATUS = 20
+        <if test="poItem.craftCtrlCode != null and poItem.craftCtrlCode != ''">
+            AND b.craftctrl_code LIKE CONCAT('%', #{poItem.craftCtrlCode} ,'%')
+        </if>
+        <if test="poItem.isDeliverablesFull != null and poItem.isDeliverablesFull != ''">
+            AND a.is_deliverables_full LIKE CONCAT('%', #{poItem.isDeliverablesFull} ,'%')
+        </if>
+        <if test="poItem.poCode != null and poItem.poCode != ''">
+            AND a.po_code LIKE CONCAT('%', #{poItem.poCode} ,'%')
+        </if>
+        <if test="poItem.supCode != null and poItem.supCode != ''">
+            AND a.sup_code LIKE CONCAT('%', #{poItem.supCode} ,'%')
+        </if>
+        <if test="poItem.supName != null and poItem.supName != ''">
+            AND a.sup_name LIKE CONCAT('%', #{poItem.supName} ,'%')
+        </if>
+        <if test="poItem.itemCode != null and poItem.itemCode != ''">
+            AND a.item_code LIKE CONCAT('%', #{poItem.itemCode} ,'%')
+        </if>
+        <if test="poItem.itemName != null and poItem.itemName != ''">
+            AND a.item_name LIKE CONCAT('%', #{poItem.itemName} ,'%')
+        </if>
+        <if test="poItem.endUser != null and poItem.endUser != ''">
+            AND a.end_user LIKE CONCAT('%', #{poItem.endUser} ,'%')
+        </if>
+        <if test="poItem.isSupUpdate != null and poItem.isSupUpdate != ''">
+            AND a.is_sup_update LIKE CONCAT('%', #{poItem.isSupUpdate} ,'%')
+        </if>
+        <if test="poItem.nodeStatus != null and poItem.nodeStatus != '' and poItem.nodeStatus != 0">
+            AND a.id IN
+            (
+            SELECT po_item_id FROM atw_po_item_craftctrl_node
+            WHERE is_deleted = 0
+            <if test="poItem.nodeStatus == 10">
+                AND (plan_confirm_date IS NULL OR plan_confirm_date = 0)
+            </if>
+            <if test="poItem.nodeStatus == 20">
+                AND (is_complete = 0 and (plan_confirm_date != 0 and  plan_confirm_date  <![CDATA[ <= ]]>  UNIX_TIMESTAMP(CAST(SYSDATE()AS DATE) - INTERVAL 1 DAY)  ))
+            </if>
+            GROUP BY po_item_id
+            )
+        </if>
+    </select>
+
+    <select id="getPoItemEntityPage" resultType="org.springblade.modules.po.entity.PoItemEntity">
+        SELECT
+        a.*
+        FROM
+        atw_po_item a
+        INNER JOIN atw_item b ON a.item_code = b.CODE
+        WHERE
+        a.is_deleted = 0
+        AND a.pro_goods_num > 0
+        AND a.STATUS = 20
+        <if test="poItem.craftCtrlCode != null and poItem.craftCtrlCode != ''">
+            AND b.craftctrl_code LIKE CONCAT('%', #{poItem.craftCtrlCode} ,'%')
+        </if>
+        <if test="poItem.isDeliverablesFull != null and poItem.isDeliverablesFull != ''">
+            AND a.is_deliverables_full LIKE CONCAT('%', #{poItem.isDeliverablesFull} ,'%')
+        </if>
+        <if test="poItem.poCode != null and poItem.poCode != ''">
+            AND a.po_code LIKE CONCAT('%', #{poItem.poCode} ,'%')
+        </if>
+        <if test="poItem.supCode != null and poItem.supCode != ''">
+            AND a.sup_code LIKE CONCAT('%', #{poItem.supCode} ,'%')
+        </if>
+        <if test="poItem.supName != null and poItem.supName != ''">
+            AND a.sup_name LIKE CONCAT('%', #{poItem.supName} ,'%')
+        </if>
+        <if test="poItem.itemCode != null and poItem.itemCode != ''">
+            AND a.item_code LIKE CONCAT('%', #{poItem.itemCode} ,'%')
+        </if>
+        <if test="poItem.itemName != null and poItem.itemName != ''">
+            AND a.item_name LIKE CONCAT('%', #{poItem.itemName} ,'%')
+        </if>
+        <if test="poItem.endUser != null and poItem.endUser != ''">
+            AND a.end_user LIKE CONCAT('%', #{poItem.endUser} ,'%')
+        </if>
+        <if test="poItem.isSupUpdate != null and poItem.isSupUpdate != ''">
+            AND a.is_sup_update LIKE CONCAT('%', #{poItem.isSupUpdate} ,'%')
+        </if>
+        <if test="poItem.nodeStatus != null and poItem.nodeStatus != '' and poItem.nodeStatus != 0">
+            AND a.id IN
+            (
+            SELECT po_item_id FROM atw_po_item_craftctrl_node
+            WHERE is_deleted = 0
+            <if test="poItem.nodeStatus == 10">
+                AND (plan_confirm_date IS NULL OR plan_confirm_date = 0)
+            </if>
+            <if test="poItem.nodeStatus == 20">
+                AND (is_complete = 0 and (plan_confirm_date != 0 and  plan_confirm_date  <![CDATA[ <= ]]>  UNIX_TIMESTAMP(CAST(SYSDATE()AS DATE) - INTERVAL 1 DAY)  ))
+            </if>
+            GROUP BY po_item_id
+            )
+        </if>
+    </select>
+
+
+    <select id="getNewReportTotal" resultType="org.springblade.modules.po.entity.PoItemReqRepotTotal">
+        SELECT
+        supCode,
+        supName,
+        itemCode,
+        itemName
+        FROM
+        (
+        SELECT
+            sup_code AS supCode,sup_name AS supName,item_code AS itemCode,item_name AS itemName
+        FROM
+            atw_aps_report_exdev
+        WHERE is_deleted = 0
+            AND pro_no IS NOT NULL
+            AND delivery_date IS NOT NULL
+        UNION ALL
+        SELECT
+            sup_code AS supCode,sup_name AS supName,item_code AS itemCode,item_name AS itemName
+        FROM
+            atw_po_item
+        WHERE
+            is_deleted = 0
+            AND STATUS = 10
+            AND biz_branch IN ( 'combill', 'combill_ww' )
+        ) AS A
+        WHERE 1=1
+        <if test="poItemEntity.supCode != null and poItemEntity.supCode !=''">
+            AND supCode LIKE CONCAT('%', #{poItemEntity.supCode},'%')
+        </if>
+        <if test="poItemEntity.supName != null and poItemEntity.supName !=''">
+            AND supName LIKE CONCAT('%', #{poItemEntity.supName},'%')
+        </if>
+        <if test="poItemEntity.itemCode != null and poItemEntity.itemCode !=''">
+            AND itemCode LIKE CONCAT('%', #{poItemEntity.itemCode},'%')
+        </if>
+        <if test="poItemEntity.itemName != null and poItemEntity.itemName !=''">
+            AND itemName LIKE CONCAT('%', #{poItemEntity.itemName},'%')
+        </if>
+        GROUP BY supCode,itemCode
+        ORDER BY supCode
+    </select>
+
+    <select id="getNewReportTotal2" resultType="org.springblade.modules.po.entity.PoItemReqRepotTotal2">
+        SELECT
+        sup_code AS supCode,
+        sup_name AS supName,
+        item_code AS itemCode,
+        item_name AS itemName,
+        po_code AS poCode,
+        po_ln AS poLn,
+        pro_no_sub AS proNo
+        FROM
+        atw_aps_report_exdev
+        WHERE
+        is_deleted = 0
+        AND pro_no IS NOT NULL
+        AND delivery_date IS NOT NULL
+        <if test="poItemEntity.supCode != null and poItemEntity.supCode !=''">
+            AND sup_code LIKE CONCAT('%', #{poItemEntity.supCode},'%')
+        </if>
+        <if test="poItemEntity.supName != null and poItemEntity.supName !=''">
+            AND sup_name LIKE CONCAT('%', #{poItemEntity.supName},'%')
+        </if>
+        <if test="poItemEntity.itemCode != null and poItemEntity.itemCode !=''">
+            AND item_code LIKE CONCAT('%', #{poItemEntity.itemCode},'%')
+        </if>
+        <if test="poItemEntity.itemName != null and poItemEntity.itemName !=''">
+            AND item_name LIKE CONCAT('%', #{poItemEntity.itemName},'%')
+        </if>
+        <if test="poItemEntity.proNo != null and poItemEntity.proNo !=''">
+            AND pro_no_sub LIKE CONCAT('%', #{poItemEntity.proNo},'%')
+        </if>
+
+        GROUP BY
+        supCode,
+        itemCode,
+        poCode,
+        poLn,
+        proNo
+        ORDER BY
+        proNo
+    </select>
+
+    <!--<select id="planreqreportsendEmail" parameterType="java.lang.String"  resultType="java.util.List">
+        SELECT
+        item_code AS itemCode
+        FROM
+        atw_aps_report_exdev
+        WHERE
+        is_deleted = 0
+        AND pro_no IS NOT NULL
+        AND delivery_date IS NOT NULL
+        <if test="poItemEntity.supCode != null and poItemEntity.supCode !=''">
+            AND sup_code LIKE CONCAT('%', #{poItemEntity.supCode},'%')
+        </if>
+        <if test="poItemEntity.supName != null and poItemEntity.supName !=''">
+            AND sup_name LIKE CONCAT('%', #{poItemEntity.supName},'%')
+        </if>
+        <if test="poItemEntity.itemCode != null and poItemEntity.itemCode !=''">
+            AND item_code LIKE CONCAT('%', #{poItemEntity.itemCode},'%')
+        </if>
+        <if test="poItemEntity.itemName != null and poItemEntity.itemName !=''">
+            AND item_name LIKE CONCAT('%', #{poItemEntity.itemName},'%')
+        </if>
+        <if test="poItemEntity.proNo != null and poItemEntity.proNo !=''">
+            AND pro_no_sub LIKE CONCAT('%', #{poItemEntity.proNo},'%')
+        </if>
+        GROUP BY
+        sup_code,
+        item_code,
+        po_code,
+        po_ln,
+        pro_no_sub
+        ORDER BY
+        pro_no_sub
+    </select>-->
+
+    <select id="getActualVo" resultType="org.springblade.modules.po.vo.PoItemNewReportVO">
+        SELECT
+            GROUP_CONCAT(DISTINCT a.pro_no_sub) AS proNo,
+            GROUP_CONCAT(DISTINCT CONCAT(a.po_code, ' ', a.po_ln )) AS poCodeAndPoLn,
+            a.item_code,
+            a.item_name,
+            a.sup_code,
+            a.sup_name,
+            sum(a.pro_req_num) AS total
+        FROM
+            atw_aps_report_exdev a
+            LEFT JOIN
+            ( SELECT pro_no_sub, item_code, max( review_modify_deli_date ) review_modify_deli_date FROM atw_delivery_modify_audit GROUP BY pro_no_sub, item_code ) c
+            ON a.pro_no_sub = c.pro_no_sub
+            AND a.item_code = c.item_code
+            WHERE
+            a.pro_req_num IS NOT NULL AND a.delivery_date IS NOT NULL
+            AND a.sup_code = #{supCode}
+            AND a.item_code = #{itemCode}
+        GROUP BY sup_code,item_code
+    </select>
+
+    <select id="getActualVos" resultType="org.springblade.modules.po.vo.PoItemNewReportVO">
+        SELECT
+            GROUP_CONCAT(DISTINCT a.pro_no_sub) AS proNo,
+            GROUP_CONCAT(DISTINCT CONCAT(a.po_code, ' ', a.po_ln )) AS poCodeAndPoLn,
+            a.item_code,
+            a.item_name,
+            a.sup_code,
+            a.sup_name,
+            sum(a.pro_req_num) AS total
+        FROM
+            atw_aps_report_exdev a
+            LEFT JOIN
+            ( SELECT pro_no_sub, item_code, max( review_modify_deli_date ) review_modify_deli_date FROM atw_delivery_modify_audit GROUP BY pro_no_sub, item_code ) c
+            ON a.pro_no_sub = c.pro_no_sub
+            AND a.item_code = c.item_code
+            WHERE
+            a.pro_req_num IS NOT NULL AND a.delivery_date IS NOT NULL
+        GROUP BY sup_code,item_code
+    </select>
+
+    <select id="getActualVos2" resultType="org.springblade.modules.po.vo.PoItemNewReportVO">
+        SELECT
+						a.pro_no_sub AS proNo,
+            a.po_code as poCode,a.po_ln as poLn,
+            a.item_code,
+            a.item_name,
+            a.sup_code,
+            a.sup_name,
+            sum(a.pro_req_num) AS total
+        FROM
+            atw_aps_report_exdev a
+            LEFT JOIN
+            ( SELECT pro_no_sub, item_code, max( review_modify_deli_date ) review_modify_deli_date FROM atw_delivery_modify_audit GROUP BY pro_no_sub, item_code ) c
+            ON a.pro_no_sub = c.pro_no_sub
+            AND a.item_code = c.item_code
+            WHERE
+            a.pro_req_num IS NOT NULL AND a.delivery_date IS NOT NULL
+        GROUP BY sup_code,item_code,poCode,poLn,proNo
+    </select>
+
+    <select id="getPredictVo" resultType="org.springblade.modules.po.vo.PoItemNewReportVO">
+        SELECT
+            sup_code,
+			sup_name,
+            item_code,
+			item_name,
+            SUM(price_num)  AS total
+        FROM
+            atw_po_item
+        WHERE
+            is_deleted = 0
+            AND STATUS = 10
+            AND biz_branch IN ( 'combill', 'combill_ww' )
+            AND sup_code = #{supCode}
+            AND item_code = #{itemCode}
+        GROUP BY sup_code,item_code
+    </select>
+
+    <select id="getPredictVos" resultType="org.springblade.modules.po.vo.PoItemNewReportVO">
+        SELECT
+            sup_code,
+			sup_name,
+            item_code,
+			item_name,
+            SUM(price_num)  AS total
+        FROM
+            atw_po_item
+        WHERE
+            is_deleted = 0
+            AND STATUS = 10
+            AND biz_branch IN ( 'combill', 'combill_ww' )
+        GROUP BY sup_code,item_code
+    </select>
+
+    <select id="getActualColumnValue" resultType="org.springblade.modules.po.dto.PoItemReqRepotCurrMonthDTO">
+        SELECT
+            sum(a.pro_req_num) AS qty,
+            CASE
+                WHEN c.review_modify_deli_date > a.delivery_date
+                THEN FROM_UNIXTIME( c.review_modify_deli_date, '%Y-%m-%d' )
+                ELSE FROM_UNIXTIME( a.delivery_date , '%Y-%m-%d')
+            END AS date
+        FROM
+            atw_aps_report_exdev a
+            LEFT JOIN
+            ( SELECT pro_no_sub, item_code, max( review_modify_deli_date ) review_modify_deli_date FROM atw_delivery_modify_audit GROUP BY pro_no_sub, item_code ) c
+            ON a.pro_no_sub = c.pro_no_sub
+            AND a.item_code = c.item_code
+            WHERE
+            a.pro_req_num IS NOT NULL and a.delivery_date IS NOT NULL
+            AND a.sup_code = #{supCode}
+            AND a.item_code = #{itemCode}
+            GROUP BY a.sup_code,a.item_code,date
+            HAVING date = #{fullDate}
+    </select>
+
+    <select id="getActualColumnValues" resultType="org.springblade.modules.po.dto.PoItemReqRepotCurrMonthDTO">
+        SELECT
+            a.sup_code,a.item_code,sum(a.pro_req_num) AS qty,
+            CASE
+                WHEN c.review_modify_deli_date > a.delivery_date
+                THEN FROM_UNIXTIME( c.review_modify_deli_date, '%Y-%m-%d' )
+                ELSE FROM_UNIXTIME( a.delivery_date , '%Y-%m-%d')
+            END AS date
+        FROM
+            atw_aps_report_exdev a
+            LEFT JOIN
+            ( SELECT pro_no_sub, item_code, max( review_modify_deli_date ) review_modify_deli_date FROM atw_delivery_modify_audit GROUP BY pro_no_sub, item_code ) c
+            ON a.pro_no_sub = c.pro_no_sub
+            AND a.item_code = c.item_code
+            WHERE
+            a.pro_req_num IS NOT NULL and a.delivery_date IS NOT NULL
+            GROUP BY a.sup_code,a.item_code,date
+    </select>
+
+    <select id="getActualColumnValues2" resultType="org.springblade.modules.po.dto.PoItemReqRepotCurrMonthDTO">
+        SELECT
+            a.sup_code,a.item_code,sum(a.pro_req_num) AS qty,a.pro_no_sub AS proNo,a.po_code as poCode,a.po_ln as poLn,
+            CASE
+                WHEN c.review_modify_deli_date > a.delivery_date
+                THEN FROM_UNIXTIME( c.review_modify_deli_date, '%Y-%m-%d' )
+                ELSE FROM_UNIXTIME( a.delivery_date , '%Y-%m-%d')
+            END AS date
+        FROM
+            atw_aps_report_exdev a
+            LEFT JOIN
+            ( SELECT pro_no_sub, item_code, max( review_modify_deli_date ) review_modify_deli_date FROM atw_delivery_modify_audit GROUP BY pro_no_sub, item_code ) c
+            ON a.pro_no_sub = c.pro_no_sub
+            AND a.item_code = c.item_code
+            WHERE
+            a.pro_req_num IS NOT NULL and a.delivery_date IS NOT NULL
+            GROUP BY a.sup_code,a.item_code,date,poCode,poLn,proNo
+    </select>
+
+    <select id="getPredictColumnValue" resultType="org.springblade.modules.po.dto.PoItemReqRepotCurrMonthDTO">
+        SELECT
+            FROM_UNIXTIME( req_date, '%Y-%m-%d' ) AS `date`,
+            SUM(price_num)  AS qty,
+            sup_code,
+            item_code
+        FROM
+            atw_po_item
+        WHERE
+            is_deleted = 0
+            AND STATUS = 10
+            AND biz_branch IN ( 'combill', 'combill_ww' )
+            AND sup_code = #{supCode}
+            AND item_code = #{itemCode}
+        GROUP BY date
+        HAVING date = #{fullDate}
+    </select>
+
+    <select id="getPredictColumnValues" resultType="org.springblade.modules.po.dto.PoItemReqRepotCurrMonthDTO">
+        SELECT
+            sup_code,item_code,FROM_UNIXTIME( req_date, '%Y-%m-%d' ) AS `date`,
+            SUM(price_num)  AS qty,
+            sup_code,
+            item_code
+        FROM
+            atw_po_item
+        WHERE
+            is_deleted = 0
+            AND STATUS = 10
+            AND biz_branch IN ( 'combill', 'combill_ww' )
+        GROUP BY date
+    </select>
+
+    <select id="getActualIsMeetOptDate" resultType="org.springblade.modules.po.dto.PoItemReqRepotCurrMonthDTO">
+        SELECT
+            SUM(a.pro_req_num) as qty,
+            CASE
+            WHEN c.review_modify_deli_date IS NOT NULL AND c.review_modify_deli_date != ''
+            THEN FROM_UNIXTIME( c.review_modify_deli_date, '%Y-%m-%d' )
+            ELSE FROM_UNIXTIME( a.delivery_date, '%Y-%m-%d' )
+            END AS date
+        FROM
+            atw_aps_report_exdev a
+            LEFT JOIN ( SELECT pro_no_sub, item_code, max( review_modify_deli_date ) review_modify_deli_date FROM atw_delivery_modify_audit GROUP BY pro_no_sub, item_code ) c
+            ON a.pro_no_sub = c.pro_no_sub
+            AND a.item_code = c.item_code
+        WHERE
+            a.is_deleted = 0
+            AND a.sup_code = #{supCode}
+            AND a.item_code = #{itemCode}
+            AND a.pro_req_num IS NOT NULL AND a.delivery_date IS NOT NULL
+            AND
+            CASE
+                WHEN c.review_modify_deli_date IS NOT NULL AND c.review_modify_deli_date != ''
+                THEN c.review_modify_deli_date &lt;= UNIX_TIMESTAMP(DATE_FORMAT(curdate(),'%Y-%m-%d'))
+                ELSE a.delivery_date &lt;= UNIX_TIMESTAMP(DATE_FORMAT(curdate(),'%Y-%m-%d'))
+            END
+            GROUP BY a.sup_code,a.item_code,date
+            HAVING date = #{fullDate}
+    </select>
+
+    <select id="getActualIsMeetOptDate2" resultType="org.springblade.modules.po.dto.PoItemReqRepotCurrMonthDTO">
+        SELECT
+        SUM( a.pro_req_num ) AS qty,
+        CASE
+
+        WHEN c.review_modify_deli_date IS NOT NULL
+        AND c.review_modify_deli_date != '' THEN
+        FROM_UNIXTIME( c.review_modify_deli_date, '%Y-%m-%d' ) ELSE FROM_UNIXTIME( a.delivery_date, '%Y-%m-%d' )
+        END AS date
+        FROM
+        atw_aps_report_exdev a
+        LEFT JOIN ( SELECT pro_no_sub, item_code, max( review_modify_deli_date ) review_modify_deli_date FROM atw_delivery_modify_audit GROUP BY pro_no_sub, item_code ) c ON a.pro_no_sub = c.pro_no_sub
+        AND a.item_code = c.item_code
+        WHERE
+        a.is_deleted = 0
+        AND a.sup_code = #{supCode}
+        AND a.item_code = #{itemCode}
+        AND a.po_code = #{poCode}
+        AND a.po_ln = #{poLn}
+        AND a.pro_no_sub = #{proNo}
+        AND a.pro_req_num IS NOT NULL
+        AND a.delivery_date IS NOT NULL
+        AND
+        CASE
+
+        WHEN c.review_modify_deli_date IS NOT NULL
+        AND c.review_modify_deli_date != ''
+        THEN c.review_modify_deli_date &lt;= UNIX_TIMESTAMP(DATE_FORMAT(curdate(),'%Y-%m-%d'))
+                ELSE a.delivery_date &lt;= UNIX_TIMESTAMP(DATE_FORMAT(curdate(),'%Y-%m-%d'))
+        END
+        GROUP BY
+        a.sup_code,
+        a.item_code,
+        date,a.po_code,a.po_ln,a.pro_no_sub
+        HAVING
+        date = #{fullDate}
+    </select>
+
+    <select id="getActualNextColumnValue" resultType="org.springblade.modules.po.dto.PoItemReqRepotCurrMonthDTO">
+        SELECT
+            sum(a.pro_req_num) AS qty,
+            CASE
+                WHEN c.review_modify_deli_date > a.delivery_date
+                THEN FROM_UNIXTIME( c.review_modify_deli_date, '%Y-%m' )
+                ELSE FROM_UNIXTIME( a.delivery_date , '%Y-%m')
+            END AS date
+        FROM
+            atw_aps_report_exdev a
+            LEFT JOIN
+            ( SELECT pro_no_sub, item_code, max( review_modify_deli_date ) review_modify_deli_date FROM atw_delivery_modify_audit GROUP BY pro_no_sub, item_code ) c
+            ON a.pro_no_sub = c.pro_no_sub
+            AND a.item_code = c.item_code
+            WHERE
+            a.pro_req_num IS NOT NULL and a.delivery_date IS NOT NULL
+            AND a.sup_code = #{supCode}
+            AND a.item_code = #{itemCode}
+            GROUP BY a.sup_code,a.item_code,date
+            HAVING date = #{timeCurr}
+    </select>
+
+    <select id="getActualNextColumnValues" resultType="org.springblade.modules.po.dto.PoItemReqRepotCurrMonthDTO">
+        SELECT
+            a.sup_code,a.item_code,sum(a.pro_req_num) AS qty,
+            CASE
+                WHEN c.review_modify_deli_date > a.delivery_date
+                THEN FROM_UNIXTIME( c.review_modify_deli_date, '%Y-%m' )
+                ELSE FROM_UNIXTIME( a.delivery_date , '%Y-%m')
+            END AS date
+        FROM
+            atw_aps_report_exdev a
+            LEFT JOIN
+            ( SELECT pro_no_sub, item_code, max( review_modify_deli_date ) review_modify_deli_date FROM atw_delivery_modify_audit GROUP BY pro_no_sub, item_code ) c
+            ON a.pro_no_sub = c.pro_no_sub
+            AND a.item_code = c.item_code
+            WHERE
+            a.pro_req_num IS NOT NULL and a.delivery_date IS NOT NULL
+            GROUP BY a.sup_code,a.item_code,date
+    </select>
+
+    <select id="getActualNextColumnValues2" resultType="org.springblade.modules.po.dto.PoItemReqRepotCurrMonthDTO">
+        SELECT
+            a.sup_code,a.item_code,sum(a.pro_req_num) AS qty,a.pro_no_sub AS proNo,a.po_code as poCode,a.po_ln as poLn,
+            CASE
+                WHEN c.review_modify_deli_date > a.delivery_date
+                THEN FROM_UNIXTIME( c.review_modify_deli_date, '%Y-%m' )
+                ELSE FROM_UNIXTIME( a.delivery_date , '%Y-%m')
+            END AS date
+        FROM
+            atw_aps_report_exdev a
+            LEFT JOIN
+            ( SELECT pro_no_sub, item_code, max( review_modify_deli_date ) review_modify_deli_date FROM atw_delivery_modify_audit GROUP BY pro_no_sub, item_code ) c
+            ON a.pro_no_sub = c.pro_no_sub
+            AND a.item_code = c.item_code
+            WHERE
+            a.pro_req_num IS NOT NULL and a.delivery_date IS NOT NULL
+            GROUP BY a.sup_code,a.item_code,date,poCode,poLn,proNo
+    </select>
+
+    <select id="getPredictNextColumnValue" resultType="org.springblade.modules.po.dto.PoItemReqRepotCurrMonthDTO">
+        SELECT
+            <!--FROM_UNIXTIME( req_date, '%Y-%m' )-->
+        CASE
+        WHEN sup_confirm_date IS NOT NULL AND sup_confirm_date != ''
+        THEN FROM_UNIXTIME( sup_confirm_date, '%Y-%m' )
+        ELSE FROM_UNIXTIME( req_date, '%Y-%m' )
+        END AS  `date`,
+            SUM(price_num)  AS qty,
+            sup_code,
+            item_code
+        FROM
+            atw_po_item
+        WHERE
+            is_deleted = 0
+            AND STATUS = 10
+            AND biz_branch IN ( 'combill', 'combill_ww' )
+            AND sup_code = #{supCode}
+            AND item_code = #{itemCode}
+        GROUP BY date
+        HAVING date = #{timeCurr}
+    </select>
+
+    <select id="getPredictNextColumnValues" resultType="org.springblade.modules.po.dto.PoItemReqRepotCurrMonthDTO">
+        SELECT
+            /*FROM_UNIXTIME( req_date, '%Y-%m' )*/
+            CASE
+            WHEN sup_confirm_date IS NOT NULL AND sup_confirm_date != ''
+            THEN FROM_UNIXTIME( sup_confirm_date, '%Y-%m' )
+            ELSE FROM_UNIXTIME( req_date, '%Y-%m' )
+            END AS `date`,
+            SUM(price_num)  AS qty,
+            sup_code,
+            item_code
+        FROM
+            atw_po_item
+        WHERE
+            is_deleted = 0
+            AND STATUS = 10
+            AND biz_branch IN ( 'combill', 'combill_ww' )
+        GROUP BY item_code,date
+    </select>
+
+
+    <select id="getHistoryPrice" resultType="org.springblade.modules.po.vo.PoItemVO">
+        SELECT * FROM  atw_po_item WHERE item_code = #{itemCode} AND status !=10
+    </select>
+
+    <select id="getExcelData" resultType="org.springblade.modules.po.vo.PoItemNewVO">
+        SELECT
+            poi.* ,po.`status` as poStatus
+        FROM
+            `atw_po_item` poi
+            LEFT JOIN atw_po po ON poi.po_id = po.id
+        WHERE
+            poi.pro_goods_num > 0
+            AND poi.`STATUS` = 20
+            <if test="poItemEntity.isDeliverablesFull != null and poItemEntity.isDeliverablesFull !=''">
+                AND poi.is_deliverables_full LIKE CONCAT('%', #{poItemEntity.isDeliverablesFull},'%')
+            </if>
+            <if test="poItemEntity.poCode != null and poItemEntity.poCode !=''">
+                AND poi.po_code LIKE CONCAT('%', #{poItemEntity.poCode},'%')
+            </if>
+            <if test="poItemEntity.supCode != null and poItemEntity.supCode !=''">
+                AND poi.sup_code LIKE CONCAT('%', #{poItemEntity.supCode},'%')
+            </if>
+            <if test="poItemEntity.supName != null and poItemEntity.supName !=''">
+                AND poi.sup_name LIKE CONCAT('%', #{poItemEntity.supName},'%')
+            </if>
+            <if test="poItemEntity.itemCode != null and poItemEntity.itemCode !=''">
+                AND poi.item_code LIKE CONCAT('%', #{poItemEntity.itemCode},'%')
+            </if>
+            <if test="poItemEntity.itemName != null and poItemEntity.itemName !=''">
+                AND poi.item_name LIKE CONCAT('%', #{poItemEntity.itemName},'%')
+            </if>
+            <if test="poItemEntity.endUser != null and poItemEntity.endUser !=''">
+                AND poi.end_user LIKE CONCAT('%', #{poItemEntity.endUser},'%')
+            </if>
+    </select>
+    <select id="getPoItemEntityPageFromOracle" resultType="org.springblade.modules.po.entity.PoItemEntity">
+        select * from (
+        SELECT
+        *
+        FROM
+        ATWSRM.atw_po_item a
+        LEFT JOIN ATWERP.CBO_Supplier cs ON a.SUP_CODE = cs.code
+        WHERE
+        a.ITEM_CODE IN ( SELECT code FROM ATWERP.CUST_ItemMaster WHERE ISVMIENABLENAME = '是' ) and VMIRULECODE is not NULL
+        and a.status !=10
+        ) a
+        where 1=1
+
+
+        <if test="poItem.lastSyncTimeStart != null and poItem.lastSyncTimeStart != ''">
+            AND a.last_sync_time &gt; #{poItem.lastSyncTimeStart}
+        </if>
+        <if test="poItem.lastSyncTimeEnd != null and poItem.lastSyncTimeEnd != ''">
+            AND a.last_sync_time  &lt; #{poItem.lastSyncTimeEnd}
+        </if>
+        <if test="poItem.prCode != null and poItem.prCode != ''">
+            AND a.pr_code LIKE '%'||#{poItem.prCode}||'%'
+        </if>
+        <if test="poItem.poCode != null and poItem.poCode != ''">
+            AND a.po_code LIKE '%'||#{poItem.poCode}||'%'
+        </if>
+        <if test="poItem.supCode != null and poItem.supCode != ''">
+            AND a.sup_code LIKE '%'||#{poItem.supCode}||'%'
+        </if>
+        <if test="poItem.supName != null and poItem.supName != ''">
+            AND a.sup_name LIKE '%'||#{poItem.supName}||'%'
+        </if>
+        <if test="poItem.itemCode != null and poItem.itemCode != ''">
+            AND a.item_code LIKE '%'||#{poItem.itemCode}||'%'
+        </if>
+        <if test="poItem.itemName != null and poItem.itemName != ''">
+            AND a.item_name LIKE '%'||#{poItem.itemName}||'%'
+        </if>
+        <if test="poItem.purchName != null and poItem.purchName != ''">
+            AND a.purch_name LIKE '%'||#{poItem.purchName}||'%'
+        </if>
+        <if test="poItem.statuss != null and poItem.statuss != ''">
+            AND a.status in
+            <foreach collection="poItem.statusarray" item="ids" index="index" open="(" close=")" separator=",">
+                #{ids}
+            </foreach>
+        </if>
+
+
+    </select>
+    <select id="getPoItemEntityPageFromOracleList" resultType="org.springblade.modules.po.entity.PoItemEntity">
+        select * from (
+        SELECT
+        *
+        FROM
+        ATWSRM.atw_po_item a
+        LEFT JOIN ATWERP.CBO_Supplier cs ON a.SUP_CODE = cs.code
+        WHERE
+        a.ITEM_CODE IN ( SELECT code FROM ATWERP.CUST_ItemMaster WHERE ISVMIENABLENAME = '是' ) and VMIRULECODE is not NULL
+        and a.status !=10
+        ) a
+        where 1=1
+
+
+        <if test="poItem.lastSyncTimeStart != null and poItem.lastSyncTimeStart != ''">
+            AND a.last_sync_time &gt; #{poItem.lastSyncTimeStart}
+        </if>
+        <if test="poItem.lastSyncTimeEnd != null and poItem.lastSyncTimeEnd != ''">
+            AND a.last_sync_time  &lt; #{poItem.lastSyncTimeEnd}
+        </if>
+        <if test="poItem.prCode != null and poItem.prCode != ''">
+            AND a.pr_code LIKE '%'||#{poItem.prCode}||'%'
+        </if>
+        <if test="poItem.poCode != null and poItem.poCode != ''">
+            AND a.po_code LIKE '%'||#{poItem.poCode}||'%'
+        </if>
+        <if test="poItem.supCode != null and poItem.supCode != ''">
+            AND a.sup_code LIKE '%'||#{poItem.supCode}||'%'
+        </if>
+        <if test="poItem.supName != null and poItem.supName != ''">
+            AND a.sup_name LIKE '%'||#{poItem.supName}||'%'
+        </if>
+        <if test="poItem.itemCode != null and poItem.itemCode != ''">
+            AND a.item_code LIKE '%'||#{poItem.itemCode}||'%'
+        </if>
+        <if test="poItem.itemName != null and poItem.itemName != ''">
+            AND a.item_name LIKE '%'||#{poItem.itemName}||'%'
+        </if>
+        <if test="poItem.purchName != null and poItem.purchName != ''">
+            AND a.purch_name LIKE '%'||#{poItem.purchName}||'%'
+        </if>
+        <if test="poItem.statuss != null and poItem.statuss != ''">
+            AND a.status in
+            <foreach collection="poItem.statusarray" item="ids" index="index" open="(" close=")" separator=",">
+                #{ids}
+            </foreach>
+        </if>
+
+    </select>
+
+</mapper>

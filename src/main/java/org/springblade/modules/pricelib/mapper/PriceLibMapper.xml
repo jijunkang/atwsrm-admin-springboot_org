@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.pricelib.mapper.PriceLibMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="price_libResultMap" type="org.springblade.modules.pricelib.entity.PriceLibEntity">
+        <result column="id" property="id"/>
+<!--        <result column="tenant_id" property="tenantId"/>-->
+        <result column="item_id" property="itemId"/>
+        <result column="item_code" property="itemCode"/>
+        <result column="item_name" property="itemName"/>
+        <result column="sup_id" property="supId"/>
+        <result column="sup_code" property="supCode"/>
+        <result column="sup_name" property="supName"/>
+        <result column="limit_min" property="limitMin"/>
+        <result column="price" property="price"/>
+        <result column="uom" property="uom"/>
+        <result column="effective_date" property="effectiveDate"/>
+        <result column="expiration_date" property="expirationDate"/>
+        <result column="submitter_code" property="submitterCode"/>
+        <result column="attachment" property="attachment"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+    <delete id="deleteByItemCode">
+        DELETE FROM atw_price_lib WHERE item_code = #{itemCode}
+    </delete>
+
+    <select id="getByItemCodes" parameterType="java.util.List" resultMap="price_libResultMap">
+        select * FROM  atw_price_lib  WHERE item_code IN
+        <foreach collection="itemCodes" item="item" open="(" separator="," close=")">
+            #{item, jdbcType=VARCHAR}
+        </foreach>
+    </select>
+
+
+</mapper>

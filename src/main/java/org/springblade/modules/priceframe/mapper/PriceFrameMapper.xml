@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.priceframe.mapper.PriceFrameMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="price_frameResultMap" type="org.springblade.modules.priceframe.entity.PriceFrameEntity">
+        <result column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="item_id" property="itemId"/>
+        <result column="item_code" property="itemCode"/>
+        <result column="item_name" property="itemName"/>
+        <result column="sup_id" property="supId"/>
+        <result column="sup_code" property="supCode"/>
+        <result column="sup_name" property="supName"/>
+        <result column="limit_min" property="limitMin"/>
+        <result column="limit_max" property="limitMax"/>
+        <result column="price" property="price"/>
+        <result column="uom" property="uom"/>
+        <result column="effective_date" property="effectiveDate"/>
+        <result column="expiration_date" property="expirationDate"/>
+        <result column="submitter_code" property="submitterCode"/>
+        <result column="attachment" property="attachment"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+    <select id="center" resultType="org.springblade.modules.priceframe.dto.CenterPriceFrame">
+        SELECT
+        p.id AS prId,
+        p.pr_code,
+        p.item_code,
+        p.item_name,
+        p.price_num,
+        p.price_uom,
+        p.req_date,
+        f.sup_name,
+        f.price,
+        f.id AS pfId
+        FROM
+        atw_u9_pr p
+        LEFT JOIN atw_price_frame f ON p.item_code = f.item_code
+        WHERE
+        f.is_deleted = 0
+        AND p.is_deleted = 0
+        <if test="priceFrameEntity.status != null and priceFrameEntity.status != ''">
+            AND f.STATUS = #{priceFrameEntity.status}
+        </if>
+        AND p.STATUS = 10
+        AND p.inquiry_way = 'have_protocol'
+        AND ( p.price_num <![CDATA[ >= ]]> f.limit_min AND p.price_num <![CDATA[ <= ]]> f.limit_max )
+        AND ( NOW() <![CDATA[ >= ]]> f.effective_date AND NOW() <![CDATA[ <= ]]> f.expiration_date )
+        ORDER BY p.pr_code
+    </select>
+
+    <select id="countCenter" resultType="java.lang.Integer">
+        SELECT
+        COUNT(1)
+        FROM
+        atw_u9_pr
+        WHERE is_deleted = 0
+        AND STATUS = 10
+        AND inquiry_way = 'have_protocol'
+    </select>
+
+    <select id="getByPr" resultType="org.springblade.modules.priceframe.entity.PriceFrameEntity">
+        SELECT
+        *
+        FROM
+        atw_price_frame f
+        WHERE
+        f.is_deleted = 0
+        AND f.item_code = #{itemCode}
+        AND ( #{priceNum} <![CDATA[ >= ]]> f.limit_min AND #{priceNum} <![CDATA[ <= ]]> f.limit_max )
+        AND ( NOW( ) <![CDATA[ >= ]]> effective_date AND NOW( ) <![CDATA[ <= ]]> expiration_date )
+        AND STATUS = 20
+    </select>
+
+    <select id="saveCheck" resultType="org.springblade.modules.priceframe.entity.PriceFrameEntity">
+        SELECT
+        *
+        FROM
+        atw_price_frame
+        WHERE is_deleted = 0
+        AND item_code = #{itemCode}
+        AND sup_code = #{supCode}
+        AND ( NOW() <![CDATA[ >= ]]> effective_date AND NOW( ) <![CDATA[ <= ]]> expiration_date )
+        AND ( #{limitMin} <![CDATA[ >= ]]> limit_min AND #{limitMin} <![CDATA[ <= ]]> limit_max )
+    </select>
+
+    <select id="getLimitMin" resultType="java.math.BigDecimal">
+        SELECT
+        MAX(limit_max)
+        FROM
+        atw_price_frame
+        WHERE is_deleted = 0
+        AND item_code = #{itemCode}
+        AND sup_code = #{supCode}
+        AND ( NOW() <![CDATA[ >= ]]> effective_date AND NOW( ) <![CDATA[ <= ]]> expiration_date )
+    </select>
+
+    <select id="getGroupByCount" resultType="org.springblade.modules.priceframe.vo.PriceFrameVO">
+        SELECT
+        item_code,
+        count(1) AS count
+        FROM
+            atw_price_frame
+        WHERE
+             is_deleted = 0
+            AND create_user = #{userId}
+        GROUP BY
+            item_code
+    </select>
+</mapper>

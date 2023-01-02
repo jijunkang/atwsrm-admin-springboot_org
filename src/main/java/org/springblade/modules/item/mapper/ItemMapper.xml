@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.item.mapper.ItemMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="itemResultMap" type="org.springblade.modules.item.entity.Item">
+        <id column="id" property="id"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="code" property="code"/>
+        <result column="name" property="name"/>
+        <result column="specs" property="specs"/>
+        <result column="common_name" property="commonName"/>
+        <result column="cloud_code" property="cloudCode"/>
+        <result column="main_code" property="mainCode"/>
+        <result column="main_name" property="mainName"/>
+        <result column="item_attr" property="itemAttr"/>
+        <result column="mat_quality" property="matQuality"/>
+        <result column="base_uom" property="baseUom"/>
+        <result column="assist_uom" property="assistUom"/>
+        <result column="price_uom" property="priceUom"/>
+        <result column="rough_weight" property="roughWeight"/>
+        <result column="net_weight" property="netWeight"/>
+        <result column="net_uom" property="netUom"/>
+        <result column="volume" property="volume"/>
+        <result column="volume_uom" property="volumeUom"/>
+        <result column="purch_code" property="purchCode"/>
+        <result column="purch_name" property="purchName"/>
+        <result column="trace_code" property="traceCode"/>
+        <result column="trace_name" property="traceName"/>
+        <result column="brand" property="brand"/>
+        <result column="plm_author" property="plmAuthor"/>
+        <result column="plm_date" property="plmDate"/>
+        <result column="drawing" property="drawing"/>
+        <result column="process_drawing" property="processDrawing"/>
+        <result column="sub_bom" property="subBom"/>
+        <result column="craft_drawing" property="craftDrawing"/>
+        <result column="checkstd_drawing" property="checkstdDrawing"/>
+        <result column="stock" property="stock"/>
+        <result column="stock_no" property="stockNo"/>
+        <result column="stock_lower_limit" property="stockLowerLimit"/>
+        <result column="stock_upper_limit" property="stockUpperLimit"/>
+        <result column="purch_attr" property="purchAttr"/>
+        <result column="purch_before_date" property="purchBeforeDate"/>
+        <result column="purch_after_date" property="purchAfterDate"/>
+        <result column="purch_dispose_date" property="purchDisposeDate"/>
+        <result column="standard_date" property="standardDate"/>
+        <result column="price_attr" property="priceAttr"/>
+        <result column="standard_price" property="standardPrice"/>
+        <result column="purch_multiple" property="purchMultiple"/>
+        <result column="purch_mix" property="purchMix"/>
+        <result column="sup_allocate_rate" property="supAllocateRate"/>
+        <result column="future_scale" property="futureScale"/>
+        <result column="price_weight" property="priceWeight"/>
+        <result column="tech_weight" property="techWeight"/>
+        <result column="business_weight" property="businessWeight"/>
+        <result column="s_or_n" property="sOrN"/>
+        <result column="desc" property="desc"/>
+        <result column="is_stop" property="isStop"/>
+        <result column="quote_limit" property="quoteLimit"/>
+        <result column="update_cnt" property="updateCnt"/>
+        <result column="sup_count" property="supCount"/>
+    </resultMap>
+
+    <update id="updateByIds" >
+        <foreach collection="id" item="item" index="index" separator=";">
+            update atw_item
+            set purch_name = #{purchName} and purch_code =#{purchCode}
+            where  `id` = #{id}
+        </foreach>
+    </update>
+
+    <select id="selectItemPage" resultType="org.springblade.modules.item.vo.ItemVO">
+        select a.*,(select req_perpare_num from  jit_management b where b.item_code=a.code) req_perpare_num from  atw_item a
+        WHERE a.is_deleted = 0
+        <if test="item !=null and item.code !=null ">
+          AND code LIKE '%${item.code}%'
+        </if>
+        <if test="item !=null and item.name !=null ">
+          AND `name` LIKE '%${item.name}%'
+        </if>
+        <if test="item !=null and item.mainCode !=null ">
+          AND `main_code` LIKE '%${item.mainCode}%'
+        </if>
+        <if test="item !=null and item.mainName !=null ">
+          AND `main_name` LIKE '%${item.mainName}%'
+        </if>
+        <if test="item != null and item.sOrN != null and item.sOrN != '' ">
+            <if test="item.sOrN != 'NULL'  ">
+                AND `s_or_n` = #{item.sOrN}
+            </if>
+            <if test="item.sOrN == 'NULL' ">
+                AND `s_or_n` is null
+            </if>
+        </if>
+        ORDER BY a.update_time DESC;
+    </select>
+
+    <select id="selectItemPageOfList" resultType="org.springblade.modules.item.vo.ItemVO">
+        select a.*,(select req_perpare_num from  jit_management b where b.item_code=a.code) req_perpare_num from  atw_item a
+        WHERE a.is_deleted = 0
+        <if test="item !=null and item.code !=null ">
+            AND find_in_set(code,#{item.code})
+        </if>
+        <if test="item !=null and item.name !=null ">
+            AND `name` LIKE '%${item.name}%'
+        </if>
+        <if test="item !=null and item.mainCode !=null ">
+            AND `main_code` LIKE '%${item.mainCode}%'
+        </if>
+        <if test="item !=null and item.mainName !=null ">
+            AND `main_name` LIKE '%${item.mainName}%'
+        </if>
+        <if test="item != null and item.sOrN != null and item.sOrN != '' ">
+            <if test="item.sOrN != 'NULL'  ">
+                AND `s_or_n` = #{item.sOrN}
+            </if>
+            <if test="item.sOrN == 'NULL' ">
+                AND `s_or_n` is null
+            </if>
+        </if>
+        ORDER BY a.update_time DESC;
+    </select>
+
+    <select id="incompletePage" resultType="org.springblade.modules.item.vo.ItemVO">
+        SELECT item.* FROM atw_item item
+        WHERE item.is_deleted = 0 AND (item.item_attr = 9 or item.item_attr = 4) and item.purch_dispose_date = 0
+        AND (
+            purch_before_date IS NULL or purch_after_date IS NULL or purch_dispose_date IS NULL or
+            purch_before_date = 0 or purch_after_date = 0 or purch_dispose_date = 0
+        )
+        <choose>
+            <when test='item !=null and item.code !=null and item.code.contains(",")'>
+                and find_in_set(item.code,#{item.code})
+            </when>
+            <otherwise>
+                AND item.code LIKE '%${item.code}%'
+            </otherwise>
+        </choose>
+        <if test="item !=null and item.name !=null ">
+            AND item.`name` LIKE '%${item.name}%'
+        </if>
+        <if test="item !=null and item.mainCode !=null ">
+            AND item.`main_code` LIKE '%${item.mainCode}%'
+        </if>
+        <if test="item !=null and item.mainName !=null ">
+            AND item.`main_name` LIKE '%${item.mainName}%'
+        </if>
+        <if test="item !=null and item.purchCode !=null ">
+            AND item.`purch_code` LIKE '%${item.purchCode}%'
+        </if>
+        <if test="item !=null and item.purchName !=null ">
+            AND item.`purch_name` LIKE '%${item.purchName}%'
+        </if>
+        ORDER BY update_time DESC;
+    </select>
+
+    <select id="incompleteList" resultType="org.springblade.modules.item.vo.ItemVO">
+        SELECT item.* FROM atw_item item
+        WHERE item.is_deleted = 0 AND (item.item_attr = 9 or item.item_attr = 4) and item.purch_dispose_date = 0
+        AND (
+        purch_before_date IS NULL or purch_after_date IS NULL or purch_dispose_date IS NULL or
+        purch_before_date = 0 or purch_after_date = 0 or purch_dispose_date = 0
+        )
+        <choose>
+            <when test='item !=null and item.code !=null and item.code.contains(",")'>
+                and find_in_set(item.code,#{item.code})
+            </when>
+            <otherwise>
+                AND item.code LIKE '%${item.code}%'
+            </otherwise>
+        </choose>
+        <if test="item !=null and item.name !=null ">
+            AND item.`name` LIKE '%${item.name}%'
+        </if>
+        <if test="item !=null and item.mainCode !=null ">
+            AND item.`main_code` LIKE '%${item.mainCode}%'
+        </if>
+        <if test="item !=null and item.mainName !=null ">
+            AND item.`main_name` LIKE '%${item.mainName}%'
+        </if>
+        <if test="item !=null and item.purchCode !=null ">
+            AND item.`purch_code` LIKE '%${item.purchCode}%'
+        </if>
+        <if test="item !=null and item.purchName !=null ">
+            AND item.`purch_name` LIKE '%${item.purchName}%'
+        </if>
+        ORDER BY update_time DESC;
+    </select>
+
+    <select id="incompleteCount" resultType="int">
+        SELECT  COUNT(item.id)  FROM atw_item item
+        WHERE item.is_deleted = 0 AND (item.item_attr = 9 or item.item_attr = 4) and item.purch_dispose_date = 0
+        AND (
+            purch_before_date IS NULL or purch_after_date IS NULL or purch_dispose_date IS NULL or
+            purch_before_date = 0 or purch_after_date = 0 or purch_dispose_date = 0
+        )
+        <if test="req !=null and req.purchCode !=null ">
+            AND item.`purch_code` LIKE '%${req.purchCode}%'
+        </if>
+    </select>
+
+    <select id="dullCount" resultType="int">
+        SELECT count(*)  FROM atw_item
+         WHERE is_deleted = 0
+    </select>
+
+</mapper>

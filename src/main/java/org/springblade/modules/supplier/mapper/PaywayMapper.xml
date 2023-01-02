@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.supplier.mapper.PaywayMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="paywayResultMap" type="org.springblade.modules.supplier.entity.PaywayEntity">
+        <result column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="type" property="type"/>
+        <result column="first_prepay_rate" property="firstPrepayRate"/>
+        <result column="accum_prepay_rate" property="accumPrepayRate"/>
+        <result column="is_default" property="isDefault"/>
+        <result column="remark" property="remark"/>
+        <result column="sup_code" property="supCode"/>
+        <result column="sup_name" property="supName"/>
+        <result column="last_sync_time" property="lastSyncTime"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="sys_datagram" property="sysDatagram"/>
+        <result column="sys_log" property="sysLog"/>
+    </resultMap>
+
+</mapper>

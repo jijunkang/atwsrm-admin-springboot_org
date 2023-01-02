@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.po.mapper.PoItemCraftCtrlNodeMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="dictResultMap" type="org.springblade.modules.po.entity.PoItemCraftCtrlNodeEntity">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="po_item_id" property="poItemId"/>
+        <result column="ccnode_parent_id" property="ccnodeParentId"/>
+        <result column="ccnode_child_id" property="ccnodeChildId"/>
+        <result column="plan_confirm_date" property="planConfirmDate"/>
+        <result column="is_complete" property="isComplete"/>
+        <result column="sup_remark" property="supRemark"/>
+        <result column="purch_remark" property="purchRemark"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+
+</mapper>

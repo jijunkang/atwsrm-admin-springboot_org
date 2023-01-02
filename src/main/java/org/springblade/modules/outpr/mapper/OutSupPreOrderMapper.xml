@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.outpr.mapper.OutSupPreOrderMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="outsuppreorderResultMap" type="org.springblade.modules.outpr.entity.OutSupPreOrderEntity">
+        <result column="id" property="id"/>
+        <result column="pr_item_id" property="prItemId"/>
+        <result column="item_price_id" property="itemPriceId"/>
+        <result column="sup_code" property="supCode"/>
+        <result column="sup_name" property="supName"/>
+        <result column="price" property="price"/>
+        <result column="tax_price" property="taxPrice"/>
+        <result column="total" property="total"/>
+        <result column="remark" property="remark"/>
+        <result column="sup_delivery_time" property="supDeliveryTime"/>
+        <result column="rcv_endtime" property="rcvEndtime"/>
+        <result column="rcv_time" property="rcvTime"/>
+        <result column="refuse_time" property="refuseTime"/>
+        <result column="waive_time" property="waiveTime"/>
+        <result column="approve_time" property="approveTime"/>
+        <result column="order_time" property="orderTime"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+    </resultMap>
+
+</mapper>

@@ -1,0 +1,51 @@
+#数据源配置
+spring:
+  redis:
+    ##redis 单机环境配置
+    host: localhost
+    port: 6379
+    password: 2Go1dBhRbeeSXxO9
+    database: 0
+    ssl: false
+    ##redis 集群环境配置
+    #cluster:
+    #  nodes: 127.0.0.1:7001,127.0.0.1:7002,127.0.0.1:7003
+    #  commandTimeout: 5000
+  datasource:
+    # MySql
+#    url: jdbc:mysql://rm-xx.mysql.rds.aliyuncs.com:3306/atvsrm?useSSL=false&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&serverTimezone=GMT%2B8&nullCatalogMeansCurrent=true&allowPublicKeyRetrieval=true
+#    username: atvsrm
+#    password: 3xZuQaaR2kHVQDj8
+    # atwtest
+    url: jdbc:mysql://rm-xx.mysql.rds.aliyuncs.com:3306/atvsrm?useSSL=false&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&serverTimezone=GMT%2B8&nullCatalogMeansCurrent=true&allowPublicKeyRetrieval=true
+    username: atvsrm
+    password: 3xZuQaaR2kHVQDj8
+    #    url: jdbc:mysql://rm-xx.mysql.rds.aliyuncs.com:3306/dd?useSSL=false&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&serverTimezone=GMT%2B8&nullCatalogMeansCurrent=true&allowPublicKeyRetrieval=true
+    #    username: 'dd'
+    #    password: '!ww'
+
+
+#    url: jdbc:postgresql://127.0.0.1:5432/bladex_boot
+#    username: postgres
+#    password: 123456
+    # Oracle
+    #url: jdbc:oracle:thin:@127.0.0.1:49161:orcl
+    #username: BLADEX_BOOT
+    #password: oracle
+
+#blade配置
+blade:
+  prop:
+    upload-domain: http://localhost:8888
+    remote-mode: true
+    remote-path: /usr/share/nginx/html
+    remote-path-iis: D://iis/html
+    log-mode: true
+
+atwsrm:
+  bizapiDomain: http://atwsrm.bizapi.ruitukeji.net
+  u9ApiDomain: http://u9.antiwearvalve.com:8081/WG_APITest
+  esbApiDomain: http://10.29.1.53:8097
+  sqsApiDomain: http://10.29.1.53:8097
+
+

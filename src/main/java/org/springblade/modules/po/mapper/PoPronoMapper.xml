@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.po.mapper.PoPronoMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="popronoResultMap" type="org.springblade.modules.po.entity.PoPronoEntity">
+    </resultMap>
+
+    <select id="findOptDate" resultType="java.util.Date">
+        SELECT FROM_UNIXTIME(operation_date , '%Y-%m-%d') as operation_date
+        FROM atw_po_prono
+        where sup_code = #{supCode}
+        AND item_code = #{itemCode}
+        ORDER BY operation_date asc
+        LIMIT 1;
+    </select>
+
+    <select id="findComfDate" resultType="java.util.Date">
+        SELECT  FROM_UNIXTIME(IFNULL(sup_confirm_date,sup_update_date) , '%Y-%m-%d') as comf_date
+        FROM atw_po_item
+        WHERE sup_code = #{supCode}
+        AND item_code = #{itemCode}
+        ORDER BY comf_date DESC
+        LIMIT 1;
+    </select>
+</mapper>

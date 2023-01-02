@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.aps.mapper.ApsReportExdevMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="apsReportExdevResultMap" type="org.springblade.modules.aps.entity.ApsReportExdevEntity">
+        <result column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="pro_no" property="proNo"/>
+        <result column="pro_no_sub" property="proNoSub"/>
+        <result column="contract_deli_date" property="contractDeliDate"/>
+        <result column="plan_deli_date" property="planDeliDate"/>
+        <result column="plan_update_cause" property="planUpdateCause"/>
+        <result column="po_code" property="poCode"/>
+        <result column="po_ln" property="poLn"/>
+        <result column="item_code" property="itemCode"/>
+        <result column="item_name" property="itemName"/>
+        <result column="tc_num" property="tcNum"/>
+        <result column="pro_req_num" property="proReqNum"/>
+        <result column="po_earliest_deli_dae" property="poEarliestDeliDate"/>
+        <result column="po_deli_dae" property="poDeliDate"/>
+        <result column="delivery_date" property="deliveryDate"/>
+        <result column="review_deli_date" property="reviewDeliDate"/>
+        <result column="person_in_charge" property="personInCharge"/>
+        <result column="machining_comp_rate" property="machiningCompRate"/>
+        <result column="machining_review_complete_date" property="machiningReviewCompleteDate"/>
+        <result column="fitting_comp_rate" property="fittingCompRate"/>
+        <result column="fitting_review_complete_date" property="fittingReviewCompleteDate"/>
+        <result column="plan_deli_date_review" property="planDeliDateReview"/>
+        <result column="ncr_no" property="ncrNo"/>
+        <result column="sup_code" property="supCode"/>
+        <result column="sup_name" property="supName"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="sys_log" property="sysLog"/>
+    </resultMap>
+
+    <select id="getPage" resultType="org.springblade.modules.aps.entity.ApsReportExdevEntity">
+        SELECT
+	        *
+        FROM
+	        atw_aps_report_exdev a
+        WHERE
+            a.is_deleted = 0
+            AND a.delivery_date IS NOT NULL
+            AND (
+            unix_timestamp( now( ) ) > a.delivery_date
+            OR
+            (
+            SELECT apply_modify_deli_date FROM atw_delivery_modify_audit
+            WHERE is_deleted = 0
+            AND pro_no_sub = a.pro_no_sub
+            AND item_code = a.item_code
+            ORDER BY apply_modify_deli_date DESC
+            LIMIT 1 ) > a.delivery_date
+            )
+        <if test="aps.proNo != null and aps.proNo != ''">
+            AND a.pro_no LIKE CONCAT('%', #{aps.proNo} ,'%')
+        </if>
+        <if test="aps.proNoSub != null and aps.proNoSub != ''">
+            AND a.pro_no_sub LIKE CONCAT('%', #{aps.proNoSub} ,'%')
+        </if>
+    </select>
+
+</mapper>

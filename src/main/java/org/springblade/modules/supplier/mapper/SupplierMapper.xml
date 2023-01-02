@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.supplier.mapper.SupplierMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="supplierResultMap" type="org.springblade.modules.supplier.entity.Supplier">
+        <result column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="sup_id" property="supId"/>
+        <result column="code" property="code"/>
+        <result column="name" property="name"/>
+        <result column="type_code" property="typeCode"/>
+        <result column="type_name" property="typeName"/>
+        <result column="national_tax_code" property="nationalTaxCode"/>
+        <result column="state_tax_code" property="stateTaxCode"/>
+        <result column="tax_rate" property="taxRate"/>
+        <result column="mobile" property="mobile"/>
+        <result column="phone" property="phone"/>
+        <result column="email" property="email"/>
+        <result column="fax" property="fax"/>
+        <result column="ctc_name" property="ctcName"/>
+        <result column="address" property="address"/>
+        <result column="pay_way" property="payWay"/>
+        <result column="pay_way_change" property="payWayChange"/>
+        <result column="pay_way_status" property="payWayStatus"/>
+        <result column="com_name" property="comName"/>
+        <result column="purch_code" property="purchCode"/>
+        <result column="purch_name" property="purchName"/>
+        <result column="purch_email" property="purchEmail"/>
+        <result column="purch_type" property="purchType"/>
+        <result column="check_type" property="checkType"/>
+        <result column="check_rate" property="checkRate"/>
+        <result column="bank_account_code" property="bankAccountCode"/>
+        <result column="bank_name" property="bankName"/>
+        <result column="pay_date" property="payDate"/>
+        <result column="pay_rate" property="payRate"/>
+        <result column="update_cnt" property="updateCnt"/>
+        <result column="purch_contract" property="purchContract"/>
+        <result column="status" property="status"/>
+        <result column="readjust_count" property="readjustCount"/>
+        <result column="giveup_count" property="giveupCount"/>
+        <result column="pass_rate" property="passRate"/>
+        <result column="arv_rate" property="arvRate"/>
+        <result column="is_agree_purch_contract" property="isAgreePurchContract"/>
+        <result column="risk_level" property="riskLevel"/>
+        <result column="risk_hight_count" property="riskHightCount"/>
+        <result column="tech_score_a" property="techScoreA"/>
+        <result column="tech_score_b" property="techScoreB"/>
+        <result column="tech_score_c" property="techScoreC"/>
+        <result column="biz_score" property="bizScore"/>
+        <result column="qlf_exceed_count" property="qlfExceedCount"/>
+        <result column="qlf_check_count" property="qlfCheckCount"/>
+        <result column="credit_total" property="creditTotal"/>
+        <result column="template_type" property="templateType"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+    <select id="selectSupplierPage" resultType="org.springblade.modules.supplier.vo.SupplierVO">
+        select * from atw_supplier where is_deleted = 0 and primary_contact = '1'
+        <if test="supplier !=null and supplier.code !=null and supplier.code !='' ">
+            AND code LIKE '%${supplier.code}%'
+        </if>
+        <if test="supplier !=null and supplier.name !=null and supplier.name !='' ">
+            AND `name` LIKE '%${supplier.name}%'
+        </if>
+    </select>
+
+    <select id="selectOtherCtcInfos" resultType="org.springblade.modules.supplier.vo.SupplierVO">
+        select * from atw_supplier where is_deleted = 0 and primary_contact != '1'
+        and code = #{supCode}
+    </select>
+
+    <select id="selectMainCtcInfos" resultType="org.springblade.modules.supplier.vo.SupplierVO">
+        select * from atw_supplier where is_deleted = 0 and primary_contact = '1'
+        and code = #{supCode}
+    </select>
+
+    <select id="selectCountCtcInfos" resultType="int">
+        select count(*) from atw_supplier where code = #{supCode}
+    </select>
+
+    <select id="getSupplierByCode" resultType="org.springblade.modules.supplier.entity.Supplier">
+        select * from atw_supplier where code = #{supCode} and primary_contact = '1'
+    </select>
+
+<!--    <update id="updateOtherCtcInfos">-->
+<!--        UPDATE-->
+<!--        atw_supplier-->
+<!--        SET-->
+<!--        ctc_name = #{supplier.ctcName},-->
+<!--        phone = #{supplier.phone},-->
+<!--        ctc_duty = #{supplier.ctcDuty},-->
+<!--        email = #{supplier.email}-->
+<!--        WHERE-->
+<!--        code = #{supplier.code} and-->
+<!--        primary_contact = #{supplier.primaryContact}-->
+<!--    </update>-->
+
+    <delete id="delOhterCtcInfos">
+        delete from atw_supplier
+        where
+        code = #{supplier.code} and
+        primary_contact = #{supplier.primaryContact}
+    </delete>
+
+
+    <update id="updateOtherCtcInfos">
+        UPDATE
+        atw_supplier
+        SET
+        ctc_name = #{supplier.ctcName},
+        phone = #{supplier.phone},
+        ctc_duty = #{supplier.ctcDuty},
+        email = #{supplier.email}
+        WHERE
+        code = #{supplier.code} and
+        primary_contact = #{supplier.primaryContact}
+    </update>
+
+
+    <update id="updatePrimaryCtcDuty">
+        UPDATE
+        atw_supplier
+        SET
+        ctc_duty = #{ctcDuty}
+        WHERE
+        code = #{code} and
+        primary_contact = '1'
+    </update>
+
+
+    <update id="updateMore">
+        UPDATE
+        atw_supplier
+        SET
+        <if test="req !=null and req.purchCode !=null and req.purchCode !='' ">
+            purch_code = #{req.purchCode},purch_name = #{req.purchName}
+        </if>
+        <if test="req !=null and req.placeCode !=null and req.placeCode !='' ">
+            place_code = #{req.placeCode},place_name = #{req.placeName}
+        </if>
+        WHERE
+        find_in_set(code,#{req.supCodes})
+    </update>
+
+
+
+</mapper>

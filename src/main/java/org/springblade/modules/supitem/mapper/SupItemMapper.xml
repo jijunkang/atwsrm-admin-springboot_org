@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.supitem.mapper.SupItemMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="supItemResultMap" type="org.springblade.modules.supitem.entity.SupItem">
+        <id column="id" property="id"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="item_code" property="itemCode"/>
+        <result column="sup_code" property="supCode"/>
+        <result column="sup_name" property="supName"/>
+        <result column="item_name" property="itemName"/>
+        <result column="normal_period" property="normalPeriod"/>
+        <result column="is_enabled" property="isEnabled"/>
+    </resultMap>
+
+    <delete id="deleteByItemCode">
+        DELETE FROM atw_sup_item WHERE item_code = #{itemCode}
+    </delete>
+
+
+    <select id="selectSupItemPage" resultMap="supItemResultMap">
+        select * from atw_sup_item where is_deleted = 0
+    </select>
+
+    <select id="selectByCode" resultType="org.springblade.modules.supitem.entity.SupItem">
+        select * from atw_sup_item where item_code = #{itemCode} AND sup_code = #{supCode} LIMIT 1
+    </select>
+
+</mapper>

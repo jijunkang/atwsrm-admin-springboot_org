@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.ap.mapper.ApMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="apResultMap" type="org.springblade.modules.ap.entity.ApEntity">
+        <result column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="ap_code" property="apCode"/>
+        <result column="amount" property="amount"/>
+        <result column="sup_code" property="supCode"/>
+        <result column="sup_name" property="supName"/>
+        <result column="type" property="type"/>
+        <result column="sys_log" property="sysLog"/>
+        <result column="back_date" property="backDate"/>
+        <result column="remark" property="remark"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+
+    <select id="getApCountWithoutVmi" resultType="java.lang.Integer">
+        select count(*) from (
+        select
+        a.*
+        from
+        atw_ap a
+        left join atw_ap_item ai on (ai.ap_id = a.id )
+        where
+        left(ai.po_code,3)!='VMI'
+        AND ai.is_deleted = 0
+        AND a.is_deleted = 0
+        <if test="apReq.supName != null and apReq.supName != ''">
+            AND a.sup_name LIKE concat('%', #{apReq.supName} ,'%')
+        </if>
+        <if test="apReq.supCode != null and apReq.supCode != ''">
+            AND a.sup_code LIKE concat('%', #{apReq.supCode} ,'%')
+        </if>
+        <if test="apReq.apCode != null and apReq.apCode != ''">
+            AND a.ap_code LIKE concat('%', #{apReq.apCode} ,'%')
+        </if>
+        <if test="apReq.createTimeStart != null and apReq.createTimeStart != ''">
+            AND a.create_time  <![CDATA[ >= ]]> #{apReq.createTimeStart}
+        </if>
+        <if test="apReq.createTimeEnd != null and apReq.createTimeEnd != ''">
+            AND a.create_time  <![CDATA[ <= ]]> #{apReq.createTimeEnd}
+        </if>
+        <if test="apReq.backDateStart != null and apReq.backDateStart != ''">
+            AND a.back_date  <![CDATA[ >= ]]> #{apReq.backDateStart}
+        </if>
+        <if test="apReq.backDateEnd != null and apReq.backDateEnd != ''">
+            AND a.back_date  <![CDATA[ <= ]]> #{apReq.backDateEnd}
+        </if>
+        <if test="apReq.srmDateStart != null and apReq.srmDateStart != ''">
+            AND a.srm_date  <![CDATA[ >= ]]> #{apReq.srmDateStart}
+        </if>
+        <if test="apReq.srmDateEnd != null and apReq.srmDateEnd != ''">
+            AND a.srm_date  <![CDATA[ <= ]]> #{apReq.srmDateEnd}
+        </if>
+        <if test="apReq.status != null and apReq.status != ''">
+            AND a.status  = #{apReq.status}
+        </if>
+        group by a.ap_code
+        order by a.create_time desc)m
+    </select>
+
+    <select id="getApCountWithVmi" resultType="java.lang.Integer">
+        select count(*) from (
+        select
+        a.*
+        from
+        atw_ap a
+        left join atw_ap_item ai on (ai.ap_id = a.id )
+        where
+        left(ai.po_code,3)='VMI'
+        AND ai.is_deleted = 0
+        AND a.is_deleted = 0
+        <if test="apReq.supName != null and apReq.supName != ''">
+            AND a.sup_name LIKE concat('%', #{apReq.supName} ,'%')
+        </if>
+        <if test="apReq.supCode != null and apReq.supCode != ''">
+            AND a.sup_code LIKE concat('%', #{apReq.supCode} ,'%')
+        </if>
+        <if test="apReq.apCode != null and apReq.apCode != ''">
+            AND a.ap_code LIKE concat('%', #{apReq.apCode} ,'%')
+        </if>
+        <if test="apReq.createTimeStart != null and apReq.createTimeStart != ''">
+            AND a.create_time  <![CDATA[ >= ]]> #{apReq.createTimeStart}
+        </if>
+        <if test="apReq.createTimeEnd != null and apReq.createTimeEnd != ''">
+            AND a.create_time  <![CDATA[ <= ]]> #{apReq.createTimeEnd}
+        </if>
+        <if test="apReq.backDateStart != null and apReq.backDateStart != ''">
+            AND a.back_date  <![CDATA[ >= ]]> #{apReq.backDateStart}
+        </if>
+        <if test="apReq.backDateEnd != null and apReq.backDateEnd != ''">
+            AND a.back_date  <![CDATA[ <= ]]> #{apReq.backDateEnd}
+        </if>
+        <if test="apReq.srmDateStart != null and apReq.srmDateStart != ''">
+            AND a.srm_date  <![CDATA[ >= ]]> #{apReq.srmDateStart}
+        </if>
+        <if test="apReq.srmDateEnd != null and apReq.srmDateEnd != ''">
+            AND a.srm_date  <![CDATA[ <= ]]> #{apReq.srmDateEnd}
+        </if>
+        <if test="apReq.status != null and apReq.status != ''">
+            AND a.status  = #{apReq.status}
+        </if>
+        group by a.ap_code
+        order by a.create_time desc)m
+    </select>
+
+    <select id="getApPageWithVmi" resultType="org.springblade.modules.ap.entity.ApEntity">
+        select
+        a.*
+        from
+        atw_ap a
+        left join atw_ap_item ai on (ai.ap_id = a.id )
+        where
+        left(ai.po_code,3)='VMI'
+        AND ai.is_deleted = 0
+        AND a.is_deleted = 0
+        <if test="apReq.supName != null and apReq.supName != ''">
+            AND a.sup_name LIKE concat('%', #{apReq.supName} ,'%')
+        </if>
+        <if test="apReq.supCode != null and apReq.supCode != ''">
+            AND a.sup_code LIKE concat('%', #{apReq.supCode} ,'%')
+        </if>
+        <if test="apReq.apCode != null and apReq.apCode != ''">
+            AND a.ap_code LIKE concat('%', #{apReq.apCode} ,'%')
+        </if>
+        <if test="apReq.createTimeStart != null and apReq.createTimeStart != ''">
+            AND a.create_time  <![CDATA[ >= ]]> #{apReq.createTimeStart}
+        </if>
+        <if test="apReq.createTimeEnd != null and apReq.createTimeEnd != ''">
+            AND a.create_time  <![CDATA[ <= ]]> #{apReq.createTimeEnd}
+        </if>
+        <if test="apReq.backDateStart != null and apReq.backDateStart != ''">
+            AND a.back_date  <![CDATA[ >= ]]> #{apReq.backDateStart}
+        </if>
+        <if test="apReq.backDateEnd != null and apReq.backDateEnd != ''">
+            AND a.back_date  <![CDATA[ <= ]]> #{apReq.backDateEnd}
+        </if>
+        <if test="apReq.srmDateStart != null and apReq.srmDateStart != ''">
+            AND a.srm_date  <![CDATA[ >= ]]> #{apReq.srmDateStart}
+        </if>
+        <if test="apReq.srmDateEnd != null and apReq.srmDateEnd != ''">
+            AND a.srm_date  <![CDATA[ <= ]]> #{apReq.srmDateEnd}
+        </if>
+        <if test="apReq.status != null and apReq.status != ''">
+            AND a.status  = #{apReq.status}
+        </if>
+        group by a.ap_code
+        order by a.create_time desc
+    </select>
+</mapper>

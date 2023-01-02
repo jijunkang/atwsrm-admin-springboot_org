@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.ap.mapper.ApBillMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="apBillResultMap" type="org.springblade.modules.ap.entity.ApBillEntity">
+        <result column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="bill_code" property="billCode"/>
+        <result column="u9_code" property="u9Code"/>
+        <result column="u9_date" property="u9Date"/>
+        <result column="tax_amount" property="taxAmount"/>
+        <result column="pur_amount" property="purAmount"/>
+        <result column="sup_code" property="supCode"/>
+        <result column="sup_name" property="supName"/>
+        <result column="pro_no" property="proNo"/>
+        <result column="type" property="type"/>
+        <result column="audit1" property="audit1"/>
+        <result column="audit2" property="audit2"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="sys_log" property="sysLog"/>
+        <result column="back_date" property="backDate"/>
+        <result column="remark" property="remark"/>
+        <result column="srm_date" property="srmDate"/>
+    </resultMap>
+
+    <update id="backToRecOfRCV">
+        UPDATE
+            atw_ap_rcv rcv,
+            atw_ap_item item
+        SET
+            rcv.accum_rec_qty = rcv.rcv_actual_qty - item.rec_this_qty
+        WHERE
+	        item.rcv_id = rcv.id
+	        AND item.bill_code = #{apCode}
+    </update>
+
+    <update id="backToRecOfRCVOFVMI">
+        UPDATE
+            atw_ap_req_settle rcv,
+            atw_ap_item item,
+            atw_ap_rcv a
+        SET
+            rcv.req_accum_rec_qty = rcv.req_accum_rec_qty - item.rec_this_qty,
+            a.accum_rec_qty = a.accum_rec_qty - item.rec_this_qty
+        WHERE
+	        item.rcv_id = rcv.id
+	        and a.rcv_code = rcv.settle_rcv_code
+	        and a.rcv_ln = rcv.settle_rcv_ln
+	        AND item.bill_code = #{apCode}
+    </update>
+
+    <update id="backToRecOfAPI">
+        UPDATE
+            atw_ap_item
+        SET
+            is_deleted = '1'
+        WHERE
+	        bill_code = #{apCode}
+    </update>
+
+    <update id="backToRecOfAPB">
+        update
+            atw_ap_bill
+        SET
+            is_deleted = '1'
+        WHERE
+            bill_code = #{apCode}
+    </update>
+
+
+    <select id="selectApPage" resultType="org.springblade.modules.ap.entity.ApBillEntity">
+        SELECT
+            ab.*
+        FROM
+            `atw_ap_bill` ab
+        LEFT JOIN atw_ap_item ai on ab.bill_code = ai.bill_code
+        WHERE
+             ab.is_deleted = 0
+            <if test="apReq.status!= null and apReq.status !=''">
+                AND ab.status = #{apReq.status}
+            </if>
+            <if test="apReq.getCreateTimeStart!= null and apReq.getCreateTimeStart !=''">
+                AND ab.create_time &gt;=#{apReq.getCreateTimeStart}
+            </if>
+            <if test="apReq.getCreateTimeEnd!= null and apReq.getCreateTimeEnd !=''">
+                AND ab.create_time &lt;= #{apReq.getCreateTimeEnd}
+            </if>
+            <if test="apReq.billCode!= null and apReq.billCode !=''">
+                AND ab.bill_code = #{apReq.billCode}
+            </if>
+            <if test="apReq.poCode!= null and apReq.poCode !=''">
+                AND ai.po_code  = #{apReq.poCode}
+            </if>
+            <if test="apReq.poLn!= null and apReq.poLn !=''">
+                AND ai.po_ln  = #{apReq.poLn}
+            </if>
+            <if test="apReq.supName!= null and apReq.supName !=''">
+                AND ab.sup_name LIKE concat('%', #{apReq.supName} ,'%')
+            </if>
+        GROUP BY
+            ab.bill_code
+        order By create_time Desc
+    </select>
+</mapper>

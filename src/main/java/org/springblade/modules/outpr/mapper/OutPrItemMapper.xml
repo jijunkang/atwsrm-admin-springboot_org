@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.outpr.mapper.OutPrItemMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="outpritemResultMap" type="org.springblade.modules.outpr.entity.OutPrItemEntity">
+        <result column="id" property="id"/>
+        <result column="pr_id" property="prId"/>
+        <result column="pr_code" property="prCode"/>
+        <result column="purchase_type" property="purchaseType"/>
+        <result column="item_code" property="itemCode"/>
+        <result column="item_name" property="itemName"/>
+        <result column="price_num" property="priceNum"/>
+        <result column="price_uom" property="priceUom"/>
+        <result column="req_date" property="reqDate"/>
+        <result column="atw_price" property="atwPrice"/>
+        <result column="material_cost" property="materialCost"/>
+        <result column="enquiry_time" property="enquiryTime"/>
+        <result column="rcv_time" property="rcvTime"/>
+        <result column="flow_time" property="flowTime"/>
+        <result column="approve_time" property="approveTime"/>
+        <result column="order_time" property="orderTime"/>
+        <result column="close_time" property="closeTime"/>
+        <result column="flow_cause" property="flowCause"/>
+        <result column="is_need_update" property="isNeedUpdate"/>
+        <result column="inquiry_way" property="inquiryWay"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+    </resultMap>
+
+    <sql id="waitSql">
+        <if test="dto.statuss != null and dto.statuss != ''">
+            AND pr.`status` IN (${dto.statuss})
+        </if>
+        <if test="dto.itemCode != null and dto.itemCode != ''">
+            AND pr.`item_code` LIKE concat('%', #{dto.itemCode}, '%')
+        </if>
+        <if test="dto.itemName != null and dto.itemName != ''">
+            AND pr.`item_name` LIKE concat('%', #{dto.itemName}, '%')
+        </if>
+        <if test="dto.prCode != null and dto.prCode != ''">
+            AND pr.`pr_code` LIKE concat('%', #{dto.prCode}, '%')
+        </if>
+        <if test="dto.purchCode != null and dto.purchCode != ''">
+            AND pr.`purch_code` = #{dto.purchCode}
+        </if>
+        <if test="dto.purchCode == null or dto.purchCode == ''">
+            AND pr.`purch_code` is not null
+        </if>
+        <if test="dto.moNo != null and dto.moNo != ''">
+            AND pr.`mo_no` = #{dto.moNo}
+        </if>
+        <if test="dto.supName != null and dto.supName != ''">
+            AND io.`sup_name` LIKE concat('%', #{dto.lastSupName}, '%')
+        </if>
+    </sql>
+
+    <select id="selectOutPageList" resultType="org.springblade.modules.outpr.entity.OutPrItemEntity">
+        SELECT * FROM  atw_out_pr_item pr
+        WHERE pr.is_deleted = 0
+        and pr.status = #{dto.status}
+        ORDER BY pr.update_time DESC
+    </select>
+
+    <select id="getCountFromOut"  resultType="int">
+        SELECT count(*) FROM  atw_out_pr_item pr
+        WHERE pr.is_deleted = 0
+        and pr.status = #{dto.statuss}
+        and flow_cause is not null
+        and flow_cause != ''
+        <if test="dto.purchCode != null and dto.purchCode != ''">
+            AND pr.`purch_code` = #{dto.purchCode }
+        </if>
+        <if test="dto.purchCode == null or dto.purchCode== ''">
+            AND pr.`purch_code` is not null
+        </if>
+        ORDER BY pr.update_time DESC
+    </select>
+
+    <delete id="deleteIo" >
+        DELETE
+        FROM
+        atw_io_out
+        WHERE
+        id = #{id}
+    </delete>
+
+    <update id="updateOutPr" >
+        UPDATE
+        atw_out_pr_item
+        SET
+        status = 40
+        WHERE
+        id = #{id}
+    </update>
+
+    <select id="selectAttachment" resultType="java.lang.String">
+        select
+            attachment
+        FROM
+            atw_io
+        WHERE
+            id = #{id}
+    </select>
+
+    <select id="selectOutPrCheckPage" resultType="org.springblade.modules.outpr.vo.OutPrItemVO">
+        SELECT
+        pr.*,
+        highest_price,
+        lowest_price,
+        purch_mix,
+        stock_lower_limit,
+        quote_price,
+        promise_date,
+        sup_code,
+        sup_name,
+        io_attachment,
+        io_status,
+        io_id,
+        remark,
+        item.is_vmi,
+        item.s_or_n codeType
+        FROM
+        atw_out_pr_item pr
+        left join (SELECT item_code,min(price) lowest_price,MAX(price) highest_price FROM  atw_po_item WHERE status !=10 group by item_code ) pric on pr.item_code=pric.item_code
+        left join (SELECT code,purch_mix,stock_lower_limit,is_vmi,s_or_n FROM  atw_item ) item on pr.item_code=item.code
+        <choose>
+            <when test="dto.statuss == '41'">
+                INNER JOIN ( SELECT remark,quote_price, promise_date,sup_name,sup_code,attachment io_attachment ,status io_status,pr_id, id io_id FROM atw_io_out where status = '51' and is_deleted = 0) io ON pr.id = io.pr_id
+            </when>
+            <when test="dto.statuss == '60'">
+                INNER JOIN ( SELECT remark,quote_price, promise_date,sup_name,sup_code,attachment io_attachment ,status io_status,pr_id, id io_id FROM atw_io_out where status = '51' and is_deleted = 0) io ON pr.id = io.pr_id
+            </when>
+            <when test="dto.statuss == '70'">
+                INNER JOIN ( SELECT remark,quote_price, promise_date,sup_name,sup_code,attachment io_attachment ,status io_status,pr_id, id io_id FROM atw_io_out where status = '80' and is_deleted = 0) io ON pr.id = io.pr_id
+            </when>
+        </choose>
+        WHERE
+        pr.is_deleted = 0
+        <include refid="waitSql"></include>
+        and pr.flow_cause is not null
+        and pr.flow_cause !=''
+        ORDER BY
+        pr.update_time DESC
+    </select>
+
+    <select id="selectOutPrInquiryBidPage" resultType="org.springblade.modules.outpr.vo.OutPrItemVO">
+        SELECT
+        pr.*,
+        highest_price,
+        lowest_price,
+        purch_mix,
+        stock_lower_limit,
+        quote_price,
+        promise_date,
+        sup_code,
+        sup_name,
+        io_attachment,
+        io_status,
+        io_id,
+        remark
+        FROM
+        atw_out_pr_item pr
+        left join (SELECT item_code,min(price) lowest_price,MAX(price) highest_price FROM  atw_po_item WHERE status !=10 group by item_code ) pric on pr.item_code=pric.item_code
+        left join (SELECT code,purch_mix,stock_lower_limit FROM  atw_item ) item on pr.item_code=item.code
+        <choose>
+            <when test="dto.statuss == '41'">
+                INNER JOIN ( SELECT remark,quote_price, promise_date,sup_name,sup_code,attachment io_attachment ,status io_status,pr_id, id io_id FROM atw_io_out where status = '51' and is_deleted = 0) io ON pr.id = io.pr_id
+            </when>
+            <when test="dto.statuss == '60'">
+                INNER JOIN ( SELECT remark,quote_price, promise_date,sup_name,sup_code,attachment io_attachment ,status io_status,pr_id, id io_id FROM atw_io_out where status = '51' and is_deleted = 0) io ON pr.id = io.pr_id
+            </when>
+            <when test="dto.statuss == '70'">
+                INNER JOIN ( SELECT remark,quote_price, promise_date,sup_name,sup_code,attachment io_attachment ,status io_status,pr_id, id io_id FROM atw_io_out where status = '80' and is_deleted = 0) io ON pr.id = io.pr_id
+            </when>
+        </choose>
+        WHERE
+        pr.is_deleted = 0
+        <include refid="waitSql"></include>
+        and (pr.flow_cause is null or pr.flow_cause ='')
+        ORDER BY
+        pr.update_time DESC
+    </select>
+
+
+    <select id="selectOutPrFlowPage" resultType="org.springblade.modules.outpr.vo.OutPrItemVO">
+        SELECT
+        pr.*,highest_price,lowest_price,purch_mix,stock_lower_limit,item.s_or_n codeType,item.is_vmi
+        FROM
+        atw_out_pr_item pr
+        left join (SELECT item_code,min(price) lowest_price,MAX(price) highest_price FROM  atw_po_item WHERE status !=10 group by item_code ) pric on pr.item_code=pric.item_code
+        left join (SELECT code,purch_mix,stock_lower_limit,is_vmi,s_or_n FROM  atw_item ) item on pr.item_code=item.code
+        WHERE
+        pr.is_deleted = 0
+        <include refid="waitSql"></include>
+        and pr.flow_cause is not null and
+        pr.flow_cause !=''
+        ORDER BY
+        pr.update_time DESC
+    </select>
+
+
+    <select id="selectOutPrInquiryTabPage" resultType="org.springblade.modules.outpr.vo.OutPrItemVO">
+        SELECT
+        pr.*,highest_price,lowest_price,purch_mix,stock_lower_limit
+        FROM
+        atw_out_pr_item pr
+        left join (SELECT item_code,min(price) lowest_price,MAX(price) highest_price FROM  atw_po_item WHERE status !=10 group by item_code ) pric on pr.item_code=pric.item_code
+        left join (SELECT code,purch_mix,stock_lower_limit FROM  atw_item ) item on pr.item_code=item.code
+        WHERE
+        pr.is_deleted = 0
+        <include refid="waitSql"></include>
+        and (pr.flow_cause is null or pr.flow_cause ='')
+        ORDER BY
+        pr.update_time DESC
+    </select>
+
+    <select id="selectOutPrInquiryPage" resultType="org.springblade.modules.outpr.vo.OutPrItemVO">
+        SELECT
+        pr.*,
+        highest_price,
+        lowest_price,
+        purch_mix,
+        stock_lower_limit,
+        quote_price,
+        promise_date,
+        sup_code,
+        sup_name,
+        io_attachment,
+        io_status,
+        io_id,
+        remark
+        FROM
+        atw_out_pr_item pr
+        left join (SELECT item_code,min(price) lowest_price,MAX(price) highest_price FROM  atw_po_item WHERE status !=10 group by item_code ) pric on pr.item_code=pric.item_code
+        left join (SELECT code,purch_mix,stock_lower_limit FROM  atw_item ) item on pr.item_code=item.code
+        <choose>
+            <when test="dto.statuss == '30'">
+                INNER JOIN ( SELECT remark,quote_price, promise_date,sup_name,sup_code,attachment io_attachment ,status io_status,pr_id, id io_id FROM atw_io_out where status = '10' and is_deleted = 0) io ON pr.id = io.pr_id
+            </when>
+            <when test="dto.statuss == '60'">
+                INNER JOIN ( SELECT remark,quote_price, promise_date,sup_name,sup_code,attachment io_attachment ,status io_status,pr_id, id io_id FROM atw_io_out where status = '51' and is_deleted = 0) io ON pr.id = io.pr_id
+            </when>
+            <when test="dto.statuss == '70'">
+                INNER JOIN ( SELECT remark,quote_price, promise_date,sup_name,sup_code,attachment io_attachment ,status io_status,pr_id, id io_id FROM atw_io_out where status = '80' and is_deleted = 0) io ON pr.id = io.pr_id
+            </when>
+        </choose>
+        WHERE
+        pr.is_deleted = 0
+        and (pr.flow_cause is null or pr.flow_cause ='')
+        <include refid="waitSql"></include>
+        ORDER BY
+        pr.update_time DESC
+    </select>
+
+
+    <select id="selectInquiryPageOfWW" resultType="org.springblade.modules.outpr.vo.OutPrItemVO">
+        SELECT pr.* FROM  atw_out_pr_item pr
+        LEFT JOIN atw_io_out io on pr.id = io .pr_id
+        WHERE pr.is_deleted = 0
+        <include refid="waitSql"></include>
+        AND (pr.flow_cause is null or pr.flow_cause ='')
+        ORDER BY pr.update_time DESC
+    </select>
+
+    <select id="selectInquiryPageOfWWForZT" resultType="int">
+        SELECT count(*) FROM  atw_out_pr_item pr
+        LEFT JOIN atw_io_out io on pr.id = io .pr_id
+        WHERE pr.is_deleted = 0 and io.is_deleted = 0
+        <if test="dto.purchCode != null and dto.purchCode != ''">
+            AND pr.`purch_code` = #{dto.purchCode}
+        </if>
+        <if test="dto.purchCode == null or dto.purchCode == ''">
+            AND pr.`purch_code` is not null
+        </if>
+        <if test="dto.statuss != null and dto.statuss != ''" >
+             and pr.`status` IN (${dto.statuss})
+        </if>
+        AND (pr.flow_cause is null or pr.flow_cause ='')
+        ORDER BY pr.update_time DESC
+    </select>
+
+</mapper>

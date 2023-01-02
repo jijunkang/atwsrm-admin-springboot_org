@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.mathmodel.mapper.MmProcessFeeMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="mmProcessFeeResultMap" type="org.springblade.modules.mathmodel.entity.MmProcessFeeEntity">
+        <result column="id" property="id"/>
+        <result column="main_type" property="mainCode"/>
+        <result column="item_code" property="itemCode"/>
+        <result column="item_name" property="itemName"/>
+        <result column="price" property="price"/>
+        <result column="metal" property="metal"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+</mapper>

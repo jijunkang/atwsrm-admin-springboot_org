@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.outpr.mapper.OutPrWxZJMapper">
+
+
+    <select id="getOutPrWxZJInfo" resultType="org.springblade.modules.outpr.entity.OutPrWxZJEntity">
+        select
+            *
+        from
+            atw_out_pr_wx_zj
+        where
+            `itemize` = #{itemInfoEntity.itemize} and
+            `size` = #{itemInfoEntity.size} and
+            `form` = #{itemInfoEntity.form} and
+            `pound` = #{itemInfoEntity.pound} and
+            `flange` = #{itemInfoEntity.flange} and
+            `series` = #{itemInfoEntity.series} and
+            `sup_name` = #{supName} and
+            <choose>
+                <when test="itemInfoEntity.materialOfWeight != null and itemInfoEntity.materialOfWeight !=''">
+                    `material` = #{itemInfoEntity.materialOfWeight}
+                </when>
+                <otherwise>
+                    `material` = #{itemInfoEntity.material}
+                </otherwise>
+            </choose>
+    </select>
+
+
+</mapper>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.bizinquiry.mapper.BizInquiryIoFileNameMapper">
+
+    <insert id="insertFile">
+        insert into atw_biz_inquiry_io_file_list(
+            qo_id, file_name, file_url, upload_time,status
+            )
+        values(
+            #{bizInquiryIoFileListEntity.qoId},#{bizInquiryIoFileListEntity.fileName},#{bizInquiryIoFileListEntity.fileUrl},#{bizInquiryIoFileListEntity.uploadTime},
+            #{bizInquiryIoFileListEntity.status}
+            )
+    </insert>
+
+    <select id="getFileList" resultType="org.springblade.modules.bizinquiry.entity.BizInquiryIoFileListEntity">
+        select * from atw_biz_inquiry_io_file_list where qo_id =  #{id} and is_deleted = '0'
+    </select>
+
+    <select id="getFileListOfNotSend" resultType="org.springblade.modules.bizinquiry.entity.BizInquiryIoFileListEntity">
+        select * from atw_biz_inquiry_io_file_list where qo_id =  #{id} and status='0' and is_deleted = '0'
+    </select>
+
+    <select id="fileIsExisted" resultType="Integer">
+        select count(*) from atw_biz_inquiry_io_file_list where qo_id =  #{id} and is_deleted = '0'
+    </select>
+
+    <update id="updateQoAttachment">
+        update atw_biz_inquiry set attachment = '1' where id =  #{id} and is_deleted = '0'
+    </update>
+
+    <update id="updateIoAttachmentToZero">
+        update atw_biz_inquiry_io set attachment = '0' where qo_id =  #{id} and is_deleted = '0'
+    </update>
+
+    <update id="updateFileStatus">
+        update atw_biz_inquiry_io_file_list set status = '1' ,send_time = #{sendTime} where qo_id =  #{id} and file_url = #{fileUrl} and is_deleted = '0'
+    </update>
+
+    <update id="removeFileList">
+        update atw_biz_inquiry_io_file_list set is_deleted = '1'  where qo_id =  #{id} and file_url = #{fileUrl} and is_deleted = '0'
+    </update>
+
+</mapper>

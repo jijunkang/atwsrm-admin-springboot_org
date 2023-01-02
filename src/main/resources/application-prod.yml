@@ -1,0 +1,73 @@
+#数据源配置- 正式环境
+spring:
+  redis:
+    ##redis 单机环境配置
+    host: 127.0.0.1
+    port: 6379
+    password: UmVkaXM6IA
+    database: 0
+    ssl: false
+    ##redis 集群环境配置
+    #cluster:
+    #  nodes: 127.0.0.1:7001,127.0.0.1:7002,127.0.0.1:7003
+    #  commandTimeout: 5000
+  datasource:
+    url: jdbc:mysql://rm-bp16ogjgz7en19rm0.mysql.rds.aliyuncs.com:3306/db_atwsrm3?useSSL=false&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&serverTimezone=GMT%2B8&nullCatalogMeansCurrent=true&allowPublicKeyRetrieval=true
+    username: db_atwsrm3
+    password: '!6U0Ulu6hEBvYxwQ'
+
+#blade配置
+blade:
+  prop:
+    upload-domain: http://localhost:8888
+    remote-mode: true
+    remote-path: /usr/share/nginx/html
+    remote-path-iis: D://iis/html
+    log-mode: true
+
+atwsrm:
+  bizapiDomain: http://atwsrm.bizapi.antiwearvalve.com
+  u9ApiDomain: http://u9.antiwearvalve.com:8081/WG_API
+  esbApiDomain: http://10.29.1.53:8097
+  sqsApiDomain: http://10.29.1.53:8097
+  mesApiDomain: http://10.29.1.41/MES_API
+  bizapiUrl: http://atwsrm.bizapi.antiwearvalve.com
+
+#邮件发送领料扣账
+WWEMAILS:
+  FROM:
+    srm3@atwwg.api.antiwearvalve.cn
+  TO:
+    lipeng@antiwearvalve.com
+  CC:
+    helen@antiwearvalve.com;chenting@antiwearvalve.com;wangxiaoxiao@antiwearvalve.com
+  CG:
+    xiayanjuan@antiwearvalve.com
+  PriceTO:
+    carol@antiwearvalve.com
+  PriceCC:
+    yuxia@antiwearvalve.com
+
+
+#模板默认路径
+#model:
+#  modelPath:
+#    C:\\Users\\zhouliangwei\\Desktop\\送货计划表_模板.xlsx
+#  outputPath:
+#    C:\\Users\\zhouliangwei\\Desktop\\
+model:
+  modelPath:
+    /www/wwwjava/srm-admin-api/modelFiles/送货计划表_模板.xlsx
+  outputPath:
+    /www/wwwjava/srm-admin-api/outputFiles/
+
+#sendCloud默认配置
+sendCloud:
+  url:
+    http://api.sendcloud.net/apiv2/mail/send
+  apiUser:
+    atwwg_single_sender_dev
+  apiKey:
+    ALArOxO9xe6KVlq6
+  splitSymbol:
+    /

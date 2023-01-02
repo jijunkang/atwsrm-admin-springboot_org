@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.order.mapper.OrderMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="orderResultMap" type="org.springblade.modules.order.entity.Order">
+        <result column="id" property="id"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="order_title" property="orderTitle"/>
+        <result column="costomer_id" property="costomerId"/>
+        <result column="approval_status" property="approvalStatus"/>
+        <result column="total_amount" property="totalAmount"/>
+        <result column="amount_refunded" property="amountRefunded"/>
+        <result column="invoiced_amount" property="invoicedAmount"/>
+        <result column="unpaid_amount" property="unpaidAmount"/>
+    </resultMap>
+
+
+    <select id="selectOrderPage" resultMap="orderResultMap">
+        SELECT
+        item_code,
+        item_name
+        FROM wxx_forecast
+        WHERE
+        <if test="supplier.supName !=null">
+         and name = #{supplier.supName}
+        </if>
+    </select>
+
+</mapper>

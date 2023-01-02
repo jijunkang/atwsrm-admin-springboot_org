@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.mathmodel.mapper.TubeMaterialInfoMapper">
+    <delete id="deleteByItemCode">
+        delete  from  atw_item_info_gbl_report where item_code = #{itemCode}
+    </delete>
+
+    <select id="selectExternal" resultType="org.springblade.modules.mathmodel.entity.TubeMaterialInfoEntity">
+        select * from atw_maily_material where `external_diameter` <![CDATA[ >= ]]> #{externalDiameter}  ORDER BY `external_diameter` ASC  limit 1
+    </select>
+    <select id="selectInner" resultType="org.springblade.modules.mathmodel.entity.TubeMaterialInfoEntity">
+        select * from  atw_maily_material where `external_diameter`=#{externalDiameter} and   `internal_diamete` <![CDATA[ <= ]]> #{internalDiamete} ORDER BY `internal_diamete` desc limit 1
+    </select>
+
+    <select id="selectTheMaterialPrice" resultType="java.lang.Double">
+        SELECT
+        the_material_price
+        FROM
+        atw_maily_material_price
+        WHERE
+        supplier_code = #{supplierCode}
+        AND
+        IF
+        (
+        external_diameter_range != '',
+        IF
+        (
+        external_diameter_range IS NOT NULL,
+        SUBSTRING_INDEX( external_diameter_range, ',', 1 ) &lt; #{range}+0 AND SUBSTRING_INDEX( external_diameter_range, ',',- 1 ) >= #{range}+0,1 = 1 ),1=1)
+        AND FIND_IN_SET(#{theMaterial},the_material)
+    </select>
+
+    <select id="selectBySprayPrice" resultType="java.lang.Double">
+        select  `coating_price` from atw_maily_spraying_price where coating  =  #{coating} and supplier_code = #{supplierCode} and FIND_IN_SET(#{theMaterial},the_material)
+    </select>
+    <select id="selectProcessPrice" resultType="org.springblade.modules.mathmodel.entity.TubeMaterialInfoEntity">
+        select  * from  atw_maily_processing_fee
+        where
+            `external_diameter` = #{externalDiameter} and
+            `internal_diamete` = #{internalDiamete} and
+            `supplier_code` = #{supplierCode} and
+            `length` between #{length} and #{length} +30 ORDER BY length ASC limit 1
+
+    </select>
+    <select id="selectByInfo" resultType="org.springblade.modules.mathmodel.entity.TubeMaterialInfoEntity">
+        SELECT * FROM atw_item_info_gbl_report  where  item_code = #{itemCode}
+    </select>
+</mapper>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.material.mapper.MaterialMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="materialResultMap" type="org.springblade.modules.material.entity.MaterialEntity">
+        <result column="id" property="id"/>
+        <result column="type" property="type"/>
+        <result column="spec" property="spec"/>
+        <result column="metal" property="metal"/>
+        <result column="out_d1" property="outD1"/>
+        <result column="out_d2" property="outD2"/>
+        <result column="h1" property="h1"/>
+        <result column="h2" property="h2"/>
+        <result column="hole" property="hole"/>
+        <result column="need_proc_fees" property="needProcFees"/>
+        <result column="unneed_proc_fees" property="unneedProcFees"/>
+        <result column="forge_fees" property="forgeFees"/>
+        <result column="rough_proc_fees" property="roughProcFees"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+</mapper>

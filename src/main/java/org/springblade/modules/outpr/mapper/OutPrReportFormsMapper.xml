@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.outpr.mapper.OutPrReportFormsMapper">
+    <select id="getPage" resultType="org.springblade.modules.outpr.entity.OutPrReportFormsEntity">
+        select
+         *
+        from
+         atw_out_pr_report_forms pr
+        where
+        is_deleted  = 0
+        <if test="outPrReportFormsEntity.oldItemCode != null and outPrReportFormsEntity.oldItemCode != ''">
+            AND pr.`old_item_code` LIKE concat('%', #{outPrReportFormsEntity.oldItemCode}, '%')
+        </if>
+        <if test="outPrReportFormsEntity.oldItemName != null and outPrReportFormsEntity.oldItemName != ''">
+            AND pr.`old_item_name` LIKE concat('%', #{outPrReportFormsEntity.oldItemName}, '%')
+        </if>
+        <if test="outPrReportFormsEntity.doCode != null and outPrReportFormsEntity.doCode != ''">
+            AND pr.`do_code` LIKE concat('%', #{outPrReportFormsEntity.doCode}, '%')
+        </if>
+        <if test="outPrReportFormsEntity.qoCode != null and outPrReportFormsEntity.qoCode != ''">
+            AND pr.`qo_code` LIKE concat('%', #{outPrReportFormsEntity.qoCode}, '%')
+        </if>
+        <if test="outPrReportFormsEntity.moCode != null and outPrReportFormsEntity.moCode != ''">
+            AND pr.`mo_code` LIKE concat('%', #{outPrReportFormsEntity.moCode}, '%')
+        </if>
+        <if test="outPrReportFormsEntity.newItemCode != null and outPrReportFormsEntity.newItemCode != ''">
+            AND pr.`new_item_code` LIKE concat('%', #{outPrReportFormsEntity.newItemCode}, '%')
+        </if>
+        <if test="outPrReportFormsEntity.newItemName != null and outPrReportFormsEntity.newItemName != ''">
+            AND pr.`new_item_name` LIKE concat('%', #{outPrReportFormsEntity.newItemName}, '%')
+        </if>
+        <if test="outPrReportFormsEntity.remark != null and outPrReportFormsEntity.remark != ''">
+            AND pr.`remark` LIKE concat('%', #{outPrReportFormsEntity.remark}, '%')
+        </if>
+        order by
+        old_item_code,old_item_name,do_code
+    </select>
+
+    <select id="getList" resultType="org.springblade.modules.outpr.entity.OutPrReportFormsEntity">
+        select
+        *
+        from
+        atw_out_pr_report_forms pr
+        where
+        is_deleted  = 0
+        <if test="outPrReportFormsEntity.oldItemCode != null and outPrReportFormsEntity.oldItemCode != ''">
+            AND pr.`old_item_code` LIKE concat('%', #{outPrReportFormsEntity.oldItemCode}, '%')
+        </if>
+        <if test="outPrReportFormsEntity.oldItemName != null and outPrReportFormsEntity.oldItemName != ''">
+            AND pr.`old_item_name` LIKE concat('%', #{outPrReportFormsEntity.oldItemName}, '%')
+        </if>
+        <if test="outPrReportFormsEntity.doCode != null and outPrReportFormsEntity.doCode != ''">
+            AND pr.`do_code` LIKE concat('%', #{outPrReportFormsEntity.doCode}, '%')
+        </if>
+        <if test="outPrReportFormsEntity.qoCode != null and outPrReportFormsEntity.qoCode != ''">
+            AND pr.`qo_code` LIKE concat('%', #{outPrReportFormsEntity.qoCode}, '%')
+        </if>
+        <if test="outPrReportFormsEntity.moCode != null and outPrReportFormsEntity.moCode != ''">
+            AND pr.`mo_code` LIKE concat('%', #{outPrReportFormsEntity.moCode}, '%')
+        </if>
+        <if test="outPrReportFormsEntity.newItemCode != null and outPrReportFormsEntity.newItemCode != ''">
+            AND pr.`new_item_code` LIKE concat('%', #{outPrReportFormsEntity.newItemCode}, '%')
+        </if>
+        <if test="outPrReportFormsEntity.newItemName != null and outPrReportFormsEntity.newItemName != ''">
+            AND pr.`new_item_name` LIKE concat('%', #{outPrReportFormsEntity.newItemName}, '%')
+        </if>
+        <if test="outPrReportFormsEntity.remark != null and outPrReportFormsEntity.remark != ''">
+            AND pr.`remark` LIKE concat('%', #{outPrReportFormsEntity.remark}, '%')
+        </if>
+        order by
+            old_item_code,old_item_name,do_code
+    </select>
+
+    <select id="getDOListOfWW" resultType="org.springblade.modules.outpr.entity.OutPrReportFormsEntity">
+        select
+                do.rcv_code do_code,
+                do.rcv_num deliver_num,
+                po.item_code old_item_code,
+                po.item_name old_item_name,
+                do.process remark
+        from
+                atw_po_receive do,
+                atw_po_item po
+        where
+                do.is_out  = 'Y'
+                AND po.id = do.pi_id
+                AND do.is_deleted = '0'
+                AND po.is_deleted = '0'
+                <if test="outPrReportFormsEntity.doCode != null and outPrReportFormsEntity.doCode != ''">
+                    AND do.`rcv_code` LIKE concat('%', #{outPrReportFormsEntity.doCode}, '%')
+                </if>
+                <if test="outPrReportFormsEntity.oldItemCode != null and outPrReportFormsEntity.oldItemCode != ''">
+                    AND po.`item_code` LIKE concat('%', #{outPrReportFormsEntity.oldItemCode}, '%')
+                </if>
+                <if test="outPrReportFormsEntity.oldItemName != null and outPrReportFormsEntity.oldItemName != ''">
+                    AND po.`item_name` LIKE concat('%', #{outPrReportFormsEntity.oldItemName}, '%')
+                </if>
+        order by
+                do.rcv_code,po.item_code
+    </select>
+
+
+    <select id="getDOPageOfWW" resultType="org.springblade.modules.outpr.entity.OutPrReportFormsEntity">
+        select
+        do.rcv_code do_code,
+        do.rcv_num deliver_num,
+        po.item_code old_item_code,
+        po.item_name old_item_name,
+        do.process remark
+        from
+        atw_po_receive do,
+        atw_po_item po
+        where
+        do.is_out  = 'Y'
+        AND po.id = do.pi_id
+        AND do.is_deleted = '0'
+        AND po.is_deleted = '0'
+        AND do.status in ('20','24','25')
+        <if test="outPrReportFormsEntity.doCode != null and outPrReportFormsEntity.doCode != ''">
+            AND do.`rcv_code` LIKE concat('%', #{outPrReportFormsEntity.doCode}, '%')
+        </if>
+        <if test="outPrReportFormsEntity.oldItemCode != null and outPrReportFormsEntity.oldItemCode != ''">
+            AND po.`item_code` LIKE concat('%', #{outPrReportFormsEntity.oldItemCode}, '%')
+        </if>
+        <if test="outPrReportFormsEntity.oldItemName != null and outPrReportFormsEntity.oldItemName != ''">
+            AND po.`item_name` LIKE concat('%', #{outPrReportFormsEntity.oldItemName}, '%')
+        </if>
+        order by
+        do.rcv_code,po.item_code
+    </select>
+
+    <select id="getParams" resultType="org.springblade.modules.outpr.dto.DoDTO">
+        select
+            do.rcv_code,
+            do.rcv_num,
+            do.heat_code,
+            do.produce_date,
+            do.specs,
+            do.mat_quality,
+            po.po_code,
+            po.po_ln ,
+            po.item_code,
+            po.item_name ,
+            po.remark,
+            po.sup_code,
+            po.sup_name ,
+            po.price_uom
+        from
+            atw_po_receive do,
+            atw_po_item po
+        where
+            do.is_out  = 'Y'
+            AND po.id = do.pi_id
+            AND do.is_deleted = '0'
+            AND po.is_deleted = '0'
+            AND do.rcv_code = #{doCode}
+    </select>
+
+
+    <select id="getToCheckCount" resultType="java.lang.Integer">
+        select
+            count(DISTINCT rcv_code)
+        from
+            atw_po_receive
+        where
+            is_out  = 'Y'
+            AND is_deleted = '0'
+            AND check_status = '10'
+            AND status in ('20','25')
+    </select>
+
+    <select id="getHaveCheckCount" resultType="java.lang.Integer">
+        select
+            count(DISTINCT rcv_code)
+        from
+            atw_po_receive
+        where
+            is_out  = 'Y'
+            AND is_deleted = '0'
+            AND check_status = '20'
+            AND status &lt;= 30
+    </select>
+
+    <select id="getDoPage" resultType="org.springblade.modules.outpr.dto.DoDTO">
+        select
+        do.rcv_code,
+        do.rcv_num,
+        do.heat_code,
+        do.produce_date,
+        do.specs,
+        do.mat_quality,
+        po.po_code,
+        po.po_ln ,
+        po.item_code,
+        po.item_name ,
+        po.remark,
+        po.sup_code,
+        po.sup_name ,
+        po.price_uom,
+        po.mo_no
+        from
+        atw_po_receive do,
+        atw_po_item po
+        where
+        do.is_out  = 'Y'
+        and do.check_status=#{outPrReportFormsDto.checkStatus}
+        AND po.id = do.pi_id
+        AND do.is_deleted = '0'
+        AND po.is_deleted = '0'
+        <if test="outPrReportFormsDto.checkStatus == '10'">
+            AND do.status in ('20','24','25')
+        </if>
+        <if test="outPrReportFormsDto.checkStatus == '20'">
+            AND do.status &lt;= 30
+        </if>
+        <if test="outPrReportFormsDto.supCode != null and outPrReportFormsDto.supCode != ''">
+            AND do.sup_code LIKE concat('%', #{outPrReportFormsDto.supCode}, '%')
+        </if>
+        <if test="outPrReportFormsDto.supName != null and outPrReportFormsDto.supName != ''">
+            AND do.sup_name LIKE concat('%', #{outPrReportFormsDto.supName}, '%')
+        </if>
+        <if test="outPrReportFormsDto.rcvCode != null and outPrReportFormsDto.rcvCode != ''">
+            AND do.rcv_code LIKE concat('%', #{outPrReportFormsDto.rcvCode}, '%')
+        </if>
+        <if test="outPrReportFormsDto.poCode != null and outPrReportFormsDto.poCode != ''">
+            AND po.po_code LIKE concat('%', #{outPrReportFormsDto.poCode}, '%')
+        </if>
+        <if test="outPrReportFormsDto.itemCode != null and outPrReportFormsDto.itemCode != ''">
+            AND po.item_code LIKE concat('%', #{outPrReportFormsDto.itemCode}, '%')
+        </if>
+        <if test="outPrReportFormsDto.itemName != null and outPrReportFormsDto.itemName != ''">
+            AND po.item_name LIKE concat('%', #{outPrReportFormsDto.itemName}, '%')
+        </if>
+        <if test="outPrReportFormsDto.moNo != null and outPrReportFormsDto.moNo != ''">
+            AND po.mo_no LIKE concat('%', #{outPrReportFormsDto.moNo}, '%')
+        </if>
+        order by do.rcv_code desc
+    </select>
+
+
+    <select id="getDoList" resultType="org.springblade.modules.outpr.dto.DoDTO">
+        select
+        do.rcv_code,
+        do.rcv_num,
+        do.heat_code,
+        do.produce_date,
+        do.specs,
+        do.mat_quality,
+        po.po_code,
+        po.po_ln ,
+        po.item_code,
+        po.item_name ,
+        po.remark,
+        po.sup_code,
+        po.sup_name ,
+        po.price_uom,
+        po.mo_no
+        from
+        atw_po_receive do,
+        atw_po_item po
+        where
+        do.is_out  = 'Y'
+        and do.check_status=#{outPrReportFormsDto.checkStatus}
+        AND po.id = do.pi_id
+        AND do.is_deleted = '0'
+        AND po.is_deleted = '0'
+        <if test="outPrReportFormsDto.supCode != null and outPrReportFormsDto.supCode != ''">
+            AND do.sup_code LIKE concat('%', #{outPrReportFormsDto.supCode}, '%')
+        </if>
+        <if test="outPrReportFormsDto.supName != null and outPrReportFormsDto.supName != ''">
+            AND do.sup_name LIKE concat('%', #{outPrReportFormsDto.supName}, '%')
+        </if>
+        <if test="outPrReportFormsDto.rcvCode != null and outPrReportFormsDto.rcvCode != ''">
+            AND do.rcv_code in (#{outPrReportFormsDto.rcvCode})
+        </if>
+        <if test="outPrReportFormsDto.poCode != null and outPrReportFormsDto.poCode != ''">
+            AND po.po_code LIKE concat('%', #{outPrReportFormsDto.poCode}, '%')
+        </if>
+        <if test="outPrReportFormsDto.itemCode != null and outPrReportFormsDto.itemCode != ''">
+            AND po.item_code LIKE concat('%', #{outPrReportFormsDto.itemCode}, '%')
+        </if>
+        <if test="outPrReportFormsDto.itemName != null and outPrReportFormsDto.itemName != ''">
+            AND po.item_name LIKE concat('%', #{outPrReportFormsDto.itemName}, '%')
+        </if>
+        <if test="outPrReportFormsDto.moNo != null and outPrReportFormsDto.moNo != ''">
+            AND po.mo_no LIKE concat('%', #{outPrReportFormsDto.moNo}, '%')
+        </if>
+    </select>
+
+    <update id="virtualWareById" >
+        update  atw_po_receive set check_status='20',status='27' where rcv_code = #{rcvCode} and is_deleted = 0
+    </update>
+
+</mapper>

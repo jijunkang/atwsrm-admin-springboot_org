@@ -1,0 +1,377 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.ap.mapper.ApRcvMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="aprcvResultMap" type="org.springblade.modules.ap.entity.ApRcvEntity">
+        <result column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="sup_code" property="supCode"/>
+        <result column="sup_name" property="supName"/>
+        <result column="rcv_date" property="rcvDate"/>
+        <result column="rcv_code" property="rcvCode"/>
+        <result column="rcv_ln" property="rcvLn"/>
+        <result column="po_code" property="poCode"/>
+        <result column="po_ln" property="poLn"/>
+        <result column="item_code" property="itemCode"/>
+        <result column="item_name" property="itemName"/>
+        <result column="rcv_actual_qty" property="rcvActualQty"/>
+        <result column="uom" property="uom"/>
+        <result column="price" property="price"/>
+        <result column="tax_price" property="taxPrice"/>
+        <result column="sub_total" property="subTotal"/>
+        <result column="tax_sub_total" property="taxSubTotal"/>
+        <result column="tax_rate" property="taxRate"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="is_ncr" property="isNcr"/>
+    </resultMap>
+
+    <select id="getVmiList" resultType="org.springblade.modules.ap.entity.ApRcvReqEntity">
+        select a.*,rs.id reqId,rs.settle_rcv_code,rs.settle_rcv_ln,rs.req_rcv_code,rs.req_rcv_ln,rs.req_po_code,rs.req_po_ln,rs.req_rcv_num,rs.vmi_contract_new,rs.vmi_status_new,rs.req_accum_rec_qty,
+        apii.price tax_price_po,
+        apii.amount sub_total_po
+        from
+        (
+        select a.* from atw_ap_rcv a
+        WHERE
+        ( ABS(a.accum_rec_qty) &lt; ABS(a.rcv_actual_qty) AND status = 10 AND type = 'DZ' )
+        OR
+        ( status = 13 AND type = 'KK')
+        ) a left join atw_ap_req_settle rs on (a.rcv_code = rs.settle_rcv_code and a.rcv_ln = rs.settle_rcv_ln and rs.req_rcv_num &gt; rs.req_accum_rec_qty)
+        left join (select * from atw_po_item api where api.is_deleted=0 ) apii on apii.po_code=rs.req_po_code and apii.po_ln=rs.req_po_ln
+        where
+        if(left(a.po_code,3)='VMI',a.src_biz_type = '322',1=1)
+        And a.is_deleted = 0
+        AND a.po_code like 'VMI%'
+        AND a.sup_code != 'PC-017'
+        <if test="apReq.supName != null and apReq.supName != ''">
+            AND a.sup_name LIKE concat('%', #{apReq.supName} ,'%')
+        </if>
+        <if test="apReq.supCode != null and apReq.supCode != ''">
+            AND a.sup_code LIKE concat('%', #{apReq.supCode} ,'%')
+        </if>
+        <if test="apReq.rcvCode != null and apReq.rcvCode != ''">
+            AND rs.req_rcv_code LIKE concat('%', #{apReq.rcvCode} ,'%')
+        </if>
+        <if test="apReq.rcvDateStart != null and apReq.rcvDateStart != ''">
+            AND a.rcv_date  <![CDATA[ >= ]]> #{apReq.rcvDateStart}
+        </if>
+        <if test="apReq.rcvDateEnd != null and apReq.rcvDateEnd != ''">
+            AND a.rcv_date  <![CDATA[ <= ]]> #{apReq.rcvDateEnd}
+        </if>
+        <if test="apReq.poCode != null and apReq.poCode != ''">
+            AND rs.req_po_code LIKE concat('%', #{apReq.poCode} ,'%')
+        </if>
+        <if test="apReq.itemCode != null and apReq.itemCode != ''">
+            AND a.item_code LIKE concat('%', #{apReq.itemCode} ,'%')
+        </if>
+        <if test="apReq.itemName != null and apReq.itemName != ''">
+            AND a.item_name LIKE concat('%', #{apReq.itemName} ,'%')
+        </if>
+        <if test="apReq.selectionIds != null and apReq.selectionIds != ''">
+            AND find_in_set(rs.id,#{apReq.selectionIds})
+        </if>
+        AND a.sup_code != 'PC-017'
+        order by rs.settle_rcv_code desc
+    </select>
+
+    <select id="getListOfVmi" resultType="org.springblade.modules.ap.vo.ApRcvVO">
+        SELECT
+            s.address,
+            s.phone,
+            s.fax,
+            s.bank_name,
+            s.bank_account_code,
+            s.state_tax_code,
+            p.type_name payWay,
+            s.tax_rate,
+            a.*,
+            rs.*
+        FROM
+            atw_ap_rcv a
+            LEFT JOIN atw_supplier s ON ( a.sup_code = s.CODE AND s.primary_contact = 1 )
+            LEFT JOIN atw_payway p ON ( p.sup_code = s.code AND p.is_default = 1 )
+            left join atw_ap_req_settle rs on (a.rcv_code = rs.settle_rcv_code and a.rcv_ln = rs.settle_rcv_ln)
+        WHERE
+            find_in_set(rs.id,#{ids})
+    </select>
+
+    <select id="getVmiPage" resultType="org.springblade.modules.ap.entity.ApRcvReqEntity">
+        select a.*,rs.id reqId,rs.settle_rcv_code,rs.settle_rcv_ln,rs.req_rcv_code,rs.req_rcv_ln,rs.req_po_code,rs.req_po_ln,rs.req_rcv_num,rs.vmi_contract_new,rs.vmi_status_new,
+        apii.price tax_price_po,
+        apii.amount sub_total_po,
+        rs.req_accum_rec_qty
+        from
+        (
+        select a.* from atw_ap_rcv a
+        WHERE
+        ( ABS(a.accum_rec_qty) &lt; ABS(a.rcv_actual_qty) AND status = 10 AND type = 'DZ' )
+        OR
+        ( status = 13 AND type = 'KK')
+        ) a left join atw_ap_req_settle rs on (a.rcv_code = rs.settle_rcv_code and a.rcv_ln = rs.settle_rcv_ln and rs.req_rcv_num &gt; rs.req_accum_rec_qty)
+        left join (select * from atw_po_item api where api.is_deleted=0 ) apii on apii.po_code=rs.req_po_code and apii.po_ln=rs.req_po_ln
+        where
+        if(left(a.po_code,3)='VMI',a.src_biz_type = '322',1=1)
+        And a.is_deleted = 0
+        AND a.po_code like 'VMI%'
+        AND a.sup_code != 'PC-017'
+        <if test="apReq.supName != null and apReq.supName != ''">
+            AND a.sup_name LIKE concat('%', #{apReq.supName} ,'%')
+        </if>
+        <if test="apReq.orgCode != null and apReq.orgCode != ''">
+            AND a.org_code =  #{apReq.orgCode}
+        </if>
+        <if test="apReq.supCode != null and apReq.supCode != ''">
+            AND a.sup_code LIKE concat('%', #{apReq.supCode} ,'%')
+        </if>
+        <if test="apReq.rcvCode != null and apReq.rcvCode != ''">
+            AND rs.req_rcv_code LIKE concat('%', #{apReq.rcvCode} ,'%')
+        </if>
+        <if test="apReq.rcvDateStart != null and apReq.rcvDateStart != ''">
+            AND a.rcv_date  <![CDATA[ >= ]]> #{apReq.rcvDateStart}
+        </if>
+        <if test="apReq.rcvDateEnd != null and apReq.rcvDateEnd != ''">
+            AND a.rcv_date  <![CDATA[ <= ]]> #{apReq.rcvDateEnd}
+        </if>
+        <if test="apReq.poCode != null and apReq.poCode != ''">
+            AND rs.req_po_code LIKE concat('%', #{apReq.poCode} ,'%')
+        </if>
+        <if test="apReq.itemCode != null and apReq.itemCode != ''">
+            AND a.item_code LIKE concat('%', #{apReq.itemCode} ,'%')
+        </if>
+        <if test="apReq.itemName != null and apReq.itemName != ''">
+            AND a.item_name LIKE concat('%', #{apReq.itemName} ,'%')
+        </if>
+        <if test="apReq.status != null and apReq.status != ''">
+            AND a.status = #{apReq.status}
+        </if>
+        <if test="apReq.vmiStatus != null and apReq.vmiStatus != ''">
+            AND rs.vmi_status_new = #{apReq.vmiStatus}
+        </if>
+        <if test="apReq.selectionIds != null and apReq.selectionIds != ''">
+            AND find_in_set(rs.id,#{apReq.selectionIds})
+        </if>
+        AND a.sup_code != 'PC-017'
+        order by rs.settle_rcv_code desc
+    </select>
+
+    <select id="getList" resultType="org.springblade.modules.ap.entity.ApRcvEntity">
+        select * from
+        (
+        select a.* from atw_ap_rcv a
+        WHERE
+        ( ABS(a.accum_rec_qty) &lt; ABS(a.rcv_actual_qty) AND status = 10 AND type = 'DZ' )
+        OR
+        ( status = 13 AND type = 'KK')
+        ) a
+        where
+        if(left(a.po_code,3)='VMI',a.src_biz_type = '322',1=1)
+        And a.is_deleted = 0
+        <if test="apReq.supName != null and apReq.supName != ''">
+            AND a.sup_name LIKE concat('%', #{apReq.supName} ,'%')
+        </if>
+        <if test="apReq.supCode != null and apReq.supCode != ''">
+            AND a.sup_code LIKE concat('%', #{apReq.supCode} ,'%')
+        </if>
+        <if test="apReq.rcvCode != null and apReq.rcvCode != ''">
+            AND a.rcv_code LIKE concat('%', #{apReq.rcvCode} ,'%')
+        </if>
+        <if test="apReq.rcvDateStart != null and apReq.rcvDateStart != ''">
+            AND a.rcv_date  <![CDATA[ >= ]]> #{apReq.rcvDateStart}
+        </if>
+        <if test="apReq.rcvDateEnd != null and apReq.rcvDateEnd != ''">
+            AND a.rcv_date  <![CDATA[ <= ]]> #{apReq.rcvDateEnd}
+        </if>
+        <if test="apReq.poCode != null and apReq.poCode != ''">
+            AND a.po_code LIKE concat('%', #{apReq.poCode} ,'%')
+        </if>
+        <if test="apReq.itemCode != null and apReq.itemCode != ''">
+            AND a.item_code LIKE concat('%', #{apReq.itemCode} ,'%')
+        </if>
+        <if test="apReq.itemName != null and apReq.itemName != ''">
+            AND a.item_name LIKE concat('%', #{apReq.itemName} ,'%')
+        </if>
+        <if test="apReq.orgCode != null and apReq.orgCode != ''">
+            AND a.org_code LIKE concat('%', #{apReq.orgCode} ,'%')
+        </if>
+        AND a.sup_code != 'PC-017'
+        order by a.rcv_code desc
+    </select>
+
+    <select id="getPage" resultType="org.springblade.modules.ap.entity.ApRcvEntity">
+        select * from
+        (
+        select a.* from atw_ap_rcv a
+        WHERE
+        ( ABS(a.accum_rec_qty) &lt; ABS(a.rcv_actual_qty) AND status = 10 AND type = 'DZ' )
+        OR
+        ( status = 13 AND type = 'KK')
+        ) a
+        where
+        if(left(a.po_code,3)='VMI',a.src_biz_type = '322',1=1)
+        And a.is_deleted = 0
+        AND if(a.po_code is not null,a.po_code NOT LIKE 'VMI%',1=1)
+        AND a.sup_code != 'PC-017'
+        <if test="apReq.supName != null and apReq.supName != ''">
+            AND a.sup_name LIKE concat('%', #{apReq.supName} ,'%')
+        </if>
+        <if test="apReq.supCode != null and apReq.supCode != ''">
+            AND a.sup_code LIKE concat('%', #{apReq.supCode} ,'%')
+        </if>
+        <if test="apReq.rcvCode != null and apReq.rcvCode != ''">
+            AND a.rcv_code LIKE concat('%', #{apReq.rcvCode} ,'%')
+        </if>
+        <if test="apReq.rcvDateStart != null and apReq.rcvDateStart != ''">
+            AND a.rcv_date  <![CDATA[ >= ]]> #{apReq.rcvDateStart}
+        </if>
+        <if test="apReq.rcvDateEnd != null and apReq.rcvDateEnd != ''">
+            AND a.rcv_date  <![CDATA[ <= ]]> #{apReq.rcvDateEnd}
+        </if>
+        <if test="apReq.poCode != null and apReq.poCode != ''">
+            AND a.po_code LIKE concat('%', #{apReq.poCode} ,'%')
+        </if>
+        <if test="apReq.itemCode != null and apReq.itemCode != ''">
+            AND a.item_code LIKE concat('%', #{apReq.itemCode} ,'%')
+        </if>
+        <if test="apReq.itemName != null and apReq.itemName != ''">
+            AND a.item_name LIKE concat('%', #{apReq.itemName} ,'%')
+        </if>
+        <if test="apReq.orgCode != null and apReq.orgCode != ''">
+            AND a.org_code LIKE concat('%', #{apReq.orgCode} ,'%')
+        </if>
+        AND a.sup_code != 'PC-017'
+        order by a.rcv_code desc
+    </select>
+
+    <select id="getPageCount" resultType="java.lang.Integer">
+        select
+        COUNT(1)
+        from
+        (
+        select a.* from atw_ap_rcv a
+        WHERE
+        if(left(a.po_code,3)='VMI',a.src_biz_type = '322',1=1)
+        And
+        ( ABS(a.accum_rec_qty) &lt; ABS(a.rcv_actual_qty) AND status = 10 AND type = 'DZ' )
+        OR
+        ( status = 13 AND type = 'KK')
+        ) a
+        where a.is_deleted = 0
+        AND a.sup_code != 'PC-017'
+    </select>
+
+    <select id="getProNoByApId" resultType="java.lang.String">
+        SELECT
+	    group_concat( DISTINCT `pro_no` ) AS pro_no
+        FROM
+	    atw_ap_rcv
+        WHERE
+	    id IN
+	    (
+	    SELECT rcv_id FROM atw_ap_item
+	    WHERE
+	    <if test="type != null and type != '' and type == 'AP'">
+            ap_id = #{id}
+        </if>
+	    <if test="type != null and type != '' and type == 'BI'">
+            bill_id = #{id}
+        </if>
+	    )
+    </select>
+
+    <select id="getTodayCount" resultType="java.lang.Integer">
+        SELECT COUNT(1) FROM atw_ap_rcv
+        WHERE create_time <![CDATA[ >= ]]> #{start}
+        AND create_time <![CDATA[ <= ]]> #{end}
+        AND `type` = #{type}
+    </select>
+
+    <select id="selectByIdList" resultType="org.springblade.modules.ap.entity.ApRcvEntity">
+        select * from atw_ap_rcv where id IN
+        <foreach collection="ids" item="ids" index="index" open="(" separator="," close=")">
+            #{ids}
+        </foreach>
+        and is_deleted = 0
+    </select>
+
+    <select id="getSettleVmiList" resultType="org.springblade.modules.ap.entity.ApRcvEntity">
+        select * from
+        (
+        select a.* from atw_ap_rcv a
+        WHERE
+        ( ABS(a.accum_rec_qty) = ABS(a.rcv_actual_qty) AND status = 10 AND type = 'DZ' )
+        OR
+        ( status = 13 AND type = 'KK')
+        ) a
+        where
+        if(left(a.po_code,3)='VMI',a.src_biz_type = '322',1=1)
+        and a.po_code like 'VMI%'
+        And a.is_deleted = 0
+        AND a.sup_code != 'PC-017'
+        order by a.rcv_code
+    </select>
+
+
+    <select id="getSettleVmiListNow" resultType="org.springblade.modules.ap.entity.ApRcvEntity">
+        select * from
+        (
+        select a.* from atw_ap_rcv a
+        WHERE
+        ( ABS(a.accum_rec_qty) &lt;  ABS(a.rcv_actual_qty) AND status = 10 AND type = 'DZ' )
+        OR
+        ( status = 13 AND type = 'KK')
+        ) a
+        where
+        if(left(a.po_code,3)='VMI',a.src_biz_type = '322',1=1)
+        and a.po_code like 'VMI%'
+        And a.is_deleted = 0
+        AND a.sup_code != 'PC-017'
+        order by a.rcv_code
+    </select>
+
+    <select id="getReqVmiList" resultType="org.springblade.modules.ap.entity.ApRcvEntity">
+        select * from
+        (
+        select a.* from atw_ap_rcv a
+        WHERE
+        ( ABS(a.accum_rec_qty) &lt; ABS(a.rcv_actual_qty) AND status = 10 AND type = 'DZ' )
+        OR
+        ( status = 13 AND type = 'KK')
+        ) a
+        where
+        if(left(a.po_code,3)='VMI',a.src_biz_type = '321',1=1)
+        and a.po_code like 'VMI%'
+        And a.is_deleted = 0
+        AND a.sup_code != 'PC-017'
+        AND a.sup_code = #{supCode}
+        AND a.item_code = #{itemCode}
+        order by a.rcv_code
+    </select>
+
+
+    <select id="getSettleVmiInfoByReqId" resultType="org.springblade.modules.ap.entity.ApRcvEntity">
+        SELECT
+            a.*
+        FROM
+            atw_ap_rcv a
+            left join atw_ap_req_settle rs on (a.rcv_code = rs.settle_rcv_code and a.rcv_ln = rs.settle_rcv_ln )
+        WHERE
+            rs.id = #{id}
+    </select>
+
+    <select id="getReqVmiInfoByReqId" resultType="org.springblade.modules.ap.entity.ApRcvReqEntity">
+        SELECT
+            *
+        FROM
+            atw_ap_req_settle
+        WHERE
+            id = #{id}
+    </select>
+
+</mapper>

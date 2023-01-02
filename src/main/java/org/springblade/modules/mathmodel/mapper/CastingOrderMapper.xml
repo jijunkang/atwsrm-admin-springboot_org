@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.mathmodel.mapper.CastingOrderMapper">
+
+
+    <select id="selectSupName" resultType="org.springblade.modules.mathmodel.entity.CastingOrderEntity">
+        SELECT *
+        FROM
+        atw_item_info_zdj
+        where
+        `itemize` = #{req.itemize} and
+        `size` = #{req.itemSize} and
+        `form` = #{req.form} and
+        `pound` = #{req.pound} and
+        `flange` = #{req.flange} and
+        `series` = #{req.series} and
+        sup_code = #{req.supCode} and
+        <choose>
+            <when test="req.materialOfWeight != null and req.materialOfWeight !=''">
+                `material` = #{req.materialOfWeight}
+            </when>
+            <otherwise>
+                `material` = #{req.material}
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <select id="selectItemPrice" resultType="java.lang.String">
+        SELECT
+            price
+        FROM
+            atw_item_info_price_zdj
+        where
+        `sup_name` = #{castingOrderEntity.supName}
+          and `sup_code` = #{castingOrderEntity.supCode}
+          and `technology` = #{castingOrderEntity.technology}
+          and `material` = #{castingOrderEntity.material}
+    </select>
+</mapper>

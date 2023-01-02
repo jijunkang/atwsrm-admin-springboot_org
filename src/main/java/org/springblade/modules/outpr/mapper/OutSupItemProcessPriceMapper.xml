@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.outpr.mapper.OutSupItemProcessPriceMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="outsupitemprocesspriceResultMap" type="org.springblade.modules.outpr.entity.OutSupItemProcessPriceEntity">
+        <result column="id" property="id"/>
+        <result column="pr_item_id" property="prItemId"/>
+        <result column="item_price_id" property="itemPriceId"/>
+        <result column="pr_ln" property="prLn"/>
+        <result column="process_code" property="processCode"/>
+        <result column="process_name" property="processName"/>
+        <result column="price" property="price"/>
+        <result column="first_setup_cost" property="firstSetupCost"/>
+        <result column="machine_model" property="machineModel"/>
+        <result column="machine_brand" property="machineBrand"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+    </resultMap>
+
+</mapper>

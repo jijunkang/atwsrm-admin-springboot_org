@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.material.mapper.MaterialPriceMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="materialPriceResultMap" type="org.springblade.modules.material.entity.MaterialPriceEntity">
+        <result column="id" property="id"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="type" property="type"/>
+        <result column="std" property="std"/>
+        <result column="spec" property="spec"/>
+        <result column="material" property="material"/>
+        <result column="sup_code" property="supCode"/>
+        <result column="sup_name" property="supName"/>
+        <result column="price_kg" property="priceKg"/>
+        <result column="price_cutting" property="priceCutting"/>
+        <result column="conver_rate" property="converRate"/>
+        <result column="price_mm" property="priceMm"/>
+        <result column="redun" property="redun"/>
+        <result column="upper_deviation" property="upperDeviation"/>
+        <result column="lower_deviation" property="lowerDeviation"/>
+        <result column="is_enable" property="isEnable"/>
+        <result column="cast_proc_fees" property="castProcFees"/>
+    </resultMap>
+
+    <select id="getPriceKg" resultType="java.math.BigDecimal">
+        SELECT
+            price_kg
+        FROM
+            atw_material_price
+        WHERE
+            CONCAT_WS('-',`type`,spec,material) = #{itemName}
+            AND is_enable = 1
+        ORDER BY
+            price_kg ASC
+            LIMIT 1
+    </select>
+
+</mapper>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.mathmodel.mapper.MmVolumeCalculateMapper">
+
+
+
+    <delete id="deleteByMmSize">
+        DELETE FROM atw_mm_volume_calculate
+        WHERE 1 = 1
+        <if test="entity.mainCode != null and entity.mainCode != ''">
+            AND main_code LIKE CONCAT('%', #{entity.mainCode} ,'%')
+        </if>
+        <if test="entity.childCode != null and entity.childCode != ''">
+            AND child_code LIKE CONCAT('%', #{entity.childCode} ,'%')
+        </if>
+        <if test="entity.itemCode != null and entity.itemCode != ''">
+            AND item_code LIKE CONCAT('%', #{entity.itemCode} ,'%')
+        </if>
+        <if test="entity.itemName != null and entity.itemName != ''">
+            AND item_name LIKE CONCAT('%', #{entity.itemName} ,'%')
+        </if>
+    </delete>
+
+</mapper>

@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.po.mapper.PoMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="poResultMap" type="org.springblade.modules.po.entity.PoEntity">
+        <result column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="order_code" property="orderCode"/>
+        <result column="doc_type" property="docType"/>
+        <result column="doc_amount" property="docAmount"/>
+        <result column="doc_date" property="docDate"/>
+        <result column="sup_code" property="supCode"/>
+        <result column="sup_name" property="supName"/>
+        <result column="pro_no" property="proNo"/>
+        <result column="tc_code" property="tcCode"/>
+        <result column="biz_type" property="bizType"/>
+        <result column="is_include_tax" property="isIncludeTax"/>
+        <result column="contract" property="contract"/>
+        <result column="contract_time" property="contractTime"/>
+        <result column="remark" property="remark"/>
+        <result column="create_at" property="createAt"/>
+        <result column="update_at" property="updateAt"/>
+        <result column="read_at" property="readAt"/>
+        <result column="u9_status_code" property="u9StatusCode"/>
+        <result column="u9_status" property="u9Status"/>
+        <result column="last_sync_time" property="lastSyncTime"/>
+        <result column="cancel_cause" property="cancelCause"/>
+        <result column="is_biz_closed" property="isBizClosed"/>
+        <result column="is_push_msg" property="isPushMsg"/>
+        <result column="accum_prepay" property="accumPrepay"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+    <select id="getPrePoPage" resultType="org.springblade.modules.po.entity.PoEntity">
+        SELECT * FROM atw_po po
+        WHERE po.accum_prepay > po.prepaid_total
+    </select>
+
+    <select id="getSumCloseAmount" resultType="java.math.BigDecimal">
+        SELECT SUM(amount) FROM atw_po_item
+        WHERE is_deleted = 0
+        AND po_code = #{poCode}
+        AND u9_status_code = 4
+    </select>
+
+
+    <select id="getPoList" resultType="org.springblade.modules.po.entity.PoEntity">
+        SELECT
+        po.id,
+        po.tenant_id,
+        po.order_code,
+        po.doc_type,
+        po.doc_amount,
+        po.doc_date,
+        po.sup_code,
+        po.sup_name,
+        po.pro_no,
+        po.tc_code,
+        po.biz_type,
+        po.is_include_tax,
+        po.contract,
+        po.contract_time,
+        po.remark,
+        po.create_at,
+        po.update_at,
+        po.read_at,
+        po.u9_status_code,
+        po.u9_status,
+        po.last_sync_time,
+        po.cancel_cause,
+        po.is_biz_closed,
+        po.is_push_msg,
+        po.create_user,
+        po.create_dept,
+        po.create_time,
+        po.update_user,
+        po.update_time,
+        po.status,
+        po.is_deleted,
+        po.datagram,
+        po.cancel_assign,
+        po.cancel_assign_id,
+        po.pay_way,
+        po.first_prepay_rate,
+        po.accum_prepay_rate,
+        po.accum_prepay,
+        po.prepaid_total,
+        po.accpaid_total,
+        po.pay_date,
+        po.add_clause,
+        po.contract_status,
+        po.price_remark,
+        po.doc_amount_update,
+        po.is_by_weight,
+        ifnull(po.template_type,s.template_type) template_type
+        FROM
+        `atw_po` po
+        <if test="(poDTO.itemCode != null and poDTO.itemCode !='') or (poDTO.purchCode != null and poDTO.purchCode !='')">
+            LEFT JOIN atw_po_item pi
+            ON
+            po.order_code = pi.po_code
+        </if>
+        left join atw_supplier s on ( po.sup_code = s.code and s.primary_contact =1 and s.is_deleted = 0)
+        where po.is_deleted = 0
+        <if test="poDTO.status != null and poDTO.status !=''">
+            and po.status = #{poDTO.status}
+        </if>
+        <if test="poDTO.supCode != null and poDTO.supCode !=''">
+            AND po.sup_code LIKE concat('%', #{poDTO.supCode}, '%')
+        </if>
+        <if test="poDTO.supName != null and poDTO.supName !=''">
+            AND po.sup_name LIKE concat('%', #{poDTO.supName}, '%')
+        </if>
+        <if test="poDTO.orderCode != null and poDTO.orderCode !=''">
+            AND po.order_code LIKE concat('%', #{poDTO.orderCode}, '%')
+        </if>
+        <if test="poDTO.itemCode != null and poDTO.itemCode !=''">
+            AND pi.item_code LIKE concat('%', #{poDTO.itemCode}, '%')
+        </if>
+        <if test="poDTO.purchCode != null and poDTO.purchCode !=''">
+            AND pi.purch_code = #{poDTO.purchCode}
+        </if>
+        GROUP BY po.order_code
+        ORDER BY po.doc_date DESC, po.order_code DESC
+    </select>
+
+    <select id="getList" resultType="org.springblade.modules.po.entity.PoEntity">
+        SELECT
+            po.id,
+            po.tenant_id,
+            po.order_code,
+            po.doc_type,
+            po.doc_amount,
+            po.doc_date,
+            po.sup_code,
+            po.sup_name,
+            po.pro_no,
+            po.tc_code,
+            po.biz_type,
+            po.is_include_tax,
+            po.contract,
+            po.contract_time,
+            po.remark,
+            po.create_at,
+            po.update_at,
+            po.read_at,
+            po.u9_status_code,
+            po.u9_status,
+            po.last_sync_time,
+            po.cancel_cause,
+            po.is_biz_closed,
+            po.is_push_msg,
+            po.create_user,
+            po.create_dept,
+            po.create_time,
+            po.update_user,
+            po.update_time,
+            po.status,
+            po.is_deleted,
+            po.datagram,
+            po.cancel_assign,
+            po.cancel_assign_id,
+            po.pay_way,
+            po.first_prepay_rate,
+            po.accum_prepay_rate,
+            po.accum_prepay,
+            po.prepaid_total,
+            po.accpaid_total,
+            po.pay_date,
+            po.add_clause,
+            po.contract_status,
+            po.price_remark,
+            po.doc_amount_update,
+            po.is_by_weight,
+            ifnull(po.template_type,s.template_type) template_type
+        FROM
+        `atw_po` po
+        <if test="(poDTO.itemCode != null and poDTO.itemCode !='') or (poDTO.purchCode != null and poDTO.purchCode !='')">
+            LEFT JOIN atw_po_item pi
+            ON
+            po.order_code = pi.po_code
+        </if>
+        left join atw_supplier s on ( po.sup_code = s.code and s.primary_contact =1 and s.is_deleted = 0)
+        where po.is_deleted = 0
+            and po.order_code not like "VMI%"
+        <if test="poDTO.status != null and poDTO.status !=''">
+            and po.status = #{poDTO.status}
+        </if>
+        <if test="poDTO.supCode != null and poDTO.supCode !=''">
+            AND po.sup_code LIKE concat('%', #{poDTO.supCode}, '%')
+        </if>
+        <if test="poDTO.supName != null and poDTO.supName !=''">
+            AND po.sup_name LIKE concat('%', #{poDTO.supName}, '%')
+        </if>
+        <if test="poDTO.orderCode != null and poDTO.orderCode !=''">
+            AND po.order_code LIKE concat('%', #{poDTO.orderCode}, '%')
+        </if>
+        <if test="poDTO.itemCode != null and poDTO.itemCode !=''">
+            AND pi.item_code LIKE concat('%', #{poDTO.itemCode}, '%')
+        </if>
+        <if test="poDTO.purchCode != null and poDTO.purchCode !=''">
+            AND pi.purch_code = #{poDTO.purchCode}
+        </if>
+        GROUP BY po.order_code
+        ORDER BY po.doc_date DESC, po.order_code DESC
+    </select>
+
+    <select id="getVmiList" resultType="org.springblade.modules.po.entity.PoEntity">
+        SELECT
+        po.id,
+        po.tenant_id,
+        po.order_code,
+        po.doc_type,
+        po.doc_amount,
+        po.doc_date,
+        po.sup_code,
+        po.sup_name,
+        po.pro_no,
+        po.tc_code,
+        po.biz_type,
+        po.is_include_tax,
+        po.contract,
+        po.contract_time,
+        po.remark,
+        po.create_at,
+        po.update_at,
+        po.read_at,
+        po.u9_status_code,
+        po.u9_status,
+        po.last_sync_time,
+        po.cancel_cause,
+        po.is_biz_closed,
+        po.is_push_msg,
+        po.create_user,
+        po.create_dept,
+        po.create_time,
+        po.update_user,
+        po.update_time,
+        po.status,
+        po.is_deleted,
+        po.datagram,
+        po.cancel_assign,
+        po.cancel_assign_id,
+        po.pay_way,
+        po.first_prepay_rate,
+        po.accum_prepay_rate,
+        po.accum_prepay,
+        po.prepaid_total,
+        po.accpaid_total,
+        po.pay_date,
+        po.add_clause,
+        po.contract_status,
+        po.price_remark,
+        po.doc_amount_update,
+        po.is_by_weight,
+        ifnull(po.template_type,s.template_type) template_type
+        FROM
+        `atw_po` po
+        <if test="(poDTO.itemCode != null and poDTO.itemCode !='') or (poDTO.purchCode != null and poDTO.purchCode !='')">
+            LEFT JOIN atw_po_item pi
+            ON
+            po.order_code = pi.po_code
+        </if>
+        left join atw_supplier s on ( po.sup_code = s.code and s.primary_contact =1 and s.is_deleted = 0)
+        where po.is_deleted = 0
+        and po.order_code like "VMI%"
+        <if test="poDTO.status != null and poDTO.status !=''">
+            and po.status = #{poDTO.status}
+        </if>
+        <if test="poDTO.supCode != null and poDTO.supCode !=''">
+            AND po.sup_code LIKE concat('%', #{poDTO.supCode}, '%')
+        </if>
+        <if test="poDTO.supName != null and poDTO.supName !=''">
+            AND po.sup_name LIKE concat('%', #{poDTO.supName}, '%')
+        </if>
+        <if test="poDTO.orderCode != null and poDTO.orderCode !=''">
+            AND po.order_code LIKE concat('%', #{poDTO.orderCode}, '%')
+        </if>
+        <if test="poDTO.itemCode != null and poDTO.itemCode !=''">
+            AND pi.item_code LIKE concat('%', #{poDTO.itemCode}, '%')
+        </if>
+        <if test="poDTO.purchCode != null and poDTO.purchCode !=''">
+            AND pi.purch_code = #{poDTO.purchCode}
+        </if>
+        GROUP BY po.order_code
+        ORDER BY po.doc_date DESC, po.order_code DESC
+    </select>
+
+
+    <select id="getPoInfoByPoCode" resultType="org.springblade.modules.po.entity.PoEntity">
+        SELECT
+        po.id,
+        po.tenant_id,
+        po.order_code,
+        po.doc_type,
+        po.doc_amount,
+        po.doc_date,
+        po.sup_code,
+        po.sup_name,
+        po.pro_no,
+        po.tc_code,
+        po.biz_type,
+        po.is_include_tax,
+        po.contract,
+        po.contract_time,
+        po.remark,
+        po.create_at,
+        po.update_at,
+        po.read_at,
+        po.u9_status_code,
+        po.u9_status,
+        po.last_sync_time,
+        po.cancel_cause,
+        po.is_biz_closed,
+        po.is_push_msg,
+        po.create_user,
+        po.create_dept,
+        po.create_time,
+        po.update_user,
+        po.update_time,
+        po.status,
+        po.is_deleted,
+        po.datagram,
+        po.cancel_assign,
+        po.cancel_assign_id,
+        po.pay_way,
+        po.first_prepay_rate,
+        po.accum_prepay_rate,
+        po.accum_prepay,
+        po.prepaid_total,
+        po.accpaid_total,
+        po.pay_date,
+        po.add_clause,
+        po.contract_status,
+        po.price_remark,
+        po.doc_amount_update,
+        po.is_by_weight,
+        ifnull(po.template_type,s.template_type) template_type
+        FROM
+        `atw_po` po
+        left join atw_supplier s on ( po.sup_code = s.code and s.primary_contact =1 and s.is_deleted = 0)
+        where po.is_deleted = 0
+        and  po.order_code = #{poCode}
+        GROUP BY po.order_code
+        ORDER BY po.doc_date DESC, po.order_code DESC
+    </select>
+</mapper>

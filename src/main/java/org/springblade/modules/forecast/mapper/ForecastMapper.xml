@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.forecast.mapper.ForecastMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="forecastResultMap" type="org.springblade.modules.forecast.entity.ForecastEntity">
+        <result column="id" property="id"/>
+        <result column="item_code" property="itemCode"/>
+        <result column="item_name" property="itemName"/>
+        <result column="mark" property="mark"/>
+        <result column="fore_year" property="foreYear"/>
+        <result column="fore_month" property="foreMonth"/>
+        <result column="fore_qty" property="foreQty"/>
+        <result column="seq" property="seq"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+
+
+    <select id="selectYmPage" resultMap="forecastResultMap">
+        SELECT
+        item_code,
+        item_name,
+        mark,
+        fore_year,
+		fore_month
+        FROM
+        wxx_forecast
+        WHERE
+        1 = 1
+        <if test="forecast!= null and forecast.itemCode !=null">
+        and item_code = #{forecast.itemCode}
+        </if>
+        <if test="forecast!= null and forecast.itemName !=null">
+        and item_name = #{forecast.itemName}
+        </if>
+        group by `item_code`;
+    </select>
+</mapper>

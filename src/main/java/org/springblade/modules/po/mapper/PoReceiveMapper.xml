@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.po.mapper.PoReceiveMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="poReceiveResultMap" type="org.springblade.modules.po.entity.PoReceiveEntity">
+        <result column="id" property="id"/>
+        <result column="sup_code" property="supCode"/>
+        <result column="sup_name" property="supName"/>
+        <result column="po_id" property="poId"/>
+        <result column="rcv_code" property="rcvCode"/>
+        <result column="pi_id" property="piId"/>
+        <result column="produce_date" property="produceDate"/>
+        <result column="specs" property="specs"/>
+        <result column="mat_quality" property="matQuality"/>
+        <result column="rcv_num" property="rcvNum"/>
+        <result column="heat_code" property="heatCode"/>
+        <result column="seq" property="seq"/>
+        <result column="remark" property="remark"/>
+        <result column="received_at" property="receivedAt"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+    <select id="getMaxSeq" resultType="java.lang.Integer">
+        SELECT MAX(seq) FROM atw_po_receive
+        WHERE 1 = 1 AND
+        (create_time_record BETWEEN  #{start} AND  #{end}  )
+    </select>
+
+
+    <select id="selectPageOfParams" resultType="org.springblade.modules.po.vo.PoReceiveVO">
+        SELECT
+        por.*,ifnull(po.template_type,s.template_type) template_type
+        FROM
+        atw_po_receive por
+        left join atw_po po on (por.po_id = po.id and po.is_deleted = 0)
+        left join atw_supplier s on (po.sup_code = s.code and s.is_deleted = 0)
+        WHERE
+        1=1
+        <if test="dto.itemCode != null or dto.itemName != null">
+            and pi_id IN (
+            SELECT
+            id
+            FROM
+            atw_po_item
+            WHERE
+            1=1
+            <if test="dto.itemCode != null">
+                AND item_code LIKE '%${dto.itemCode}%'
+            </if>
+            <if test="dto.itemName != null">
+                AND item_name LIKE '%${dto.itemName}%'
+            </if>
+            and is_deleted = 0
+            )
+        </if>
+        <if test="dto.statuss != null and dto.statuss == '20,25' and dto.status==null">
+            AND por.status in ('20','22','24','25')
+        </if>
+        <if test="dto.status != null">
+            AND por.status = #{dto.status}
+        </if>
+        <if test="dto.status == null and dto.statuss == null">
+            AND por.status in ('20','21','22','23','24','26','25','27','30','40')
+        </if>
+        <if test="dto.supName != null and dto.supName!=''">
+            AND por.sup_name LIKE '%${dto.supName}%'
+        </if>
+        <if test="dto.supCode != null and dto.supCode!=''">
+            AND por.sup_code LIKE '%${dto.supCode}%'
+        </if>
+        <if test="dto.heatCode != null and dto.heatCode!=''">
+            AND por.heat_code LIKE '%${dto.heatCode}%'
+        </if>
+        <if test="dto.orderCode != null and dto.orderCode!=''">
+            AND po.order_code LIKE '%${dto.orderCode}%'
+        </if>
+        <if test="dto.rcvCodes != null and dto.rcvCodes != ''">
+            AND find_in_set(por.rcv_code,#{dto.rcvCodes})
+        </if>
+        <if test="dto.rcvCodes == null and dto.rcvCode != null and dto.rcvCode != ''">
+            AND por.rcv_code LIKE '%${dto.rcvCode}%'
+        </if>
+        AND por.is_deleted = 0
+        group by
+        por.rcv_code
+        order by por.update_time desc
+    </select>
+
+</mapper>

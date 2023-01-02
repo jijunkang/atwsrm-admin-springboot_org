@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.mathmodel.mapper.TubeMaterialMapper">
+
+
+    <resultMap id="mailyMap" type=" org.springblade.modules.mathmodel.entity.MailyMaterialTotalEntity">
+                <result column="id" property="id"/>
+                <result column="supplier_name" property="supplierName"/>
+                <result column="item_code" property="itemCode"/>
+                <result column="item_desc" property="itemDesc"/>
+                <result column="number" property="number"/>
+                <result column="diameter_allowance" property="diameterAllowance"/>
+                <result column="aperture_allowance" property="apertureAllowance"/>
+                <result column="external_diameter" property="externalDiameter"/>
+                <result column="internal_diamete" property="internalDiamete"/>
+                <result column="length" property="length"/>
+                <result column="weight" property="weight"/>
+                <result column="the_material_price" property="theMaterialPrice"/>
+                <result column="material_price" property="materialPrice"/>
+                <result column="processing_fee" property="processingFee"/>
+                <result column="price" property="price"/>
+                <result column="coating_internal_diameter" property="coatingInternalDiameter"/>
+                <result column="coating_length" property="coatingLength"/>
+                <result column="coating_area" property="coatingArea"/>
+                <result column="coating_price" property="coatingPrice"/>
+                <result column="spray_price" property="sprayPrice"/>
+                <result column="unit_price" property="unitPrice"/>
+                <result column="total_price" property="totalPrice"/>
+<!--                <result column="create_user" property="createUsers"/>-->
+<!--                <result column="create_time" property="createTime"/>-->
+<!--                <result column="update_user" property="updateUsers"/>-->
+<!--                <result column="update_time" property="updateTime"/>-->
+    </resultMap>
+
+    <select id="selectList" resultMap="mailyMap">
+        select * from `auto_order_of_gbl`
+    </select>
+    <select id="selectProcessPrice"
+            resultType="org.springblade.modules.mathmodel.entity.MailyMaterialTotalEntity">
+        select  * from  atw_maily_processing_fee
+        where
+            `external_diameter` = #{externalDiameter} and
+            `internal_diamete` = #{internalDiamete} and
+            `length` between #{length} and #{length} +30 ORDER BY length ASC limit 1
+    </select>
+
+    <select id="selectByExter" resultType="org.springblade.modules.mathmodel.entity.MailyMaterialTotalEntity" parameterType="java.lang.Integer">
+        select * from atw_maily_material where `external_diameter` <![CDATA[ >= ]]> #{externalDiameter}+8  ORDER BY `external_diameter` ASC  limit 1
+    </select>
+</mapper>

@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.po.mapper.OutIoMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="ioResultMap" type="org.springblade.modules.po.entity.IoEntity">
+        <result column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="pr_id" property="prId"/>
+        <result column="pr_ln" property="prLn"/>
+        <result column="pr_code" property="prCode"/>
+        <result column="item_code" property="itemCode"/>
+        <result column="item_name" property="itemName"/>
+        <result column="sup_code" property="supCode"/>
+        <result column="sup_name" property="supName"/>
+        <result column="promise_date" property="promiseDate"/>
+        <result column="quote_date" property="quoteDate"/>
+        <result column="remark" property="remark"/>
+        <result column="winbid_date" property="winbidDate"/>
+        <result column="quote_endtime" property="quoteEndtime"/>
+        <result column="price_num" property="priceNum"/>
+        <result column="price_uom" property="priceUom"/>
+        <result column="tc_num" property="tcNum"/>
+        <result column="tc_uom" property="tcUom"/>
+        <result column="req_date" property="reqDate"/>
+        <result column="refuse_cause" property="refuseCause"/>
+        <result column="read_at" property="readAt"/>
+        <result column="end_user" property="endUser"/>
+        <result column="evaluate_score" property="evaluateScore"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+    <select id="selectToCheckPage" resultType="org.springblade.modules.po.dto.IoDTO">
+        SELECT io.* ,pr.pr_date
+        FROM atw_io_out io INNER JOIN atw_out_pr_item pr ON  pr.id = io.pr_id
+        WHERE io.is_deleted = 0
+        <if test="io.status == 50">
+            AND io.`status` = 50
+        </if>
+        <if test="io.status == 51">
+            AND io.`status` IN (51,52)
+        </if>
+        <if test="io.source != null and io.source != ''">
+            AND io.`source` = #{io.source}
+        </if>
+        <if test="io.prCode != null and io.prCode != ''">
+            AND io.`pr_code` like concat('%', #{io.prCode}, '%')
+        </if>
+        <if test="io.itemCode != null and io.itemCode != ''">
+            AND io.`item_code` like concat('%', #{io.itemCode}, '%')
+        </if>
+        ORDER BY io.update_time DESC
+    </select>
+
+    <select id="selectToCheckCount" resultType="java.lang.Integer">
+        SELECT
+        COUNT(1)
+        FROM atw_io_out io INNER JOIN atw_out_pr_item pr ON  pr.id = io.pr_id
+        WHERE io.is_deleted = 0
+        <if test="io.status == 50">
+            AND io.`status` = 50
+        </if>
+        <if test="io.status == 51">
+            AND io.`status` IN (51,52)
+        </if>
+        <if test="io.source != null and io.source != ''">
+            AND io.`source` = #{io.source}
+        </if>
+        <if test="io.prCode != null and io.prCode != ''">
+            AND io.`pr_code` like concat('%', #{io.prCode}, '%')
+        </if>
+        <if test="io.itemCode != null and io.itemCode != ''">
+            AND io.`item_code` like concat('%', #{io.itemCode}, '%')
+        </if>
+        ORDER BY io.update_time DESC
+    </select>
+
+    <select id="selectToConfirmPage" resultType="org.springblade.modules.po.dto.IoDTO">
+ SELECT io.* ,pr.pr_date,pr.available_quantity,pr.project_occupancy_num,pr.requisition_remark,item.purch_mix,item.stock_lower_limit
+    FROM atw_io_out io INNER JOIN atw_out_pr_item pr ON  pr.id = io.pr_id left join  atw_item item on pr.item_code = item.code
+    WHERE io.is_deleted = 0
+        AND pr.inquiry_way = 'have_price1date'
+        AND (io.`status` = 10 OR io.`status` = 30)
+        <if test="ioDto.purchCode != null and ioDto.purchCode != ''">
+            AND pr.`purch_code` = #{ioDto.purchCode}
+        </if>
+    </select>
+
+    <select id="countToConfirm" resultType="integer">
+    SELECT count(*)
+    FROM atw_io_out io INNER JOIN atw_out_pr_item pr ON  pr.id = io.pr_id
+    WHERE io.is_deleted = 0
+        AND pr.inquiry_way = 'have_price1date'
+        AND (io.`status` = 10 OR io.`status` = 30)
+        <if test="ioDto.purchCode != null and ioDto.purchCode != ''">
+            AND pr.`purch_code` = #{ioDto.purchCode}
+        </if>
+    </select>
+
+    <select id="getByStatus" resultType="org.springblade.modules.priceframe.dto.CenterPriceFrame">
+        SELECT
+            i.id,
+            i.pr_id,
+            i.pr_code,
+            i.item_code,
+            i.item_name,
+            i.price_num,
+            i.price_uom,
+            i.req_date,
+            i.sup_code,
+            i.sup_name,
+            i.quote_price AS price,
+            i.promise_date,
+            i.status,
+            i.sup_remark AS remark
+        FROM
+            atw_io_out i
+        WHERE
+            i.is_deleted = 0
+        AND i.status in (10, 30)
+        AND i.biz_branch = 'price_frame'
+    </select>
+
+
+    <select id="getStatusCount" resultType="java.lang.Integer">
+        SELECT
+            COUNT(1)
+        FROM
+            atw_io_out i
+        WHERE
+            i.is_deleted = 0
+        AND i.status in (10, 30)
+        AND i.biz_branch = 'price_frame'
+    </select>
+
+
+    <select id="getWinBidIo" resultType="org.springblade.modules.po.entity.OutIoEntity">
+        SELECT
+            *
+        FROM
+            atw_io_out i
+        WHERE
+            i.is_deleted = 0
+        AND i.status in ('50','51','80')
+        AND i.pr_id = #{id}
+    </select>
+
+    <select id="getMaterialCostByItemCode" resultType="java.math.BigDecimal">
+        SELECT
+            material_cost
+        FROM
+            atw_pr_itemcode_cost
+        WHERE
+            item_code = #{itemCode}
+    </select>
+
+    <select id="getLaborCostByItemCode" resultType="java.math.BigDecimal">
+        SELECT
+            labor_cost
+        FROM
+            atw_pr_itemcode_cost
+        WHERE
+            item_code = #{itemCode}
+    </select>
+
+    <select id="getInfoByPrId" resultType="org.springblade.modules.po.entity.OutIoEntity">
+        SELECT
+            *
+        FROM
+            atw_io_out
+        WHERE
+            pr_id = #{dto.id}
+            and status = #{dto.status}
+    </select>
+</mapper>

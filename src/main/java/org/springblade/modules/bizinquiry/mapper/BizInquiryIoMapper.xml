@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.bizinquiry.mapper.BizInquiryIoMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="bizInquiryIoResultMap" type="org.springblade.modules.bizinquiry.entity.BizInquiryIoEntity">
+        <result column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="qo_id" property="qoId"/>
+        <result column="qo_code" property="qoCode"/>
+        <result column="sup_name" property="supName"/>
+        <result column="price" property="price"/>
+        <result column="confirm_date" property="confirmDate"/>
+        <result column="remark" property="remark"/>
+        <result column="attachment" property="attachment"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+</mapper>

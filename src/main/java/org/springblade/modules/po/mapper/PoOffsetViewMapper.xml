@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.po.mapper.PoOffsetViewMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="pooffsetviewResultMap" type="org.springblade.modules.po.entity.PoOffsetViewEntity">
+        <result column="id" property="id"/>
+        <result column="pro_no" property="proNo"/>
+        <result column="po_code" property="poCode"/>
+        <result column="po_ln" property="poLn"/>
+        <result column="type" property="type"/>
+        <result column="item_code" property="itemCode"/>
+        <result column="item_name" property="itemName"/>
+        <result column="sup_code" property="supCode"/>
+        <result column="sup_name" property="supName"/>
+        <result column="sup_contact" property="supContact"/>
+        <result column="sup_mobile" property="supMobile"/>
+        <result column="price_num" property="priceNum"/>
+        <result column="price_uom" property="priceUom"/>
+        <result column="tc_num" property="tcNum"/>
+        <result column="tc_uom" property="tcUom"/>
+        <result column="pro_num" property="proNum"/>
+        <result column="offset_days" property="offsetDays"/>
+        <result column="req_date" property="reqDate"/>
+        <result column="sup_confirm_date" property="supConfirmDate"/>
+        <result column="sup_update_date" property="supUpdateDate"/>
+        <result column="price" property="price"/>
+        <result column="amount" property="amount"/>
+        <result column="purch_code" property="purchCode"/>
+        <result column="purch_name" property="purchName"/>
+        <result column="rcv_goods_num" property="rcvGoodsNum"/>
+        <result column="arv_goods_num" property="arvGoodsNum"/>
+        <result column="pro_goods_num" property="proGoodsNum"/>
+        <result column="return_goods_num" property="returnGoodsNum"/>
+        <result column="fill_goods_num" property="fillGoodsNum"/>
+        <result column="remark" property="remark"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+    <select id="getPoOffetViewPage" resultType="org.springblade.modules.po.entity.PoOffsetViewEntity">
+        SELECT * FROM atw_po_offset_view
+        WHERE is_deleted = 0
+        <if test="poOffsetViewVO.type != null and poOffsetViewVO.type != ''">
+            AND type = #{poOffsetViewVO.type}
+        </if>
+        <if test="poOffsetViewVO.traceCode != null and poOffsetViewVO.traceCode != ''">
+            AND trace_code LIKE CONCAT('%', #{poOffsetViewVO.traceCode} ,'%')
+        </if>
+        <if test="poOffsetViewVO.poCode != null and poOffsetViewVO.poCode != ''">
+            AND po_code LIKE CONCAT('%', #{poOffsetViewVO.poCode} ,'%')
+        </if>
+        <if test="poOffsetViewVO.proNo != null and poOffsetViewVO.proNo != ''">
+            AND pro_no LIKE CONCAT('%', #{poOffsetViewVO.proNo} ,'%')
+        </if>
+        <if test="poOffsetViewVO.supCode != null and poOffsetViewVO.supCode != ''">
+            AND sup_code LIKE CONCAT('%', #{poOffsetViewVO.supCode} ,'%')
+        </if>
+        <if test="poOffsetViewVO.supName != null and poOffsetViewVO.supName != ''">
+            AND sup_name LIKE CONCAT('%', #{poOffsetViewVO.supName} ,'%')
+        </if>
+        <if test="poOffsetViewVO.itemCode != null and poOffsetViewVO.itemCode != ''">
+            AND item_code LIKE CONCAT('%', #{poOffsetViewVO.itemCode} ,'%')
+        </if>
+        <if test="poOffsetViewVO.itemName != null and poOffsetViewVO.itemName != ''">
+            AND item_name LIKE CONCAT('%', #{poOffsetViewVO.itemName} ,'%')
+        </if>
+        <if test="(poOffsetViewVO.nodeStatus != null and poOffsetViewVO.nodeStatus != '' and poOffsetViewVO.nodeStatus != 0)
+        or (poOffsetViewVO.craftCtrlNodeName != null and poOffsetViewVO.craftCtrlNodeName != '')">
+            AND pi_id IN
+            (
+            SELECT po_item_id FROM atw_po_item_craftctrl_node
+            WHERE is_deleted = 0
+            <if test="poOffsetViewVO.craftCtrlNodeName != null and poOffsetViewVO.craftCtrlNodeName !=''" >
+                AND ccnode_parent_id = #{poOffsetViewVO.craftCtrlNodeName}
+            </if>
+            <if test="poOffsetViewVO.nodeStatus == 10">
+                AND (plan_confirm_date IS NULL OR plan_confirm_date = 0)
+            </if>
+            <if test="poOffsetViewVO.nodeStatus == 20">
+                AND (is_complete = 0 and (plan_confirm_date != 0 and  plan_confirm_date  <![CDATA[ <= ]]>  UNIX_TIMESTAMP(CAST(SYSDATE()AS DATE) - INTERVAL 1 DAY)  ))
+            </if>
+            GROUP BY po_item_id
+            )
+        </if>
+    </select>
+
+
+
+</mapper>

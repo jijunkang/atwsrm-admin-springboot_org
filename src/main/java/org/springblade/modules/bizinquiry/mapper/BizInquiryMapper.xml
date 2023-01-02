@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.bizinquiry.mapper.BizInquiryMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="bizInquiryResultMap" type="org.springblade.modules.bizinquiry.entity.BizInquiryEntity">
+        <result column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="qo_code" property="qoCode"/>
+        <result column="model" property="model"/>
+        <result column="brand" property="brand"/>
+        <result column="num" property="num"/>
+        <result column="end_user" property="endUser"/>
+        <result column="req_date" property="reqDate"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="winio_id" property="winioId"/>
+    </resultMap>
+
+    <select id="list" resultType="org.springblade.modules.bizinquiry.vo.BizInquiryVO">
+        SELECT
+        a.*,
+        b.sup_name,
+        b.price,
+        b.confirm_date,
+        b.delivery_date,
+        b.offer_validity,
+        b.attribution,
+        b.back_reason,
+        b.sup_feedback
+        FROM
+        atw_biz_inquiry a
+        LEFT JOIN atw_biz_inquiry_io b ON a.id = b.qo_id
+        WHERE a.is_deleted = 0
+        <if test="bizInquiryReq.statusList != null">
+            AND a.status in
+            <foreach collection="bizInquiryReq.statusList" index="index" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="bizInquiryReq.qoCode != null and bizInquiryReq.qoCode != ''">
+            AND a.qo_code LIKE CONCAT('%', #{bizInquiryReq.qoCode} ,'%')
+        </if>
+        <if test="bizInquiryReq.model != null and bizInquiryReq.model != ''">
+            AND a.model LIKE CONCAT('%', #{bizInquiryReq.model} ,'%')
+        </if>
+        <if test="bizInquiryReq.brand != null and bizInquiryReq.brand != ''">
+            AND a.brand LIKE CONCAT('%', #{bizInquiryReq.brand} ,'%')
+        </if>
+        <if test="bizInquiryReq.supName != null and bizInquiryReq.supName != ''">
+            AND b.sup_name LIKE CONCAT('%', #{bizInquiryReq.supName} ,'%')
+        </if>
+        <if test="bizInquiryReq.status != null and bizInquiryReq.status != ''">
+            AND a.status LIKE CONCAT('%', #{bizInquiryReq.status} ,'%')
+        </if>
+        <if test="bizInquiryReq.supFeedback != null and bizInquiryReq.supFeedback != ''">
+            AND b.sup_feedback LIKE CONCAT('%', #{bizInquiryReq.supFeedback} ,'%')
+        </if>
+        <if test="bizInquiryReq.endUser != null and bizInquiryReq.endUser != ''">
+            AND a.end_user LIKE CONCAT('%', #{bizInquiryReq.endUser} ,'%')
+        </if>
+    </select>
+
+    <select id="getList" resultType="org.springblade.modules.bizinquiry.vo.BizInquiryVO">
+        SELECT
+        a.*,
+        b.sup_name,
+        b.price,
+        b.confirm_date,
+        b.delivery_date,
+        b.offer_validity,
+        b.attribution,
+        b.back_reason,
+        b.attachment,
+        b.sup_feedback
+        FROM
+        atw_biz_inquiry a
+        LEFT JOIN atw_biz_inquiry_io b ON a.id = b.qo_id
+        WHERE a.is_deleted = 0
+        <if test="bizInquiryReq.statusList != null">
+            AND a.status in
+            <foreach collection="bizInquiryReq.statusList" index="index" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="bizInquiryReq.qoCode != null and bizInquiryReq.qoCode != ''">
+            AND a.qo_code LIKE CONCAT('%', #{bizInquiryReq.qoCode} ,'%')
+        </if>
+        <if test="bizInquiryReq.model != null and bizInquiryReq.model != ''">
+            AND a.model LIKE CONCAT('%', #{bizInquiryReq.model} ,'%')
+        </if>
+        <if test="bizInquiryReq.brand != null and bizInquiryReq.brand != ''">
+            AND a.brand LIKE CONCAT('%', #{bizInquiryReq.brand} ,'%')
+        </if>
+        <if test="bizInquiryReq.supName != null and bizInquiryReq.supName != ''">
+            AND b.sup_name LIKE CONCAT('%', #{bizInquiryReq.supName} ,'%')
+        </if>
+        <if test="bizInquiryReq.status != null and bizInquiryReq.status != ''">
+            AND a.status LIKE CONCAT('%', #{bizInquiryReq.status} ,'%')
+        </if>
+        <if test="bizInquiryReq.supFeedback != null and bizInquiryReq.supFeedback != ''">
+            AND b.sup_feedback LIKE CONCAT('%', #{bizInquiryReq.supFeedback} ,'%')
+        </if>
+    </select>
+
+    <select id="getWaitList" resultType="org.springblade.modules.bizinquiry.vo.BizInquiryVO">
+        SELECT
+        a.*,
+        b.sup_name,
+        b.price,
+        b.confirm_date,
+        b.delivery_date,
+        b.offer_validity,
+        b.attribution,
+        b.back_reason,
+        b.attachment,
+        b.sup_feedback
+        FROM
+        atw_biz_inquiry a
+        LEFT JOIN atw_biz_inquiry_io b ON a.id = b.qo_id
+        WHERE a.is_deleted = 0
+        <if test="bizInquiryReq.qoCode != null and bizInquiryReq.qoCode != ''">
+            AND a.qo_code LIKE CONCAT('%', #{bizInquiryReq.qoCode} ,'%')
+        </if>
+        <if test="bizInquiryReq.model != null and bizInquiryReq.model != ''">
+            AND a.model LIKE CONCAT('%', #{bizInquiryReq.model} ,'%')
+        </if>
+        <if test="bizInquiryReq.brand != null and bizInquiryReq.brand != ''">
+            AND a.brand LIKE CONCAT('%', #{bizInquiryReq.brand} ,'%')
+        </if>
+        <if test="bizInquiryReq.supName != null and bizInquiryReq.supName != ''">
+            AND b.sup_name LIKE CONCAT('%', #{bizInquiryReq.supName} ,'%')
+        </if>
+        <if test="bizInquiryReq.status != null and bizInquiryReq.status != ''">
+            AND a.status LIKE CONCAT('%', #{bizInquiryReq.status} ,'%')
+        </if>
+        <if test="bizInquiryReq.statusList != null">
+            AND a.status in
+            <foreach collection="bizInquiryReq.statusList" index="index" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        order by a.update_time desc
+    </select>
+
+    <select id="getWaitById" resultType="org.springblade.modules.bizinquiry.vo.BizInquiryVO">
+        SELECT
+        a.*,
+        b.sup_name,
+        b.price,
+        b.confirm_date,
+        b.delivery_date,
+        b.offer_validity,
+        b.attribution,
+        b.back_reason,
+        b.attachment,
+        b.sup_feedback
+        FROM
+        atw_biz_inquiry a
+        LEFT JOIN atw_biz_inquiry_io b ON a.id = b.qo_id
+        WHERE a.is_deleted = 0
+        AND a.id = #{id}
+    </select>
+
+    <update id="deleteList">
+            UPDATE
+            atw_biz_inquiry
+            SET
+            is_deleted = 1
+            WHERE
+            id in
+        <foreach collection="bizInquiryReq.bizInquiryEntities" item="itemUpdate" index="index" open="(" close=")" separator=",">
+            #{itemUpdate.id}
+        </foreach>
+    </update>
+
+    <update id="updateSupFeedbackById" >
+        UPDATE
+        atw_biz_inquiry_io
+        SET
+        sup_feedback = #{bizInquiryIoEntity.supFeedback}
+        WHERE
+        qo_id = #{bizInquiryIoEntity.qoId}
+    </update>
+
+
+    <update id="updateStatusToEndById">
+        UPDATE
+        atw_biz_inquiry
+        SET
+        status = "50"
+        WHERE
+        id = #{id}
+    </update>
+</mapper>

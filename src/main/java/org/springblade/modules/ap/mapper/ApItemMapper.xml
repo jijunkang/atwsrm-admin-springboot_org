@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.ap.mapper.ApItemMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="apItemResultMap" type="org.springblade.modules.ap.entity.ApItemEntity">
+        <result column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="sup_code" property="supCode"/>
+        <result column="sup_name" property="supName"/>
+        <result column="rcv_id" property="rcvId"/>
+        <result column="rcv_date" property="rcvDate"/>
+        <result column="rcv_code" property="rcvCode"/>
+        <result column="rcv_ln" property="rcvLn"/>
+        <result column="po_code" property="poCode"/>
+        <result column="po_ln" property="poLn"/>
+        <result column="item_code" property="itemCode"/>
+        <result column="item_name" property="itemName"/>
+        <result column="rcv_actual_qty" property="rcvActualQty"/>
+        <result column="rec_this_qty" property="recThisQty"/>
+        <result column="ap_id" property="apId"/>
+        <result column="ap_code" property="apCode"/>
+        <result column="ap_ln" property="apLn"/>
+        <result column="tax" property="tax"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+    <select id="getPoCodesByApId" resultType="java.lang.String">
+        SELECT
+	    group_concat( DISTINCT `po_code` ) AS poCodes
+        FROM
+	    atw_ap_item
+        WHERE
+        <if test="type != null and type != '' and type == 'AP'">
+            ap_id = #{id}
+        </if>
+        <if test="type != null and type != '' and type == 'BI'">
+            bill_id = #{id}
+        </if>
+    </select>
+
+    <select id="getMinPayDateByBillId" resultType="java.lang.Integer">
+        SELECT
+	    COALESCE(MIN( pay_date ),0)
+        FROM
+            atw_po
+        WHERE
+        is_deleted = 0
+        AND order_code IN ( SELECT po_code FROM atw_ap_item WHERE bill_id = #{id} )
+    </select>
+
+</mapper>

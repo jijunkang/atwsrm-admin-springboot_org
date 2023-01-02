@@ -1,0 +1,1658 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.springblade.modules.pr.mapper.U9PrMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="u9_prResultMap" type="org.springblade.modules.pr.entity.U9PrEntity">
+        <result column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="pr_code" property="prCode"/>
+        <result column="pr_ln" property="prLn"/>
+        <result column="item_code" property="itemCode"/>
+        <result column="item_name" property="itemName"/>
+        <result column="item_desc" property="itemDesc"/>
+        <result column="pro_no" property="proNo"/>
+        <result column="tc_num" property="tcNum"/>
+        <result column="tc_uom" property="tcUom"/>
+        <result column="price_num" property="priceNum"/>
+        <result column="price_uom" property="priceUom"/>
+        <result column="req_date" property="reqDate"/>
+        <result column="pr_date" property="prDate"/>
+        <result column="u9_status" property="u9Status"/>
+        <result column="biz_type" property="bizType"/>
+        <result column="inquiry_way" property="inquiryWay"/>
+        <result column="is_appoint_sup" property="isAppointSup"/>
+        <result column="appoint_sup_code" property="appointSupCode"/>
+        <result column="check_remark" property="checkRemark"/>
+        <result column="quote_endtime" property="quoteEndtime"/>
+        <result column="is_force_inquiry" property="isForceInquiry"/>
+        <result column="doc_modify_on" property="docModifyOn"/>
+        <result column="line_modify_on" property="lineModifyOn"/>
+        <result column="tc_uom_code" property="tcUomCode"/>
+        <result column="price_uom_code" property="priceUomCode"/>
+        <result column="end_user" property="endUser"/>
+        <result column="end_user_update_times" property="endUserUpdateTimes"/>
+        <result column="is_havesup" property="isHavesup"/>
+        <result column="is_havesup_update" property="isHavesupUpdate"/>
+        <result column="mo_no" property="moNo"/>
+        <result column="qo_no" property="qoNo"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="order_time" property="orderTime" />
+        <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+    <sql id="whereSql">
+        <if test="prReq.statuss != null and prReq.statuss != ''">
+            AND pr.`status` IN (${prReq.statuss})
+        </if>
+        <if test="prReq.inquiryWays != null and prReq.inquiryWays != ''">
+            AND pr.`inquiry_way` IN (${prReq.inquiryWays})
+        </if>
+        <if test="prReq.itemCode != null and prReq.itemCode != ''">
+            AND pr.`item_code` LIKE concat('%', #{prReq.itemCode}, '%')
+        </if>
+        <if test="prReq.itemName != null and prReq.itemName != ''">
+            AND pr.`item_name` LIKE concat('%', #{prReq.itemName}, '%')
+        </if>
+        <if test="prReq.prCode != null and prReq.prCode != ''">
+            AND pr.`pr_code` LIKE concat('%', #{prReq.prCode}, '%')
+        </if>
+        <if test="prReq.purchCode != null and prReq.purchCode != ''">
+            AND pr.`purch_code` = #{prReq.purchCode}
+        </if>
+        <if test="prReq.proNo != null and prReq.proNo != ''">
+            AND pr.`pro_no` LIKE concat('%', #{prReq.proNo}, '%')
+        </if>
+        <if test="prReq.isHavesup != null and prReq.isHavesup != ''">
+            AND pr.`is_havesup` LIKE concat('%', #{prReq.isHavesup}, '%')
+        </if>
+
+        <if test="prReq.createTimeStart != null and prReq.createTimeStart != ''">
+            AND pr.`create_time` &gt;= #{prReq.createTimeStart}
+        </if>
+        <if test="prReq.createTimeEnd != null and prReq.createTimeEnd != ''">
+            AND pr.`create_time` &lt;== #{prReq.createTimeEnd}
+        </if>
+        <if test="prReq.source != null and prReq.source !=''">
+            AND io.source = #{prReq.source}
+        </if>
+        <if test="prReq.isFlow != null">
+            <choose>
+                <when test="prReq.isFlow == 1">
+                    AND pr.flow_type IS NOT NULL
+                </when>
+                <otherwise>
+                    AND pr.flow_type IS NULL
+                </otherwise>
+            </choose>
+        </if>
+        <choose>
+            <when test="prReq.purchaseType == null or prReq.purchaseType == ''">
+                AND pr.`purchase_type` = 'normal'
+            </when>
+            <otherwise>
+                AND pr.`purchase_type` = #{prReq.purchaseType}
+            </otherwise>
+        </choose>
+        ORDER BY pr.update_time DESC
+    </sql>
+
+     <!-- FIXME  (${prReq.statuss}) 容易被注入 -->
+    <select id="selectPageByReq" resultType="org.springblade.modules.pr.dto.U9PrDTO">
+        SELECT pr.* FROM  atw_u9_pr pr
+        LEFT JOIN atw_io io on pr.id = io .pr_id
+        WHERE pr.is_deleted = 0
+        <include refid="whereSql"></include>
+    </select>
+
+    <select id="selectListByReq" resultType="org.springblade.modules.pr.dto.U9PrDTO">
+        SELECT pr.* FROM  atw_u9_pr pr
+        LEFT JOIN atw_io io on pr.id = io .pr_id
+        WHERE pr.is_deleted = 0
+        <include refid="whereSql"></include>
+    </select>
+
+    <select id="selectListByReqOfOthers" resultType="org.springblade.modules.pr.dto.U9PrDTO">
+        SELECT pr.* FROM  atw_u9_pr pr
+        WHERE pr.is_deleted = 0
+        and exists(select count(*) from atw_io io where pr.id = io .pr_id)
+        <include refid="whereSql"></include>
+    </select>
+
+    <select id="getU9Page" resultType="org.springblade.modules.pr.entity.U9PrEntity">
+        SELECT
+        *
+        FROM
+        atw_u9_pr
+        WHERE is_deleted = 0
+        AND STATUS = 10
+        AND inquiry_way = 'have_protocol'
+    </select>
+
+    <select id="getPriceFrameCount" resultType="java.lang.Integer">
+        SELECT
+        COUNT(1)
+        FROM
+        atw_u9_pr
+        WHERE is_deleted = 0
+        AND STATUS = 10
+        AND inquiry_way = 'have_protocol'
+    </select>
+
+
+    <select id="selectWaitPageByReq" resultType="org.springblade.modules.pr.dto.U9PrDTO">
+        SELECT pr.* FROM  atw_u9_pr pr
+        WHERE pr.is_deleted = 0
+        <include refid="waitSql"></include>
+    </select>
+
+    <select id="selectAllPrPage" resultType="org.springblade.modules.pr.dto.U9PrDTO">
+        SELECT
+        pr.*,highest_price,lowest_price,purch_mix,stock_lower_limit,item.is_vmi,item.s_or_n codeType
+        <if test="prReq.lastSupName != null and prReq.lastSupName != ''">
+            ,( SELECT sup_name FROM atw_po_item WHERE item_code = pr.item_code AND sup_name LIKE concat('%', #{prReq.lastSupName}, '%') ORDER BY create_time DESC LIMIT 1 ) pi_last_sup_name
+        </if>
+        FROM
+        atw_u9_pr pr
+        left join (SELECT item_code,min(price) lowest_price,MAX(price) highest_price FROM  atw_po_item WHERE status !=10 group by item_code ) pric on pr.item_code=pric.item_code
+        left join (SELECT code,purch_mix,stock_lower_limit,is_vmi,s_or_n FROM  atw_item ) item on pr.item_code=item.code
+        WHERE
+        pr.is_deleted = 0
+        <include refid="waitSql"></include>
+        <if test="prReq.lastSupName != null and prReq.lastSupName != ''">
+            HAVING pi_last_sup_name IS NOT NULL
+        </if>
+        ORDER BY
+        pr.update_time DESC
+    </select>
+
+
+
+    <select id="selectWaitListByReq" resultType="org.springblade.modules.pr.dto.U9PrDTO">
+        SELECT pr.* FROM  atw_u9_pr pr
+        WHERE pr.is_deleted = 0
+        <include refid="waitSql"></include>
+    </select>
+
+    <sql id="waitSql">
+        <if test="prReq.isVmi != null and prReq.isVmi != ''">
+            AND item.`is_vmi` = (${prReq.isVmi})
+        </if>
+        <if test="prReq.statuss != null and prReq.statuss != ''">
+            AND pr.`status` IN (${prReq.statuss})
+        </if>
+        <if test="prReq.bizType != null">
+            AND pr.`biz_type` = #{prReq.bizType} and item.`is_vmi` = '0'
+        </if>
+        <if test="prReq.inquiryWays != null and prReq.inquiryWays != ''">
+            AND pr.`inquiry_way` IN (${prReq.inquiryWays})
+        </if>
+        <if test="prReq.itemCode != null and prReq.itemCode != '' and prReq.itemCodeCount ==  1">
+            AND find_in_set(pr.`item_code`,#{prReq.itemCode})
+        </if>
+        <if test="prReq.itemCode != null and prReq.itemCode != '' and prReq.itemCodeCount == null">
+            AND pr.`item_code` LIKE concat('%', #{prReq.itemCode}, '%')
+        </if>
+        <if test="prReq.prCode != null and prReq.prCode != '' and prReq.prCodeCount == 1">
+            AND find_in_set(pr.`pr_code`,#{prReq.prCode})
+        </if>
+        <if test="prReq.prCode != null and prReq.prCode != '' and prReq.prCodeCount == null">
+            AND pr.`pr_code` LIKE concat('%', #{prReq.prCode}, '%')
+        </if>
+        <if test="prReq.itemName != null and prReq.itemName != ''">
+            AND pr.`item_name` LIKE concat('%', #{prReq.itemName}, '%')
+        </if>
+        <if test="prReq.purchCode != null and prReq.purchCode != ''">
+            AND pr.`purch_code` = #{prReq.purchCode}
+        </if>
+        <if test="prReq.proNo != null and prReq.proNo != ''">
+            AND pr.`pro_no` LIKE concat('%', #{prReq.proNo}, '%')
+        </if>
+        <if test="prReq.isHavesup != null and prReq.isHavesup != ''">
+            AND pr.`is_havesup` LIKE concat('%', #{prReq.isHavesup}, '%')
+        </if>
+        <if test="prReq.createTimeStart != null and prReq.createTimeStart != ''">
+            AND pr.`create_time` &gt;= #{prReq.createTimeStart}
+        </if>
+        <if test="prReq.createTimeEnd != null and prReq.createTimeEnd != ''">
+            AND pr.`create_time` &lt;= #{prReq.createTimeEnd}
+        </if>
+        <if test="prReq.endUser != null and prReq.endUser != ''">
+            AND pr.`end_user` = #{prReq.endUser}
+        </if>
+        <if test="prReq.moNo != null and prReq.moNo != ''">
+            AND pr.`mo_no` = #{prReq.moNo}
+        </if>
+        <choose>
+            <when test="prReq.purchaseType == null or prReq.purchaseType == ''">
+                AND pr.`purchase_type` = 'normal'
+            </when>
+            <otherwise>
+                AND pr.`purchase_type` = #{prReq.purchaseType}
+            </otherwise>
+        </choose>
+    </sql>
+
+    <select id="selectInquiryPage" resultType="org.springblade.modules.pr.dto.U9PrDTO">
+        SELECT pr.*,highest_price,lowest_price,purch_mix,stock_lower_limit,item.is_vmi,item.s_or_n codeType
+        FROM
+        atw_u9_pr pr
+        left join (SELECT item_code,min(price) lowest_price,MAX(price) highest_price FROM  atw_po_item WHERE status !=10 group by item_code ) pric on pr.item_code=pric.item_code
+        left join (SELECT code,purch_mix,stock_lower_limit,is_vmi,s_or_n FROM  atw_item ) item on pr.item_code=item.code
+        WHERE pr.is_deleted = 0
+        <include refid="waitSql"></include>
+        ORDER BY pr.update_time DESC
+    </select>
+
+
+
+
+    <select id="selectInquiryList" resultType="org.springblade.modules.pr.dto.U9PrDTO">
+        SELECT pr.* FROM  atw_u9_pr pr
+        WHERE pr.is_deleted = 0
+        <include refid="waitSql"></include>
+        ORDER BY pr.update_time DESC
+    </select>
+
+    <select id="selectInquiryCheckPage" resultType="org.springblade.modules.pr.dto.U9PrDTO">
+        SELECT pr.* FROM  atw_u9_pr pr
+        LEFT JOIN atw_io io on pr.id = io .pr_id
+        WHERE pr.is_deleted = 0
+        <include refid="waitSql"></include>
+        <if test="prReq.source != null and prReq.source !=''">
+            AND io.source = #{prReq.source}
+        </if>
+        <choose>
+            <when test="prReq.check == null or prReq.check == ''">
+                AND io.status = 51
+            </when>
+            <otherwise>
+                AND io.status = 80
+            </otherwise>
+        </choose>
+        AND pr.flow_type IS NULL
+        ORDER BY pr.update_time DESC
+    </select>
+
+    <select id="selectInquiryCheckList" resultType="org.springblade.modules.pr.dto.U9PrDTO">
+        SELECT pr.* FROM  atw_u9_pr pr
+        LEFT JOIN atw_io io on pr.id = io .pr_id
+        WHERE pr.is_deleted = 0
+        <include refid="waitSql"></include>
+        <if test="prReq.source != null and prReq.source !=''">
+            AND io.source = #{prReq.source}
+        </if>
+        <choose>
+            <when test="prReq.check == null or prReq.check == ''">
+                AND io.status = 51
+            </when>
+            <otherwise>
+                AND io.status = 80
+            </otherwise>
+        </choose>
+        AND pr.flow_type IS NULL
+        ORDER BY pr.update_time DESC
+    </select>
+
+
+    <select id="selectFlowPage" resultType="org.springblade.modules.pr.dto.U9PrDTO">
+        SELECT
+        pr.*,highest_price,lowest_price,purch_mix,stock_lower_limit,item.is_vmi,item.s_or_n codeType
+        <if test="prReq.lastSupName != null and prReq.lastSupName != ''">
+            ,( SELECT sup_name FROM atw_po_item WHERE item_code = pr.item_code AND sup_name LIKE concat('%', #{prReq.lastSupName}, '%') ORDER BY create_time DESC LIMIT 1 ) pi_last_sup_name
+        </if>
+        FROM
+        atw_u9_pr pr
+        left join (SELECT item_code,min(price) lowest_price,MAX(price) highest_price FROM  atw_po_item WHERE status !=10 group by item_code ) pric on pr.item_code=pric.item_code
+        left join (SELECT code,purch_mix,stock_lower_limit,is_vmi,s_or_n FROM  atw_item ) item on pr.item_code=item.code
+        WHERE
+        pr.is_deleted = 0
+        <include refid="waitSql"></include>
+        <if test="prReq.lastSupName != null and prReq.lastSupName != ''">
+            HAVING pi_last_sup_name IS NOT NULL
+        </if>
+        ORDER BY
+        pr.update_time DESC
+    </select>
+
+    <select id="selectFzList" resultType="org.springblade.modules.pr.dto.U9PrDTO">
+        SELECT
+        pr.*,highest_price,lowest_price,purch_mix,stock_lower_limit,item.is_vmi,item.s_or_n codeType
+        FROM
+        atw_u9_pr pr
+        left join (SELECT item_code,min(price) lowest_price,MAX(price) highest_price FROM  atw_po_item WHERE status !=10 group by item_code ) pric on pr.item_code=pric.item_code
+        left join (SELECT code,purch_mix,stock_lower_limit,is_vmi,s_or_n FROM  atw_item ) item on pr.item_code=item.code
+        WHERE
+        pr.is_deleted = 0
+        and pr.item_code = #{itemCode} and find_in_set(pr.status,#{statuss}) and pr.is_deleted = 0
+        ORDER BY
+        pr.update_time DESC
+    </select>
+
+    <select id="selectFlowPageOfOthers" resultType="org.springblade.modules.pr.dto.U9PrDTO">
+        SELECT
+        pr.*,
+        highest_price,
+        lowest_price,
+        purch_mix,
+        stock_lower_limit,
+        quote_price,
+        promise_date,
+        sup_code,
+        sup_name,
+        io_attachment,
+        io_status,
+        io_id,
+        remark,
+        item.is_vmi,
+        item.s_or_n codeType
+        <if test="prReq.lastSupName != null and prReq.lastSupName != ''">
+            ,( SELECT sup_name FROM atw_po_item WHERE item_code = pr.item_code AND sup_name LIKE concat('%', #{prReq.lastSupName}, '%') ORDER BY create_time DESC LIMIT 1 ) pi_last_sup_name
+        </if>
+        FROM
+        atw_u9_pr pr
+        LEFT JOIN ( SELECT item_code, min( price ) lowest_price, MAX( price ) highest_price FROM atw_po_item WHERE STATUS != 10 GROUP BY item_code ) pric ON pr.item_code = pric.item_code
+        LEFT JOIN ( SELECT CODE, purch_mix, stock_lower_limit,s_or_n,is_vmi FROM atw_item ) item ON pr.item_code = item.CODE
+        <choose>
+            <when test="prReq.statuss == '70'">
+                INNER JOIN ( SELECT remark,quote_price, promise_date,sup_name,sup_code,attachment io_attachment ,status io_status,pr_id, id io_id FROM atw_io where status = 80 and is_deleted = 0) io ON pr.id = io.pr_id
+            </when>
+            <otherwise>
+                LEFT JOIN ( SELECT remark,quote_price, promise_date,sup_name,sup_code,attachment io_attachment ,status io_status,pr_id, id io_id FROM atw_io where is_deleted = 0) io ON pr.id = io.pr_id
+            </otherwise>
+        </choose>
+        WHERE
+        pr.is_deleted = 0
+        and pr.flow_type != 'no_sup'
+        <include refid="waitSql"></include>
+        <if test="prReq.id != null and prReq.id != ''">
+            AND pr.`id` =  #{prReq.id}
+        </if>
+        <if test="prReq.lastSupName != null and prReq.lastSupName != ''">
+            HAVING pi_last_sup_name IS NOT NULL
+        </if>
+        ORDER BY
+        pr.update_time DESC
+    </select>
+
+    <select id="selectFlowPageOfOthersForExcel" resultType="org.springblade.modules.pr.dto.U9PrDTO">
+        SELECT
+        pr.*,
+        highest_price,
+        lowest_price,
+        purch_mix,
+        stock_lower_limit,
+        quote_price,
+        promise_date,
+        sup_code,
+        sup_name,
+        io_attachment,
+        io_status,
+        io_id,
+        remark
+        FROM
+        atw_u9_pr pr
+        LEFT JOIN ( SELECT item_code, min( price ) lowest_price, MAX( price ) highest_price FROM atw_po_item WHERE STATUS != 10 GROUP BY item_code ) pric ON pr.item_code = pric.item_code
+        LEFT JOIN ( SELECT CODE, purch_mix, stock_lower_limit FROM atw_item ) item ON pr.item_code = item.CODE
+        <choose>
+            <when test="prReq.statuss == '70'">
+                INNER JOIN ( SELECT remark,quote_price, promise_date,sup_name,sup_code,attachment io_attachment ,status io_status,pr_id, id io_id FROM atw_io where status = 80 and is_deleted = 0) io ON pr.id = io.pr_id
+            </when>
+            <otherwise>
+                LEFT JOIN ( SELECT remark,quote_price, promise_date,sup_name,sup_code,attachment io_attachment ,status io_status,pr_id, id io_id FROM atw_io where status in ('40','51','52','50','70') and is_deleted = 0) io ON pr.id = io.pr_id
+            </otherwise>
+        </choose>
+        WHERE
+        pr.is_deleted = 0
+        and pr.flow_type != 'no_sup'
+        <include refid="waitSql"></include>
+        ORDER BY
+        pr.update_time DESC
+    </select>
+
+    <select id="selectFlowPage_20210728" resultType="org.springblade.modules.pr.dto.U9PrDTO">
+        SELECT pr.* FROM  atw_u9_pr pr
+        WHERE pr.is_deleted = 0
+        <include refid="waitSql"></include>
+        ORDER BY pr.update_time DESC
+    </select>
+
+    <select id="selectFlowPageList" resultType="org.springblade.modules.pr.dto.U9PrDTO">
+        SELECT
+        pr.*,highest_price,lowest_price,purch_mix,stock_lower_limit
+        FROM
+        atw_u9_pr pr
+        left join (SELECT item_code,min(price) lowest_price,MAX(price) highest_price FROM  atw_po_item WHERE status !=10 group by item_code ) pric on pr.item_code=pric.item_code
+        left join (SELECT code,purch_mix,stock_lower_limit,is_vmi FROM  atw_item ) item on pr.item_code=item.code
+        WHERE
+        pr.is_deleted = 0
+        <include refid="waitSql"></include>
+        ORDER BY pr.update_time DESC
+    </select>
+
+
+    <select id="selectFlowListToExport" resultType="org.springblade.modules.pr.dto.U9PrDTO">
+        SELECT
+        io.sup_code,io.sup_name,io.quote_price,pr.*,highest_price,lowest_price,purch_mix,stock_lower_limit
+        FROM
+        atw_u9_pr pr
+        left join (SELECT item_code,min(price) lowest_price,MAX(price) highest_price FROM  atw_po_item WHERE status !=10 group by item_code ) pric on pr.item_code=pric.item_code
+        left join (SELECT code,purch_mix,stock_lower_limit,is_vmi FROM  atw_item ) item on pr.item_code=item.code
+        left join atw_io io on io.pr_id = pr.id
+        WHERE
+        pr.is_deleted = 0
+        and io.is_deleted = 0
+        <include refid="waitSql"></include>
+        ORDER BY pr.update_time DESC
+    </select>
+
+    <select id="selectFlowPageListOfOthers" resultType="org.springblade.modules.pr.dto.U9PrDTO">
+        SELECT pr.* FROM  atw_u9_pr pr
+        WHERE pr.is_deleted = 0
+        <include refid="waitSql"></include>
+        ORDER BY pr.update_time DESC
+    </select>
+
+    <select id="selectFlowPageListForExcelOfOthers" resultType="org.springblade.modules.pr.dto.U9PrDTO">
+        SELECT pr.* FROM  atw_u9_pr pr
+        WHERE pr.is_deleted = 0
+        <if test="prReq.statuss != null and prReq.statuss != ''">
+            AND pr.`status` IN (${prReq.statuss})
+        </if>
+        <if test="prReq.inquiryWays != null and prReq.inquiryWays != ''">
+            AND pr.`inquiry_way` IN (${prReq.inquiryWays})
+        </if>
+        <if test="prReq.itemCode != null and prReq.itemCode != '' and prReq.itemCodeCount > 1">
+            AND find_in_set(pr.`item_code`,#{prReq.itemCode})
+        </if>
+        <if test="prReq.itemCode != null and prReq.itemCode != '' and prReq.itemCodeCount == 1">
+            AND pr.`item_code` LIKE concat('%', #{prReq.itemCode}, '%')
+        </if>
+        <if test="prReq.itemName != null and prReq.itemName != ''">
+            AND pr.`item_name` LIKE concat('%', #{prReq.itemName}, '%')
+        </if>
+        <if test="prReq.prCode != null and prReq.prCode != ''">
+            AND pr.`pr_code` LIKE concat('%', #{prReq.prCode}, '%')
+        </if>
+        <if test="prReq.purchCode != null and prReq.purchCode != ''">
+            AND pr.`purch_code` = #{prReq.purchCode}
+        </if>
+        <if test="prReq.proNo != null and prReq.proNo != ''">
+            AND pr.`pro_no` LIKE concat('%', #{prReq.proNo}, '%')
+        </if>
+        <if test="prReq.isHavesup != null and prReq.isHavesup != ''">
+            AND pr.`is_havesup` LIKE concat('%', #{prReq.isHavesup}, '%')
+        </if>
+        <if test="prReq.createTimeStart != null and prReq.createTimeStart != ''">
+            AND pr.`create_time` &gt;= #{prReq.createTimeStart}
+        </if>
+        <if test="prReq.createTimeEnd != null and prReq.createTimeEnd != ''">
+            AND pr.`create_time` &lt;== #{prReq.createTimeEnd}
+        </if>
+        <if test="prReq.endUser != null and prReq.endUser != ''">
+            AND pr.`end_user` = #{prReq.endUser}
+        </if>
+        <if test="prReq.moNo != null and prReq.moNo != ''">
+            AND pr.`mo_no` = #{prReq.moNo}
+        </if>
+        <if test="prReq.lastSupName != null and prReq.lastSupName != ''">
+            AND pr.`last_sup_name` LIKE concat('%', #{prReq.lastSupName}, '%')
+        </if>
+        <choose>
+            <when test="prReq.flowType != 'no_sup' and prReq.statuss =='20,40' ">
+                AND pr.`flow_type` in ('no_quote','sup_refuse','pr3','priceattr_err','atwreject','po_cancel','inqdate_refuse','inqprice_refuse','inqdate_io_refuse','hang','same_quote')
+            </when>
+            <when test="prReq.flowType == null or prReq.flowType == '' ">
+                AND pr.`flow_type` in ('no_quote','sup_refuse','pr3','priceattr_err','atwreject','po_cancel','inqdate_refuse','inqprice_refuse','inqdate_io_refuse','hang','same_quote')
+            </when>
+            <otherwise>
+                AND pr.`flow_type` = 'no_sup'
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="prReq.purchaseType == null or prReq.purchaseType == ''">
+                AND pr.`purchase_type` = 'normal'
+            </when>
+            <otherwise>
+                AND pr.`purchase_type` = #{prReq.purchaseType}
+            </otherwise>
+        </choose>
+        ORDER BY pr.update_time DESC
+    </select>
+
+    <select id="selectFlowCheckPage" resultType="org.springblade.modules.pr.dto.U9PrDTO">
+        SELECT pr.*,item.is_vmi,item.s_or_n codeType
+        <if test="prReq.lastSupName != null and prReq.lastSupName != ''">
+            ,( SELECT sup_name FROM atw_po_item WHERE item_code = pr.item_code AND sup_name LIKE concat('%', #{prReq.lastSupName}, '%') ORDER BY create_time DESC LIMIT 1 ) pi_last_sup_name
+        </if>
+        FROM  atw_u9_pr pr
+        LEFT JOIN atw_io io on pr.id = io .pr_id
+        LEFT JOIN atw_item item on pr.item_code = item.code
+        WHERE pr.is_deleted = 0
+        <include refid="waitSql"></include>
+        <if test="prReq.source != null and prReq.source !=''">
+            AND io.source = #{prReq.source}
+        </if>
+        AND io.refuse_cause IS NULL  /*20210511新增对拒绝数据的过滤*/
+        AND pr.flow_type IS NOT NULL
+        AND io.is_deleted = 0
+        <if test="prReq.lastSupName != null and prReq.lastSupName != ''">
+            HAVING pi_last_sup_name IS NOT NULL
+        </if>
+        <if test="prReq.supName != null and prReq.supName != ''">
+            AND io.`sup_name` LIKE concat('%', #{prReq.supName}, '%')
+        </if>
+        ORDER BY pr.update_time DESC
+    </select>
+
+
+    <select id="selectPageWithoutIo" resultType="org.springblade.modules.pr.dto.U9PrDTO">
+        SELECT pr.*,item.is_vmi,item.s_or_n codeType FROM  atw_u9_pr pr
+        LEFT JOIN atw_io io on pr.id = io .pr_id
+        LEFT JOIN atw_item item on pr.item_code = item.code
+        WHERE pr.is_deleted = 0
+        <include refid="waitSql"></include>
+        AND pr.flow_type = 'no_sup'
+        ORDER BY pr.update_time DESC
+    </select>
+
+
+    <select id="selectFlowCheckListOfOthers" resultType="org.springblade.modules.pr.dto.U9PrDTO">
+        SELECT pr.*,item.is_vmi,item.s_or_n codeType FROM  atw_u9_pr pr
+        LEFT JOIN atw_io io on pr.id = io .pr_id
+        LEFT JOIN atw_item item on pr.item_code = item.code
+        WHERE pr.is_deleted = 0
+        <include refid="waitSql"></include>
+        ORDER BY pr.update_time DESC
+    </select>
+
+    <select id="selectFlowCheckList" resultType="org.springblade.modules.pr.dto.U9PrDTO">
+        SELECT pr.*,item.is_vmi,item.s_or_n codeType FROM  atw_u9_pr pr
+        LEFT JOIN atw_io io on pr.id = io .pr_id
+        LEFT JOIN atw_item item on pr.item_code = item.code
+        WHERE pr.is_deleted = 0
+        <include refid="waitSql"></include>
+        <if test="prReq.source != null and prReq.source !=''">
+            AND io.source = #{prReq.source}
+        </if>
+        AND io.refuse_cause IS NULL  /*20210511新增对拒绝数据的过滤*/
+        AND pr.flow_type IS NOT NULL
+        AND io.is_deleted = 0
+        ORDER BY pr.update_time DESC
+    </select>
+
+    <select id="selectSupRemarks" resultType="string">
+        SELECT
+            sup_feedback
+        FROM
+            atw_biz_inquiry_io
+        WHERE
+            qo_id =
+            (
+                SELECT id
+                FROM atw_biz_inquiry
+                WHERE
+                    qo_code = #{qoNo}
+                AND model = #{itemDesc}
+            )
+    </select>
+
+    <select id="selectSupAndWeightOfZDJ" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfZDJ">
+        SELECT
+            *
+        FROM
+            atw_item_info_zdj
+        where
+            `itemize` = #{itemInfoEntity.itemize} and
+            `size` = #{itemInfoEntity.size} and
+            `form` = #{itemInfoEntity.form} and
+            `pound` = #{itemInfoEntity.pound} and
+            `flange` = #{itemInfoEntity.flange} and
+            `series` = #{itemInfoEntity.series} and
+            <choose>
+                <when test="itemInfoEntity.materialOfWeight != null and itemInfoEntity.materialOfWeight !=''">
+                     `material` = #{itemInfoEntity.materialOfWeight}
+                </when>
+                <otherwise>
+                    `material` = #{itemInfoEntity.material}
+                </otherwise>
+            </choose>
+    </select>
+
+    <select id="selectSupAndWeightOfWW" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfWW">
+        SELECT
+        *
+        FROM
+        atw_item_info_ww
+        where
+        `itemize` = #{itemInfoEntity.itemize} and
+        `size` = #{itemInfoEntity.size} and
+        `pound` = #{itemInfoEntity.pound} and
+        `series` = #{itemInfoEntity.series} and
+        find_in_set(#{itemInfoEntity.form},`form`) and
+        <choose>
+            <when test="itemInfoEntity.materialOfWeight != null and itemInfoEntity.materialOfWeight !=''">
+                `material` = #{itemInfoEntity.materialOfWeight}
+            </when>
+            <otherwise>
+                `material` = #{itemInfoEntity.material}
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="selectSupAndWeightOfQCWW" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfWW">
+        SELECT
+        *
+        FROM
+        atw_item_info_ww
+        where
+        `itemize` = #{itemInfoEntity.itemize} and
+        `size` = #{itemInfoEntity.size} and
+        `pound` = #{itemInfoEntity.pound} and
+        `series` = #{itemInfoEntity.series} and
+        find_in_set(#{itemInfoEntity.form},`form`) and
+        find_in_set(#{itemInfoEntity.material},`material`)
+    </select>
+
+    <select id="selectSupAndWeightOfQZ" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfQZ">
+        SELECT
+            *
+        FROM
+            atw_item_info_qz
+        where
+            `itemize` = #{itemInfoEntity.itemize} and
+            `size` = #{itemInfoEntity.size} and
+            `special_rule` = #{itemInfoEntity.specialRule} and
+            `pound` = #{itemInfoEntity.pound} and
+            `grade` = #{itemInfoEntity.grade} and
+            `material` = #{itemInfoEntity.material} and
+            `coat` = #{itemInfoEntity.coat} and
+            INSTR(`form`,#{itemInfoEntity.form})
+    </select>
+
+    <select id="selectBasicInfoOfQZ" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfQZNew">
+        SELECT
+            *
+        FROM
+            atw_qz
+        where
+            `size` = #{itemInfoEntity.size} and
+            INSTR(`form`,#{itemInfoEntity.form}) and
+            `pound` = #{itemInfoEntity.pound} and
+            `material` = #{itemInfoEntity.material}
+            <if test="itemInfoEntity.grade != null and itemInfoEntity.grade !=''">
+                and `grade` = #{itemInfoEntity.grade}
+            </if>
+            <if test="itemInfoEntity.coat != null and itemInfoEntity.coat !=''">
+                and `coat` = #{itemInfoEntity.coat}
+            </if>
+            <if test="itemInfoEntity.fzCoat != null and itemInfoEntity.fzCoat !=''">
+                and INSTR(`fz_coat`,#{itemInfoEntity.fzCoat})
+            </if>
+
+        GROUP BY  k
+
+    </select>
+
+    <select id="selectMaterialPriceOfQZ" resultType="org.springblade.modules.pr.vo.ItemInfoOfQZVO">
+        select * from atw_qz_price where sup_code=#{itemInfoEntity.supCode} and material=#{itemInfoEntity.material}
+    </select>
+    <select id="selectSprayOfQZ" resultType="org.springblade.modules.pr.vo.ItemInfoOfQZVO">
+        SELECT
+            *
+        FROM
+            atw_qz_spray
+        WHERE
+            sup_code = #{itemInfoEntity.supCode}
+          AND
+            IF
+                (
+                external_diameter_range != '',
+                IF
+                    (
+                    external_diameter_range IS NOT NULL,
+                    SUBSTRING_INDEX( external_diameter_range, ',', 1 ) &lt; #{itemInfoEntity.size}+0 AND SUBSTRING_INDEX( external_diameter_range, ',',- 1 ) >= #{itemInfoEntity.size}+0,1 = 1 ),1=1)
+          AND coat=#{itemInfoEntity.coat}
+
+    </select>
+
+    <select id="selectSpraySmallOfQZ" resultType="org.springblade.modules.pr.vo.ItemInfoOfQZVO">
+        SELECT
+            *
+        FROM
+            atw_qz_spray_small
+        WHERE
+            sup_code = #{itemInfoEntity.supCode}
+          AND
+            IF
+                (
+                external_diameter_range != '',
+                IF
+                    (
+                    external_diameter_range IS NOT NULL,
+                    SUBSTRING_INDEX( external_diameter_range, ',', 1 ) &lt; #{itemInfoEntity.size}+0 AND SUBSTRING_INDEX( external_diameter_range, ',',- 1 ) >= #{itemInfoEntity.size}+0,1 = 1 ),1=1)
+          AND coat=#{itemInfoEntity.coat} AND pound=#{itemInfoEntity.pound}
+
+    </select>
+
+    <select id="selectItemPriceOfZDJ" resultType="java.lang.String">
+        SELECT
+            price
+        FROM
+            atw_item_info_price_zdj
+        where
+            `sup_name` = #{itemInfoEntity.supName}
+            and
+            `sup_code` = #{itemInfoEntity.supCode}
+            and
+            <if test="itemInfoEntity.technology != null and itemInfoEntity.technology !=''">
+                `technology` = #{itemInfoEntity.technology} and
+            </if>
+            `material` = #{itemInfoEntity.material}
+    </select>
+
+    <select id="selectItemPriceOfQZ" resultType="java.lang.String">
+        SELECT
+            price
+        FROM
+            atw_item_info_price_qz
+        where
+            `sup_name` = #{itemInfoEntity.supName}
+        and
+            `sup_code` = #{itemInfoEntity.supCode}
+        and
+            `material` = #{itemInfoEntity.material}
+    </select>
+
+
+    <select id="selectPtPriceOfQZ" resultType="java.lang.String">
+        SELECT
+            price
+        FROM
+            atw_item_info_price_pt_qz
+        where
+            `sup_name` = #{itemInfoEntity.supName}
+        and
+            `sup_code` = #{itemInfoEntity.supCode}
+        and
+            `coat` = #{itemInfoEntity.coat}
+        and
+            `range` = #{range}
+    </select>
+
+    <update id="updateU9Pr" >
+        UPDATE
+        atw_u9_pr
+        SET
+        status = 40
+        WHERE
+        id = #{id}
+    </update>
+
+    <delete id="deleteIo" >
+        DELETE
+        FROM
+        atw_io
+        WHERE
+        id = #{id}
+    </delete>
+
+    <select id="selectAttachment" resultType="java.lang.String">
+        select
+            attachment
+        FROM
+            atw_io
+        WHERE
+            id = #{id}
+    </select>
+
+    <select id="selectPriceFromIo" resultType="org.springblade.modules.po.entity.IoEntity">
+        select
+            *
+        FROM
+            atw_io
+        WHERE
+            pr_id = #{pr_id}
+            and is_deleted = 0
+        ORDER BY update_time DESC
+    </select>
+
+    <select id="getPrMoNO" resultType="String">
+        select mo_no
+        from atw_u9_pr
+        where pr_code = #{pr_code} and pr_ln = #{pr_ln} and is_deleted=0
+    </select>
+
+    <select id="getPrLn" resultType="org.springblade.modules.pr.entity.U9PrEntity">
+        select *
+        from atw_u9_pr
+        where pr_code = #{pr_code} and pr_ln = #{pr_ln}
+    </select>
+
+    <update id="winTheBid" >
+        UPDATE
+        atw_io
+        SET
+        status = 50
+        WHERE
+        id = #{id}
+    </update>
+
+    <update id="cancelTheBid" >
+        UPDATE
+        atw_io
+        SET
+        status = 40
+        WHERE
+        id = #{id}
+    </update>
+
+    <select id="countTheBid" resultType="int">
+        select
+        count(*)
+        from
+        atw_io
+        WHERE
+        pr_id = #{id}
+        and status = '50'
+    </select>
+
+
+    <update id="removeIo" >
+        update
+        atw_io
+        set
+        is_deleted = '1'
+        WHERE
+        pr_id = #{pr_id}
+    </update>
+
+    <update id="updatePrToOthers" >
+        update
+        atw_u9_pr
+        set
+        purchase_type = 'inner',
+        flow_type = 'no_sup'
+        WHERE
+        id = #{id}
+    </update>
+
+
+    <insert id="addOtherInfos" useGeneratedKeys="true" keyProperty="id">
+        insert into atw_sup_item_others(
+            type_name, mat_quality, main_code, sup_code, sup_name ,status
+            )
+        values
+        (
+            #{supItemOthers.typeName},#{supItemOthers.matQuality},#{supItemOthers.mainCode},#{supItemOthers.supCode},#{supItemOthers.supName},#{supItemOthers.status}
+            )
+    </insert>
+
+    <select id="getOthersInfo" resultType="org.springblade.modules.pr.entity.SupItemOthers">
+        select
+        *
+        from
+        atw_sup_item_others
+        WHERE
+        main_code = #{mainCode}
+        and find_in_set(#{matQuality},mat_quality)
+    </select>
+
+    <select id="getOthersInfoList" resultType="org.springblade.modules.pr.entity.SupItemOthers">
+        select
+        *
+        from
+        atw_sup_item_others
+        WHERE
+        main_code = #{mainCode}
+        and find_in_set(#{matQuality},mat_quality)
+    </select>
+
+    <update id="updateOtherInfos">
+        update
+            atw_sup_item_others
+        set
+            type_name =  #{supItemOthers.typeName},
+            mat_quality = #{supItemOthers.matQuality},
+            main_code = #{supItemOthers.mainCode},
+            sup_code = #{supItemOthers.supCode},
+            sup_name = #{supItemOthers.supName}
+        where
+            id = #{supItemOthers.id}
+    </update>
+
+    <delete id="removeOtherInfos">
+        delete from
+            atw_sup_item_others
+        where
+            id = #{supItemOthers.id}
+    </delete>
+    <delete id="deleteByItemCode" parameterType="java.lang.String">
+        delete from atw_item_info_dj_report where item_code =#{itemCode}
+    </delete>
+
+    <update id="updateStatusOfOthers">
+        update
+            atw_sup_item_others
+        set
+            status =  #{supItemOthers.status}
+        where
+            id = #{supItemOthers.id}
+    </update>
+
+    <select id="getIoListByPrId" resultType="org.springblade.modules.po.entity.IoEntity">
+        SELECT
+            io.*
+        FROM
+            atw_io io
+        WHERE
+            io.pr_id = #{prId}
+    </select>
+
+    <select id="getMinPriceByPrId" resultType="java.math.BigDecimal">
+        SELECT
+            min(quote_price)
+        FROM
+            atw_io
+        WHERE
+            pr_id = #{prId}
+    </select>
+
+    <select id="getEarliestDateByPrId" resultType="java.lang.Long">
+        SELECT
+            min(promise_Date)
+        FROM
+            atw_io
+        WHERE
+            pr_id = #{prId}
+    </select>
+
+    <select id="getPrById" resultType="org.springblade.modules.pr.entity.U9PrEntity">
+        SELECT
+            *
+        FROM
+            atw_u9_pr
+        WHERE
+            id = #{id}
+    </select>
+
+    <select id="getMaterialCostByItemCode" resultType="java.math.BigDecimal">
+        SELECT
+            material_cost
+        FROM
+            atw_pr_itemcode_cost
+        WHERE
+            item_code = #{itemCode}
+    </select>
+
+    <select id="getLaborCostByItemCode" resultType="java.math.BigDecimal">
+        SELECT
+            labor_cost
+        FROM
+            atw_pr_itemcode_cost
+        WHERE
+            item_code = #{itemCode}
+    </select>
+
+    <update id="updateEvaluateScore">
+        update
+            atw_io
+        set
+            evaluate_score = #{score}
+        where
+            id = #{id}
+    </update>
+
+    <update id="setWinTheBid">
+        update
+            atw_io
+        set
+            status = '80',
+            winbid_date = #{time}
+        where
+            id = #{id}
+    </update>
+
+
+    <update id="setLoseTheBid">
+        update
+        atw_io
+        set
+        <if test="ioEntity.quoteDate!=null and ioEntity.quoteDate!='' ">
+            status = '40'
+        </if>
+        <if test="ioEntity.quoteDate == null or ioEntity.quoteDate=='' ">
+            status = '20'
+        </if>
+        where
+        id = #{ioEntity.id}
+    </update>
+
+    <update id="setPrFlow">
+        update
+            atw_u9_pr
+        set
+            status = '40',
+            flow_type = 'no_quote'
+        where
+        id = #{id}
+    </update>
+
+    <update id="setPrToChoose">
+        update
+            atw_u9_pr
+        set
+            status = '40',
+            flow_type = 12 -- 12代表 'same_quote',因为这里是枚举类型，只能用数字
+        where
+            id = #{id}
+    </update>
+
+    <update id="setPrToWait">
+        update
+            atw_u9_pr
+        set
+            status = '70',
+            flow_type = null
+        where
+            id = #{id}
+    </update>
+
+
+    <select id="selectDjReportPage" resultType="org.springblade.modules.pr.entity.ItemInfoEntityDJReport">
+        SELECT
+             *
+        FROM
+            atw_item_info_dj_report
+        where
+        is_deleted = 0
+        <if test='req !=null and req.itemCode !=null and req.itemCode.contains(",")'>
+            and find_in_set(item_code,#{req.itemCode})
+        </if>
+        <if test='req !=null and req.itemCode !=null and !req.itemCode.contains(",")'>
+            and `item_code` LIKE concat('%', #{req.itemCode}, '%')
+        </if>
+        <if test="req.itemName != null and req.itemName !=''">
+            and `item_name` LIKE concat('%', #{req.itemName}, '%')
+        </if>
+        order by `id` desc
+    </select>
+
+    <select id="selectXLJReportPage" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfXLJ">
+        SELECT
+        report.*,lowestPrice,highestPrice
+        FROM
+        atw_item_info_part_report report
+        LEFT JOIN (SELECT item_code,min(price) lowestPrice,MAX(price) highestPrice FROM  atw_po_item WHERE status !=10 group by item_code) pi ON pi.item_code = report.item_code
+        where
+        1=1
+        <if test='req !=null and req.itemCode !=null and req.itemCode.contains(",")'>
+            and find_in_set(report.item_code,#{req.itemCode})
+        </if>
+        <if test='req !=null and req.itemCode !=null and !req.itemCode.contains(",")'>
+            and report.`item_code` LIKE concat('%', #{req.itemCode}, '%')
+        </if>
+        <if test="req.itemName != null and req.itemName !=''">
+            and report.`item_name` LIKE concat('%', #{req.itemName}, '%')
+        </if>
+        order by report.`id` desc
+    </select>
+
+    <select id="selectLZQReportPage" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfLZQ">
+        SELECT
+        report.*,lowestPrice,highestPrice
+        FROM
+        atw_item_info_lzq_report report
+        LEFT JOIN (SELECT item_code,min(price) lowestPrice,MAX(price) highestPrice FROM  atw_po_item WHERE status !=10 group by item_code) pi ON pi.item_code = report.item_code
+        where
+        1=1
+        <if test='req !=null and req.itemCode !=null and req.itemCode.contains(",")'>
+            and find_in_set(report.item_code,#{req.itemCode})
+        </if>
+        <if test='req !=null and req.itemCode !=null and !req.itemCode.contains(",")'>
+            and report.`item_code` LIKE concat('%', #{req.itemCode}, '%')
+        </if>
+        <if test="req.itemName != null and req.itemName !=''">
+            and report.`item_name` LIKE concat('%', #{req.itemName}, '%')
+        </if>
+        order by report.`id` desc
+
+    </select>
+
+    <select id="selectQZReportPage" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfQZNew">
+        select * from atw_qz_report report
+        where
+            1=1
+        <if test='req !=null and req.itemCode !=null and req.itemCode.contains(",")'>
+            and find_in_set(report.item_code,#{req.itemCode})
+        </if>
+        <if test='req !=null and req.itemCode !=null and !req.itemCode.contains(",")'>
+            and report.`item_code` LIKE concat('%', #{req.itemCode}, '%')
+        </if>
+    </select>
+
+    <select id="selectQZReportList" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfQZNew">
+        select * from atw_qz_report report
+        where
+        1=1
+        <if test='req !=null and req.itemCode !=null and req.itemCode.contains(",")'>
+            and find_in_set(report.item_code,#{req.itemCode})
+        </if>
+        <if test='req !=null and req.itemCode !=null and !req.itemCode.contains(",")'>
+            and report.`item_code` LIKE concat('%', #{req.itemCode}, '%')
+        </if>
+    </select>
+
+    <select id="selectDZReportPage" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfDZ">
+        SELECT
+        *
+        FROM
+        atw_item_info_dz_report report
+        where
+        1=1
+
+        <if test='req !=null and req.itemCode !=null'>
+            and report.`item_code` LIKE concat('%', #{req.itemCode}, '%')
+        </if>
+        <if test="req.itemName != null and req.itemName !=''">
+            and report.`item_name` LIKE concat('%', #{req.itemName}, '%')
+        </if>
+        order by report.`id` desc
+    </select>
+
+    <select id="selectFLReportPage" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfFL">
+
+        SELECT
+        *
+        FROM
+        atw_item_info_fl_report report
+        where
+        1=1
+
+        <if test='req !=null and req.itemCode !=null'>
+            and report.`item_code` LIKE concat('%', #{req.itemCode}, '%')
+        </if>
+        <if test="req.itemName != null and req.itemName !=''">
+            and report.`item_name` LIKE concat('%', #{req.itemName}, '%')
+        </if>
+        order by report.`id` desc
+
+    </select>
+
+    <select id="selectXLJReportList" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfXLJ">
+        SELECT
+        report.*,lowestPrice,highestPrice
+        FROM
+        atw_item_info_part_report report
+        LEFT JOIN (SELECT item_code,min(price) lowestPrice,MAX(price) highestPrice FROM  atw_po_item WHERE status !=10 group by item_code) pi ON pi.item_code = report.item_code
+        where
+        1=1
+        <if test='req !=null and req.itemCode !=null and req.itemCode.contains(",")'>
+            and find_in_set(report.item_code,#{req.itemCode})
+        </if>
+        <if test='req !=null and req.itemCode !=null and !req.itemCode.contains(",")'>
+            and report.`item_code` LIKE concat('%', #{req.itemCode}, '%')
+        </if>
+        <if test="req.itemName != null and req.itemName !=''">
+            and report.`item_name` LIKE concat('%', #{req.itemName}, '%')
+        </if>
+        order by report.`id` desc
+    </select>
+
+    <select id="selectLZQReportList" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfLZQ">
+        SELECT
+        report.*,lowestPrice,highestPrice
+        FROM
+        atw_item_info_lzq_report report
+        LEFT JOIN (SELECT item_code,min(price) lowestPrice,MAX(price) highestPrice FROM  atw_po_item WHERE status !=10 group by item_code) pi ON pi.item_code = report.item_code
+        where
+        1=1
+        <if test='req !=null and req.itemCode !=null and req.itemCode.contains(",")'>
+            and find_in_set(report.item_code,#{req.itemCode})
+        </if>
+        <if test='req !=null and req.itemCode !=null and !req.itemCode.contains(",")'>
+            and report.`item_code` LIKE concat('%', #{req.itemCode}, '%')
+        </if>
+        <if test="req.itemName != null and req.itemName !=''">
+            and report.`item_name` LIKE concat('%', #{req.itemName}, '%')
+        </if>
+        order by report.`id` desc
+
+    </select>
+
+    <select id="selectDZReportList" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfDZ">
+        SELECT
+        *
+        FROM
+        atw_item_info_dz_report report
+        where
+        1=1
+
+        <if test='req !=null and req.itemCode !=null'>
+            and report.`item_code` LIKE concat('%', #{req.itemCode}, '%')
+        </if>
+        <if test="req.itemName != null and req.itemName !=''">
+            and report.`item_name` LIKE concat('%', #{req.itemName}, '%')
+        </if>
+        order by report.`id` desc
+
+    </select>
+
+    <select id="selectFLReportList" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfFL">
+        SELECT
+        *
+        FROM
+        atw_item_info_fl_report report
+        where
+        1=1
+
+        <if test='req !=null and req.itemCode !=null'>
+            and report.`item_code` LIKE concat('%', #{req.itemCode}, '%')
+        </if>
+        <if test="req.itemName != null and req.itemName !=''">
+            and report.`item_name` LIKE concat('%', #{req.itemName}, '%')
+        </if>
+        order by report.`id` desc
+    </select>
+
+
+    <select id="selectDjReportList" resultType="org.springblade.modules.pr.entity.ItemInfoEntityDJReport">
+        SELECT
+        *
+        FROM
+        atw_item_info_dj_report
+        where
+        is_deleted = 0
+        <if test='req !=null and req.itemCode !=null and req.itemCode.contains(",")'>
+            and find_in_set(item_code,#{req.itemCode})
+        </if>
+        <if test='req !=null and req.itemCode !=null and !req.itemCode.contains(",")'>
+            and `item_code` LIKE concat('%', #{req.itemCode}, '%')
+        </if>
+        <if test="req.itemName != null and req.itemName !=''">
+            and `item_name` LIKE concat('%', #{req.itemName}, '%')
+        </if>
+        <if test="req.supCode != null and req.supCode !=''">
+            and `sup_code` = #{req.supCode}
+        </if>
+    </select>
+
+    <select id="getAutoOrderOfDJ" resultType="org.springblade.modules.pr.entity.AutoOrderOfDJ">
+        SELECT
+        *
+        FROM
+        atw_auto_order_dj
+        where
+        is_deleted = 0
+        <if test="req.prCode != null and req.prCode !=''">
+            and `pr_code` LIKE concat('%', #{req.prCode}, '%')
+        </if>
+        <if test="req.prLn != null and req.prLn !=''">
+            and `pr_ln` LIKE concat('%', #{req.prLn}, '%')
+        </if>
+        <if test='req !=null and req.itemCode !=null and req.itemCode.contains(",")'>
+            and find_in_set(item_code,#{item.itemCode})
+        </if>
+        <if test='req !=null and req.itemCode !=null and !req.itemCode.contains(",")'>
+            and `item_code` LIKE concat('%', #{req.itemCode}, '%')
+        </if>
+        <if test="req.itemName != null and req.itemName !=''">
+            and `item_name` LIKE concat('%', #{req.itemName}, '%')
+        </if>
+        ORDER BY id desc
+    </select>
+
+    <select id="selectAutoOrderOfDJList" resultType="org.springblade.modules.pr.entity.AutoOrderOfDJ">
+        SELECT
+        *
+        FROM
+        atw_auto_order_dj
+        where
+        is_deleted = 0
+        <if test="req.prCode != null and req.prCode !=''">
+            and `pr_code` LIKE concat('%', #{req.prCode}, '%')
+        </if>
+        <if test="req.prLn != null and req.prLn !=''">
+            and `pr_ln` LIKE concat('%', #{req.prLn}, '%')
+        </if>
+        <if test='req !=null and req.itemCode !=null and req.itemCode.contains(",")'>
+            and find_in_set(item_code,#{req.itemCode})
+        </if>
+        <if test='req !=null and req.itemCode !=null and !req.itemCode.contains(",")'>
+            and `item_code` LIKE concat('%', #{req.itemCode}, '%')
+        </if>
+        <if test="req.itemName != null and req.itemName !=''">
+            and `item_name` LIKE concat('%', #{req.itemName}, '%')
+        </if>
+    </select>
+
+    <select id="getAutoOrderOfXLJ" resultType="org.springblade.modules.pr.entity.AutoOrderOfXLJ">
+        SELECT
+        *
+        FROM
+        atw_auto_order_part
+        where
+        1=1
+        <if test="req.prCode != null and req.prCode !=''">
+            and `pr_code` LIKE concat('%', #{req.prCode}, '%')
+        </if>
+        <if test="req.prLn != null and req.prLn !=''">
+            and `pr_ln` LIKE concat('%', #{req.prLn}, '%')
+        </if>
+        <if test='req !=null and req.itemCode !=null and req.itemCode.contains(",")'>
+            and find_in_set(report.item_code,#{req.itemCode})
+        </if>
+        <if test='req !=null and req.itemCode !=null and !req.itemCode.contains(",")'>
+            and report.`item_code` LIKE concat('%', #{req.itemCode}, '%')
+        </if>
+        <if test="req.itemName != null and req.itemName !=''">
+            and `item_name` LIKE concat('%', #{req.itemName}, '%')
+        </if>
+        ORDER BY id desc
+    </select>
+
+    <select id="selectAutoOrderOfXLJList" resultType="org.springblade.modules.pr.entity.AutoOrderOfXLJ">
+        SELECT
+        *
+        FROM
+        atw_auto_order_part
+        where
+        1=1
+        <if test="req.prCode != null and req.prCode !=''">
+            and `pr_code` LIKE concat('%', #{req.prCode}, '%')
+        </if>
+        <if test="req.prLn != null and req.prLn !=''">
+            and `pr_ln` LIKE concat('%', #{req.prLn}, '%')
+        </if>
+        <if test='req !=null and req.itemCode !=null and req.itemCode.contains(",")'>
+            and find_in_set(report.item_code,#{req.itemCode})
+        </if>
+        <if test='req !=null and req.itemCode !=null and !req.itemCode.contains(",")'>
+            and report.`item_code` LIKE concat('%', #{req.itemCode}, '%')
+        </if>
+        <if test="req.itemName != null and req.itemName !=''">
+            and `item_name` LIKE concat('%', #{req.itemName}, '%')
+        </if>
+        ORDER BY id desc
+    </select>
+
+    <select id="selectNoSwnningBid" resultType="org.springblade.modules.pr.entity.ItemInfoEntityDJReport">
+        SELECT
+        *
+        FROM
+        atw_item_info_dj_report
+        where
+        is_deleted = 0
+        <if test="req.itemCode != null and req.itemCode !=''">
+            and `item_code` LIKE concat('%', #{req.itemCode}, '%')
+        </if>
+        <if test="req.itemName != null and req.itemName !=''">
+            and `item_name` LIKE concat('%', #{req.itemName}, '%')
+        </if>
+    </select>
+
+    <select id="selectXLJResItemInfo" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfXLJ">
+        SELECT
+            *
+        FROM
+            atw_item_info_part_res
+        where
+            main_type = #{req.mainType}
+            and if(outer_range!='',IF(outer_range IS NOT NULL,SUBSTRING_INDEX( outer_range, ',', 1 ) &lt; #{req.outerSize}+0 AND SUBSTRING_INDEX( outer_range, ',',- 1 ) &gt;= #{req.outerSize}+0,1 = 1 ),1=1)
+            <if test="req.materialType != null and req.materialType !=''">
+                and `material_type` = #{req.materialType}
+            </if>
+    </select>
+
+    <select id="selectLZQResItemInfo" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfLZQ">
+        SELECT
+        *
+        FROM
+        atw_item_info_lzq_res
+        where
+        1=1
+        and if(outer_range!='',IF(outer_range IS NOT NULL,SUBSTRING_INDEX( outer_range, ',', 1 ) &lt; #{req.outerSize}+0 AND SUBSTRING_INDEX( outer_range, ',',- 1 ) &gt;= #{req.outerSize}+0,1 = 1 ),1=1)
+
+    </select>
+
+    <select id="selectItemPriceOfXLJ" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfXLJ">
+        SELECT
+        *
+        FROM
+        atw_item_info_part_price
+        where
+        sup_code = #{req.supCode}
+        and material_type = #{req.materialType}
+        and if(outer_range!='',IF(outer_range IS NOT NULL,SUBSTRING_INDEX( outer_range, ',', 1 ) &lt; #{req.outerSize}+0 AND SUBSTRING_INDEX( outer_range, ',',- 1 ) &gt;= #{req.outerSize}+0,1 = 1 ),1=1)
+        and `material` = #{req.material}
+    </select>
+
+    <select id="selectItemPriceOfLZQ" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfLZQ">
+        SELECT
+            *
+        FROM
+            atw_item_info_lzq_price
+        where
+            sup_code = #{req.supCode}
+          and if(outer_range!='',IF(outer_range IS NOT NULL,SUBSTRING_INDEX( outer_range, ',', 1 ) &lt; #{req.outerSize}+0 AND SUBSTRING_INDEX( outer_range, ',',- 1 ) &gt;= #{req.outerSize}+0,1 = 1 ),1=1)
+
+    </select>
+
+    <select id="selectItemHJFPriceOfLZQ" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfLZQ">
+        SELECT
+            *
+        FROM
+            atw_item_info_lzq_hjf_price
+        where
+            sup_code = #{req.supCode}
+          and if(outer_range!='',IF(outer_range IS NOT NULL,SUBSTRING_INDEX( outer_range, ',', 1 ) &lt; #{req.outerSize}+0 AND SUBSTRING_INDEX( outer_range, ',',- 1 ) &gt;= #{req.outerSize}+0,1 = 1 ),1=1)
+    </select>
+
+
+    <select id="selectBLItemPriceOfXLJ" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfXLJ">
+        SELECT
+        *
+        FROM
+        atw_item_info_part_price
+        where
+        material_type = #{req.materialType}
+        and if(outer_range!='',IF(outer_range IS NOT NULL,SUBSTRING_INDEX( outer_range, ',', 1 ) &lt; #{req.outerSize}+0 AND SUBSTRING_INDEX( outer_range, ',',- 1 ) &gt;= #{req.outerSize}+0,1 = 1 ),1=1)
+        and `material` = #{req.material}
+    </select>
+
+
+    <select id="getMaterialTypeByItemWithOutMaterial" resultType="java.lang.String">
+        SELECT
+        material_type
+        FROM
+        atw_item_info_part_material_type
+        where
+        material = ''
+        and main_type = #{req.mainType}
+        and if(outer_range!='',IF(outer_range IS NOT NULL,SUBSTRING_INDEX( outer_range, ',', 1 ) &lt; #{req.outerSize}+0 AND SUBSTRING_INDEX( outer_range, ',',- 1 ) &gt;= #{req.outerSize}+0,1 = 1 ),1=1)
+    </select>
+
+
+    <select id="getMaterialTypeByItemWithMaterial" resultType="java.lang.String">
+        SELECT
+        material_type
+        FROM
+        atw_item_info_part_material_type
+        where
+        material != ''
+        and main_type = #{req.mainType}
+        and if(outer_range!='',IF(outer_range IS NOT NULL,SUBSTRING_INDEX( outer_range, ',', 1 ) &lt; #{req.outerSize}+0 AND SUBSTRING_INDEX( outer_range, ',',- 1 ) &gt;= #{req.outerSize}+0,1 = 1 ),1=1)
+        and if(material!='',find_in_set(#{req.material},material),1=1)
+    </select>
+
+    <select id="selectSafeStockDiff" resultType="java.lang.Double">
+        select (select qty from (select item,dstype,sum(SMQty) as qty from atwerp.MRP_DSInfo a
+        where a.item=#{itemId}
+        and planversion= (
+          SELECT
+            ver.id
+          FROM
+            atwerp.MRP_PlanName mrp
+            INNER JOIN atwerp.MRP_PlanName_Trl trl ON mrp.id= trl.id
+            INNER JOIN atwerp.MRP_PlanVersion ver ON ver.planname= mrp.id
+          WHERE
+          mrp.plancode= '006' and mrp.org='1001606030000019'   )
+        group by item,dstype) where dstype=1)-(select qty from (select item,dstype,sum(SMQty) as qty from atwerp.MRP_DSInfo a
+        where a.item=#{itemId}
+        and planversion= (
+          SELECT
+            ver.id
+          FROM
+            atwerp.MRP_PlanName mrp
+            INNER JOIN atwerp.MRP_PlanName_Trl trl ON mrp.id= trl.id
+            INNER JOIN atwerp.MRP_PlanVersion ver ON ver.planname= mrp.id
+          WHERE
+          mrp.plancode= '006' and mrp.org='1001606030000019'    )
+        group by item,dstype) where dstype=0) diff from dual
+    </select>
+    <select id="selectDSTreeByItemId" resultType="org.springblade.modules.pr.dto.PrFromOracleDTO">
+        SELECT
+        code,
+        dsinfo,
+        parentdsinfo
+    FROM
+        atwerp.MRP_DSTree
+    WHERE
+        planversion = (
+        SELECT
+            ver.id
+        FROM
+            atwerp.MRP_PlanName mrp
+            INNER JOIN atwerp.MRP_PlanName_Trl trl ON mrp.id = trl.id
+            INNER JOIN atwerp.MRP_PlanVersion ver ON ver.planname = mrp.id
+        WHERE
+            mrp.plancode = '006' and mrp.org='1001606030000019'
+            )
+        AND itemmaster = #{itemId}
+        AND code like 'MO%' order by code desc
+
+    </select>
+    <select id="selectDSTreeByDSinfo" resultType="org.springblade.modules.pr.dto.PrFromOracleDTO">
+    SELECT
+        code,
+        dsinfo,
+        parentdsinfo
+    FROM
+        atwerp.MRP_DSTree
+    WHERE
+        planversion = (
+        SELECT
+            ver.id
+        FROM
+            atwerp.MRP_PlanName mrp
+            INNER JOIN atwerp.MRP_PlanName_Trl trl ON mrp.id = trl.id
+            INNER JOIN atwerp.MRP_PlanVersion ver ON ver.planname = mrp.id
+        WHERE
+            mrp.plancode = '006' and mrp.org='1001606030000019'
+        )
+        AND dsinfo = #{dsinfo} AND rownum=1
+
+
+    </select>
+    <select id="SelectSrmRpt" resultType="org.springblade.modules.pr.dto.PrFromOracleDTO">
+        select t.项目交期 plandate,t.需求时间 needtime,t.供应号
+        from  APSDB.peg_result_all_by_column t
+        where t.供应号
+        LIKE concat(#{prCodeAndprLn}, '-%') and rownum=1
+    </select>
+    <select id="SelectQTDataByPrLn" resultType="org.springblade.modules.pr.dto.PrFromOracleDTO">
+        select t.子项目号 zxmh,t.项目交期 xmjq,t.销售单号 xsdh,t.物料编号 wlbh,t.供应号 gyh,t.供应类型 gylx,t.需求时间 xqsj
+        from  APSDB.peg_result_all_by_column t
+        where t.供应号
+        LIKE concat(#{prCodeAndprLn}, '-%') and rownum=1
+    </select>
+    <select id="selectBomDateByProject" resultType="java.util.Date">
+        select update_date from atwerp.cust_bom_iscomplete a
+            inner join atwerp.sm_soline b on a.code=b.iteminfo_itemcode
+            left join atwerp.cbo_project c on b.project=c.id where c.code=#{project}
+    </select>
+    <select id="SelectIsProject" resultType="java.lang.Integer">
+        select count(*)
+        from  APSDB.peg_result_all_by_column t
+        where t.供应号
+            LIKE concat(#{prCodeAndprLn}, '-%')
+    </select>
+    <select id="selectDZResItemInfo" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfDZ">
+        SELECT
+            *
+        FROM
+            atw_dz_res
+        where
+            if(outer_range!='',IF(outer_range IS NOT NULL,SUBSTRING_INDEX( outer_range, ',', 1 ) &lt; #{req.outerSize}+0 AND SUBSTRING_INDEX( outer_range, ',',- 1 ) &gt;= #{req.outerSize}+0,1 = 1 ),1=1)
+
+    </select>
+    <select id="selectItemPriceOfDZ" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfDZ">
+        SELECT
+            *
+        FROM
+            atw_dz_material_price
+        WHERE
+            IF(external_diameter_range != '',IF(
+                    external_diameter_range IS NOT NULL,
+                    SUBSTRING_INDEX( external_diameter_range, ',', 1 ) &lt;#{req.outerSize}+0 AND SUBSTRING_INDEX( external_diameter_range, ',',- 1 ) &gt;= #{req.outerSize}+0,1 = 1 ),1=1)
+            and sup_code = #{req.supCode}
+
+
+
+    </select>
+    <select id="selectItemSprayingOfDZ" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfDZ">
+
+        SELECT
+            *
+        FROM
+            atw_dz_spraying_price
+        WHERE
+            sup_code = #{req.supCode}
+          AND material = #{req.material}
+    </select>
+    <select id="selectItemGrindingOfDZ" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfDZ">
+        SELECT
+            *
+        FROM
+            atw_dz_grinding_fee
+        WHERE
+            IF(outer_size != '',
+                IF(outer_size IS NOT NULL,SUBSTRING_INDEX( outer_size, ',', 1 ) &lt;#{req.outerSize}+0 AND SUBSTRING_INDEX( outer_size, ',',- 1 ) &gt;= #{req.outerSize}+0,1 = 1 ),1=1)
+
+        AND sup_code = #{req.supCode}
+
+
+    </select>
+    <select id="selectItemProcessingOfDZ" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfDZ">
+        SELECT
+            *
+        FROM
+            atw_dz_processing_fee
+        WHERE
+            IF(external_diameter_range != '',IF(
+                external_diameter_range IS NOT NULL,
+                SUBSTRING_INDEX( external_diameter_range, ',', 1 ) &lt;#{req.outerSize}+0 AND SUBSTRING_INDEX( external_diameter_range, ',',- 1 ) &gt;= #{req.outerSize}+0,1 = 1 ),1=1)
+          and sup_code = #{req.supCode}
+    </select>
+    <select id="selectItemPriceOfFL" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfFL">
+        select * from atw_fl_material_price where fl_type=#{req.form}  and material=#{req.material} and  seal_type=#{req.ljxs} and
+            IF(external_diameter_range != '',IF(
+                external_diameter_range IS NOT NULL,
+                SUBSTRING_INDEX( external_diameter_range, ',', 1 ) &lt;#{req.size}+0 AND SUBSTRING_INDEX( external_diameter_range, ',',- 1 ) &gt;= #{req.size}+0,1 = 1 ),1=1)
+    </select>
+    <select id="selectItemPriceOfBZX" resultType="org.springblade.modules.pr.entity.ItemInfoEntityOfBZX">
+        select * from atw_bzx_price where
+        IF(external_diameter_range != '',IF(
+        external_diameter_range IS NOT NULL,
+        SUBSTRING_INDEX( external_diameter_range, ',', 1 ) &lt;#{req.size}+0 AND SUBSTRING_INDEX( external_diameter_range, ',',- 1 ) &gt;= #{req.size}+0,1 = 1 ),1=1)
+
+    </select>
+
+
+
+</mapper>
