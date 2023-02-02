@@ -853,9 +853,10 @@
         d.pro_goods_num notRcvNum2,
 
         A.*,
-        case when B.update_user REGEXP '[A-Z]' THEN B.check_update_date_sup ELSE B.check_update_date END check_update_date,
+        case when B.update_user REGEXP '[A-Z]' THEN B.check_update_date_sup ELSE B.check_update_date END
+        check_update_date,
 
-        IFNULL(bspdrw.remark,ifnull(B.remark,B.remark_sup))  remark,
+        IFNULL(bspdrw.remark,ifnull(B.remark,B.remark_sup)) remark,
         B.check_update_date_frist,
         B.anticipation,
         pr.is_urgent,
@@ -888,16 +889,18 @@
         END sn_create_time,
         CASE
         WHEN pr.requisition_remark='S&amp;OP备库' and d.STATUS = 20 and substr(d.item_code,0,2) != '17'
-        and substr(d.item_code,0,2) != '20'  then  'Y' end bkflag
+        and substr(d.item_code,0,2) != '20' then 'Y' end bkflag
         FROM
-        BI_Supdeliv_Plan_Data_Detail_View AS A
+        BI_Supdeliv_Plan_Data_Detail_View
+         AS A
         LEFT JOIN BI_Supdeliv_Plan_Data_Detail_Write B ON ( A.po_code = B.po_code AND A.po_ln = B.po_ln )
         LEFT JOIN atw_supplier C ON ( A.sup_code = C.CODE AND C.primary_contact = 1 )
         LEFT JOIN atw_po_item d ON ( A.po_code = d.po_code AND A.po_ln = d.po_ln )
         LEFT JOIN atw_u9_pr pr ON ( d.pr_code = pr.pr_code AND d.pr_ln = pr.pr_ln )
         LEFT JOIN BI_Supdeliv_Plan_Data_Detail_Seq s ON s.pro_no = A.pro_no
         LEFT JOIN atw_item item on A.item_code = item.code
-        LEFT JOIN bi_supdeliv_plan_data_remark_write bspdrw ON ( A.po_code = bspdrw.po_code AND A.po_ln = bspdrw.po_ln AND A.pro_no=bspdrw.pro_no)
+        LEFT JOIN bi_supdeliv_plan_data_remark_write bspdrw ON ( A.po_code = bspdrw.po_code AND A.po_ln = bspdrw.po_ln
+        AND A.pro_no=bspdrw.pro_no)
         LEFT JOIN (
         SELECT DISTINCT
         pi_id,
@@ -1025,6 +1028,281 @@
         and substr(d.item_code,0,2) != '20'  then  'Y' end bkflag
         FROM
         BI_Supdeliv_Plan_Data_Detail_View AS A
+        LEFT JOIN BI_Supdeliv_Plan_Data_Detail_Write B ON ( A.po_code = B.po_code AND A.po_ln = B.po_ln )
+        LEFT JOIN atw_supplier C ON ( A.sup_code = C.CODE AND C.primary_contact = 1 )
+        LEFT JOIN atw_po_item d ON ( A.po_code = d.po_code AND A.po_ln = d.po_ln )
+        LEFT JOIN atw_u9_pr pr ON ( d.pr_code = pr.pr_code AND d.pr_ln = pr.pr_ln )
+        LEFT JOIN BI_Supdeliv_Plan_Data_Detail_Seq s ON s.pro_no = A.pro_no
+        LEFT JOIN bi_supdeliv_plan_data_remark_write bspdrw ON ( A.po_code = bspdrw.po_code AND A.po_ln = bspdrw.po_ln AND A.pro_no=bspdrw.pro_no)
+        LEFT JOIN atw_item item on A.item_code = item.code
+        LEFT JOIN (
+        SELECT DISTINCT
+        pi_id,
+        rcv_code,
+        STATUS
+        FROM
+        atw_po_receive
+        WHERE
+        _rowid IN (
+        SELECT
+        _rowid rid
+        FROM
+        atw_po_receive
+        WHERE
+        is_deleted = 0
+        AND ( pi_id,rcv_code ) IN ( SELECT pi_id,max( rcv_code) FROM atw_po_receive WHERE STATUS &lt; 40 and is_deleted
+        = 0 GROUP BY pi_id )
+        )
+        ) e ON e.pi_id = d.id
+        left join MV_RUKUSTATUS_BY_DOCODE f on e.rcv_code=f.docode
+        WHERE
+        1 = 1
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.poCode !=null and caiGouScheduleReq.poCode !='' ">
+            AND A.po_code =#{caiGouScheduleReq.poCode}
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.poLn !=null and caiGouScheduleReq.poLn !='' ">
+            AND A.po_ln =#{caiGouScheduleReq.poLn}
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.supName !=null and caiGouScheduleReq.supName !='' ">
+            AND A.sup_name LIKE concat('%', #{caiGouScheduleReq.supName}, '%')
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.itemCode !=null and caiGouScheduleReq.itemCode !='' and caiGouScheduleReq.itemCodeBatch=='0'.toString()">
+            AND A.item_code LIKE concat('%', #{caiGouScheduleReq.itemCode}, '%')
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.itemCode !=null and caiGouScheduleReq.itemCode !='' and caiGouScheduleReq.itemCodeBatch=='1'.toString()">
+            AND find_in_set(A.item_code,#{caiGouScheduleReq.itemCode})
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.poCodeLn !=null and caiGouScheduleReq.poCodeLn !='' and caiGouScheduleReq.poCodeLnBatch=='0'.toString()">
+            AND A.po_code_ln LIKE concat('%', #{caiGouScheduleReq.poCodeLn}, '%')
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.poCodeLn !=null and caiGouScheduleReq.poCodeLn !='' and caiGouScheduleReq.poCodeLnBatch=='1'.toString()">
+            AND find_in_set(A.po_code_ln,#{caiGouScheduleReq.poCodeLn})
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.proNo !=null and caiGouScheduleReq.proNo !='' and caiGouScheduleReq.proNoBatch=='0'.toString()">
+            AND A.pro_no LIKE concat('%', #{caiGouScheduleReq.proNo}, '%')
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.proNo !=null and caiGouScheduleReq.proNo !='' and caiGouScheduleReq.proNoBatch=='1'.toString()">
+            AND find_in_set(A.pro_no,#{caiGouScheduleReq.proNo})
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.isFourBigItem !=null and caiGouScheduleReq.isFourBigItem !='' ">
+            AND A.is_four_big_item = #{caiGouScheduleReq.isFourBigItem}
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.anticipation !=null and caiGouScheduleReq.anticipation !='' ">
+            AND B.anticipation = #{caiGouScheduleReq.anticipation}
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.lackItemNums !=null and caiGouScheduleReq.lackItemNums !='' ">
+            AND find_in_set(A.lack_item_num,#{caiGouScheduleReq.lackItemNums})
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.itemName !=null and caiGouScheduleReq.itemName !='' ">
+            AND A.item_name LIKE concat('%', #{caiGouScheduleReq.itemName}, '%')
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.person !=null and caiGouScheduleReq.person !='' ">
+            AND C.place_name LIKE concat('%', #{caiGouScheduleReq.person}, '%')
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.planDateStart !=null and caiGouScheduleReq.planDateStart !='' ">
+            AND A.plan_date &gt;= #{caiGouScheduleReq.planDateStart}
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.planDateEnd !=null and caiGouScheduleReq.planDateEnd !='' ">
+            AND A.plan_date &lt;= #{caiGouScheduleReq.planDateEnd}
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.checkUpdateDateStart !=null and caiGouScheduleReq.checkUpdateDateStart !='' ">
+            AND B.check_update_date &gt;= #{caiGouScheduleReq.checkUpdateDateStart}
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.checkUpdateDateEnd !=null and caiGouScheduleReq.checkUpdateDateEnd !='' ">
+            AND B.check_update_date &lt;= #{caiGouScheduleReq.checkUpdateDateEnd}
+        </if>
+        order by A.plan_date is null,A.plan_date,A.pro_no,A.po_code_ln,A.is_four_big_item desc
+        ) m
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.doStatuss !=null and caiGouScheduleReq.doStatuss !='' and caiGouScheduleReq.isToSendStatus == '1'.toString()">
+            where find_in_set(doStatus,#{caiGouScheduleReq.doStatuss})
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.doStatuss !=null and caiGouScheduleReq.doStatuss !='' and caiGouScheduleReq.isToSendStatus == '0'.toString()">
+            where find_in_set(doStatus,#{caiGouScheduleReq.doStatuss})
+        </if>
+    </select>
+
+    <select id="getCaiGouScheduleAutoSort" resultType="org.springblade.modules.supplier.entity.CaiGouSchedule">
+        select * from (
+        SELECT
+        (d.tc_num-d.arv_goods_num) notArvNum,
+        d.pro_goods_num notRcvNum2,
+
+        A.*,
+        case when B.update_user REGEXP '[A-Z]' THEN B.check_update_date_sup ELSE B.check_update_date END
+        check_update_date,
+
+        IFNULL(bspdrw.remark,ifnull(B.remark,B.remark_sup)) remark,
+        B.check_update_date_frist,
+        B.anticipation,
+        pr.is_urgent,
+        ifnull(B.limits,0) limits,
+        C.place_name person,
+        IFNULL( e.STATUS, '19' ) doStatusOld,
+        case when order_num &lt;&gt;store_num then (case when IFNULL( e.STATUS, '19' ) in ('23','26','27','30') and
+        f.U9FLAG='Y' then '19' else IFNULL( e.STATUS, '19' ) end) else IFNULL( e.STATUS, '19' ) end doStatus,
+        e.rcv_code,
+        f.U9FLAG,
+        s.seq,
+        item.s_or_n codeType,
+        FROM_UNIXTIME(d.sup_confirm_date,'%Y-%m-%d') sup_confirm_date,
+        CASE
+        WHEN ! ISNULL( e.rcv_code ) THEN
+        (
+        SELECT
+        DATE_FORMAT( create_time, '%Y-%m-%d' ) create_time
+        FROM
+        atw_po_sn t
+        WHERE id =(
+        SELECT
+        MAX( id )
+        FROM
+        atw_po_sn t
+        WHERE
+        t.rcv_code=e.rcv_code
+        )
+        )
+        END sn_create_time,
+        CASE
+        WHEN pr.requisition_remark='S&amp;OP备库' and d.STATUS = 20 and substr(d.item_code,0,2) != '17'
+        and substr(d.item_code,0,2) != '20' then 'Y' end bkflag
+        FROM
+        atw_caigou_plan_data_lock_view
+        AS A
+        LEFT JOIN BI_Supdeliv_Plan_Data_Detail_Write B ON ( A.po_code = B.po_code AND A.po_ln = B.po_ln )
+        LEFT JOIN atw_supplier C ON ( A.sup_code = C.CODE AND C.primary_contact = 1 )
+        LEFT JOIN atw_po_item d ON ( A.po_code = d.po_code AND A.po_ln = d.po_ln )
+        LEFT JOIN atw_u9_pr pr ON ( d.pr_code = pr.pr_code AND d.pr_ln = pr.pr_ln )
+        LEFT JOIN BI_Supdeliv_Plan_Data_Detail_Seq s ON s.pro_no = A.pro_no
+        LEFT JOIN atw_item item on A.item_code = item.code
+        LEFT JOIN bi_supdeliv_plan_data_remark_write bspdrw ON ( A.po_code = bspdrw.po_code AND A.po_ln = bspdrw.po_ln
+        AND A.pro_no=bspdrw.pro_no)
+        LEFT JOIN (
+        SELECT DISTINCT
+        pi_id,
+        rcv_code,
+        STATUS
+        FROM
+        atw_po_receive
+        WHERE
+        _rowid IN (
+        SELECT
+        _rowid rid
+        FROM
+        atw_po_receive
+        WHERE
+        is_deleted = 0
+        AND ( pi_id,rcv_code ) IN ( SELECT pi_id,max( rcv_code) FROM atw_po_receive WHERE STATUS &lt; 40 and is_deleted
+        = 0 GROUP BY pi_id )
+        )
+        ) e ON e.pi_id = d.id
+        left join MV_RUKUSTATUS_BY_DOCODE f on e.rcv_code=f.docode
+        WHERE
+        1 = 1
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.poCode !=null and caiGouScheduleReq.poCode !='' ">
+            AND A.po_code LIKE concat('%', #{caiGouScheduleReq.poCode}, '%')
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.supName !=null and caiGouScheduleReq.supName !='' ">
+            AND A.sup_name LIKE concat('%', #{caiGouScheduleReq.supName}, '%')
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.itemCode !=null and caiGouScheduleReq.itemCode !='' and caiGouScheduleReq.itemCodeBatch=='0'.toString()">
+            AND A.item_code LIKE concat('%', #{caiGouScheduleReq.itemCode}, '%')
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.itemCode !=null and caiGouScheduleReq.itemCode !='' and caiGouScheduleReq.itemCodeBatch=='1'.toString()">
+            AND find_in_set(A.item_code,#{caiGouScheduleReq.itemCode})
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.poCodeLn !=null and caiGouScheduleReq.poCodeLn !='' and caiGouScheduleReq.poCodeLnBatch=='0'.toString()">
+            AND A.po_code_ln LIKE concat('%', #{caiGouScheduleReq.poCodeLn}, '%')
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.poCodeLn !=null and caiGouScheduleReq.poCodeLn !='' and caiGouScheduleReq.poCodeLnBatch=='1'.toString()">
+            AND find_in_set(A.po_code_ln,#{caiGouScheduleReq.poCodeLn})
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.proNo !=null and caiGouScheduleReq.proNo !='' and caiGouScheduleReq.proNoBatch=='0'.toString()">
+            AND A.pro_no LIKE concat('%', #{caiGouScheduleReq.proNo}, '%')
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.proNo !=null and caiGouScheduleReq.proNo !='' and caiGouScheduleReq.proNoBatch=='1'.toString()">
+            AND find_in_set(A.pro_no,#{caiGouScheduleReq.proNo})
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.isFourBigItem !=null and caiGouScheduleReq.isFourBigItem !='' ">
+            AND A.is_four_big_item = #{caiGouScheduleReq.isFourBigItem}
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.anticipation !=null and caiGouScheduleReq.anticipation !='' ">
+            AND B.anticipation = #{caiGouScheduleReq.anticipation}
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.lackItemNums !=null and caiGouScheduleReq.lackItemNums !='' ">
+            AND find_in_set(A.lack_item_num,#{caiGouScheduleReq.lackItemNums})
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.itemName !=null and caiGouScheduleReq.itemName !='' ">
+            AND A.item_name LIKE concat('%', #{caiGouScheduleReq.itemName}, '%')
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.person !=null and caiGouScheduleReq.person !='' ">
+            AND C.place_name LIKE concat('%', #{caiGouScheduleReq.person}, '%')
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.planDateStart !=null and caiGouScheduleReq.planDateStart !='' ">
+            AND A.plan_date &gt;= #{caiGouScheduleReq.planDateStart}
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.planDateEnd !=null and caiGouScheduleReq.planDateEnd !='' ">
+            AND A.plan_date &lt;= #{caiGouScheduleReq.planDateEnd}
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.checkUpdateDateStart !=null and caiGouScheduleReq.checkUpdateDateStart !='' ">
+            AND B.check_update_date &gt;= #{caiGouScheduleReq.checkUpdateDateStart}
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.checkUpdateDateEnd !=null and caiGouScheduleReq.checkUpdateDateEnd !='' ">
+            AND B.check_update_date &lt;= #{caiGouScheduleReq.checkUpdateDateEnd}
+        </if>
+        order by A.plan_date is null,A.plan_date,A.pro_no,A.po_code_ln,A.is_four_big_item desc
+        ) m
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.doStatuss !=null and caiGouScheduleReq.doStatuss !='' and caiGouScheduleReq.isToSendStatus == '1'.toString()">
+            where find_in_set(doStatus,#{caiGouScheduleReq.doStatuss})
+        </if>
+        <if test="caiGouScheduleReq !=null and caiGouScheduleReq.doStatuss !=null and caiGouScheduleReq.doStatuss !='' and caiGouScheduleReq.isToSendStatus == '0'.toString()">
+            where find_in_set(doStatus,#{caiGouScheduleReq.doStatuss})
+        </if>
+    </select>
+
+    <select id="getCaiGouScheduleAutoSortList" resultType="org.springblade.modules.supplier.entity.CaiGouSchedule">
+        select * from (
+        SELECT
+        (d.tc_num-d.arv_goods_num) notArvNum,
+        d.pro_goods_num notRcvNum2,
+        A.*,
+        case when B.update_user REGEXP '[A-Z]' THEN B.check_update_date_sup ELSE B.check_update_date END check_update_date,
+
+        IFNULL(bspdrw.remark,ifnull(B.remark,B.remark_sup))  remark,
+        B.anticipation,
+        B.check_update_date_frist,
+        B.limits,
+        pr.is_urgent,
+        C.place_name person,
+        IFNULL( e.STATUS, '19' ) doStatusOld,
+        case when order_num &lt;&gt;store_num then (case when IFNULL( e.STATUS, '19' ) in ('23','26','27','30') and
+        f.U9FLAG='Y' then '19' else IFNULL( e.STATUS, '19' ) end) else IFNULL( e.STATUS, '19' ) end doStatus,
+        e.rcv_code,
+        f.U9FLAG,
+        s.seq,
+        item.s_or_n codeType,
+        FROM_UNIXTIME(d.sup_confirm_date,'%Y-%m-%d') sup_confirm_date,
+        CASE
+        WHEN ! ISNULL( e.rcv_code ) THEN
+        (
+        SELECT
+        DATE_FORMAT( create_time, '%Y-%m-%d' ) create_time
+        FROM
+        atw_po_sn t
+        WHERE id =(
+        SELECT
+        MAX( id )
+        FROM
+        atw_po_sn t
+        WHERE
+        t.rcv_code=e.rcv_code
+        )
+        )
+        END sn_create_time,
+        CASE
+        WHEN pr.requisition_remark='S&amp;OP备库' and d.STATUS = 20 and substr(d.item_code,0,2) != '17'
+        and substr(d.item_code,0,2) != '20'  then  'Y' end bkflag
+        FROM
+        atw_caigou_plan_data_lock_view AS A
         LEFT JOIN BI_Supdeliv_Plan_Data_Detail_Write B ON ( A.po_code = B.po_code AND A.po_ln = B.po_ln )
         LEFT JOIN atw_supplier C ON ( A.sup_code = C.CODE AND C.primary_contact = 1 )
         LEFT JOIN atw_po_item d ON ( A.po_code = d.po_code AND A.po_ln = d.po_ln )
@@ -1692,7 +1970,7 @@
     <insert id="insertMatchLockCaiGou">
         insert into
             atw_caigou_plan_data_lock(
-            id,
+
             is_four_big_item,
             item_code,
             item_name,
@@ -1712,7 +1990,7 @@
             wwpo_date,req_num,plan_date,agree_date,is_deleted)
         VALUES
             (
-                #{caiGouSchedule.id},
+
                 #{caiGouSchedule.isFourBigItem},
                 #{caiGouSchedule.itemCode},
                 #{caiGouSchedule.itemName},
@@ -2255,5 +2533,6 @@
         group by `time`
         order by `time` asc
     </select>
+
 
 </mapper>

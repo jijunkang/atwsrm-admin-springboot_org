@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.*;
 import org.springblade.modules.report.dto.*;
 import org.springblade.modules.report.entity.*;
 import org.springblade.modules.report.vo.KeyItemFixedExcel;
+import org.springblade.modules.report.vo.SupplierOutputQZVo;
 import org.springblade.modules.report.vo.SupplierOutputVo;
 import org.springblade.modules.supplier.dto.CaiGouScheduleReq;
 import org.springblade.modules.supplier.dto.SupplierScheduleReq;
@@ -231,11 +232,29 @@ public interface ReportMapper {
         "\tGROUP BY sup_code,item_code")
     List<SupplierOutputFromOracle> getSupplierOutputFromOracleList();
 
-
-
-
-
-
+    @SqlParser(filter = true)
+    @Select("SELECT \n" +
+        "\tplan.sup_code,plan.item_code,plan.item_name, qt.sup_name,\n" +
+        "\tif(plan.pro_no is null,pi.pro_goods_num,if( left(wwpo_date,7) > date_format( DATE_SUB( curdate( ), INTERVAL -1 MONTH ), '%Y-%m' ),pi.pro_goods_num, req_num)) req_num, \n" +
+        "\tplan.po_code ,plan.pro_no,\n" +
+        "\tif(plan.pro_no is not null,left(plan.req_date,10),left(plan.wwpo_date,10)) date\n" +
+        "\tFROM \n" +
+        "\tatw_caigou_plan_data_lock_view plan \n" +
+        "\tLEFT JOIN atw_item item ON plan.item_code = item.CODE and item.is_deleted = 0 \n" +
+        "\tleft join atw_po_item pi on plan.po_code = pi.po_code and plan.po_ln = pi.po_ln \n" +
+        "\tleft join atw_supplier_output_info_qz_total qt on plan.sup_code = qt.sup_code\n" +
+        "\tWHERE \n" +
+        "\titem.main_code = '130301'  \n" +
+        "\tand plan.po_code like 'PO%' \n" +
+        "\tand plan.sup_code in (SELECT DISTINCT sup_code FROM atw_supplier_output_match_qz) \n" +
+        "\tAND \n" +
+        "\tIF \n" +
+        "\t( \n" +
+        "\tplan.pro_no IS NOT NULL, \n" +
+        "\tplan_date >= date_format( DATE_SUB( curdate( ), INTERVAL 0 MONTH ), '%Y-%m-20' ) AND plan_date <= date_format( DATE_SUB( curdate( ), INTERVAL - 2 MONTH ), '%Y-%m-10' ) , \n" +
+        "\twwpo_date >= date_format( DATE_SUB( curdate( ), INTERVAL 0 MONTH ), '%Y-%m-20' ) AND wwpo_date <= date_format( DATE_SUB( curdate( ), INTERVAL - 2 MONTH ), '%Y-%m-10' )  \n" +
+        "\t)")
+    List<SupplierOutputFromOracle> getSupplierOutputFromOracleListQZ();
 
     @Insert("insert atw_supplier_output_info (sup_name,sup_code,item_code,item_name,output_cent,weight_cent,material_type,cj,type,bj,fl_struct,series,material,number,casting_process,bottleneck_processes) " +
         "   VALUES (    " +
@@ -244,8 +263,53 @@ public interface ReportMapper {
     void insertSupplierOutputInfo(@Param("req")SupplierOutputInfoEntity supplierOutputInfoEntity);
 
 
+    @Insert("INSERT atw_supplier_output_info_qz (\n" +
+        "\tsup_name,\n" +
+        "\tsup_code,\n" +
+        "\titem_code,\n" +
+        "\titem_name,\n" +
+        "\tproduce_capacity,\n" +
+        "\tsingle_price,\n" +
+        "\tdate,\n" +
+        "\tmaterial_type,\n" +
+        "\tcj,\n" +
+        "\ttype,\n" +
+        "\tbj,\n" +
+        "\tdj,\n" +
+        "\ttc,\n" +
+        "\tmaterial,\n" +
+        "\tnumber,\n" +
+        "\tcasting_process,\n" +
+        "\tbottleneck_processes \n" +
+        ")\n" +
+        "VALUES\n" +
+        "\t(\t\n" +
+        "\t\t#{req.supName},\n" +
+        "\t\t#{req.supCode},\n" +
+        "\t\t#{req.itemCode},\n" +
+        "\t\t#{req.itemName},\n" +
+        "\t\t#{req.produceCapacity},\n" +
+        "\t\t#{req.singlePrice},\n" +
+        "\t\t#{req.date},\n" +
+        "\t\t#{req.materialType},\n" +
+        "\t\t#{req.cj},\n" +
+        "\t\t#{req.type},\n" +
+        "\t\t#{req.bj},\n" +
+        "\t\t#{req.dj},\n" +
+        "\t\t#{req.tc},\n" +
+        "\t\t#{req.material},\n" +
+        "\t\t#{req.number},\n" +
+        "\t\t#{req.castingProcess},\n" +
+        "\t\t#{req.bottleneckProcesses}\n" +
+        "\t)")
+    void insertSupplierOutputInfoQZ(@Param("req")SupplierOutputInfoQZEntity supplierOutputInfoEntity);
+
+
     @Delete("DELETE FROM atw_supplier_output_info")
     void deleteSupplierOutputInfo();
+
+    @Delete("DELETE FROM atw_supplier_output_info_qz")
+    void deleteSupplierOutputInfoQZ();
 
 
 
@@ -253,9 +317,66 @@ public interface ReportMapper {
         " and type=#{req.type} and bj=#{req.bj} and  series=#{req.series} and sup_code= #{req.supCode}  and   material = (select material_belong from atw_supplier_output_zj_material where material_type=#{req.material}) LIMIT 1")
     SupplierOutputInfoDto getProductionCapacity(@Param("req")SupplierOutputInfoDto supplierOutputInfoDto);
 
+
+    @Select("SELECT\n" +
+        "\tconcat(production_capacity1 , \"-\" , price )\n" +
+        "FROM\n" +
+        "\tatw_supplier_output_match_qz\n" +
+        "WHERE\n" +
+        "  material_type = '球体'\n" +
+        "\tand cj = #{req.cj} \n" +
+        "\tand type like concat('%', #{req.type}, '%')\n" +
+        "\tand bj=#{req.bj} \n" +
+        "\tand dj=#{req.dj} \n" +
+        "\tand tc=#{req.tc}\n" +
+        "\tand material=#{req.material}\n" +
+        "\tand sup_code= #{req.supCode} "
+        )
+    String getProductionCapacityQZ(@Param("req")SupplierOutputInfoQZEntity supplierOutputInfoQZEntity);
+
+
     @Select("select weight,production_capacity2,casting_process,bottleneck_processes from atw_supplier_output_match where material_type LIKE concat('%', #{req.materialType} ,'%') and cj=#{req.cj} " +
         " and type=#{req.type} and bj=#{req.bj} and  series=#{req.series} and priority= 1  and   material = (select material_belong from atw_supplier_output_zj_material where material_type=#{req.material}) LIMIT 1")
     SupplierOutputInfoDto getProductionCapacityByPriority(@Param("req")SupplierOutputInfoDto supplierOutputInfoDto);
+
+    @Select("SELECT\n" +
+        "\tgy,\n" +
+        "\tsup_code,\n" +
+        "\tsup_name,\n" +
+        "\tsum( price ) zyje ,\n" +
+        "\tsum( capacity) zygs\n" +
+        "FROM\n" +
+        "\t(\n" +
+        "\tSELECT\n" +
+        "\t\tsup_code,\n" +
+        "\t\tsup_name,\n" +
+        "\t\ttc,\n" +
+        "\t\tround( sum( single_price * number/10000 ), 2 ) price,\n" +
+        "\t\tround( sum( produce_capacity * number / 60),2) capacity,\n" +
+        "\t\tIF( FIND_IN_SET( tc, 'G14,G20' ), '冷喷', '热喷' ) gy \n" +
+        "\tFROM\n" +
+        "\t\t`atw_supplier_output_info_qz` \n" +
+        "\tWHERE\n" +
+        "\t\tsingle_price IS NOT NULL \n" +
+        "\tGROUP BY\n" +
+        "\t\tsup_code,\n" +
+        "\t\ttc \n" +
+        "\t) t \n" +
+        "GROUP BY\n" +
+        "\tgy,\n" +
+        "\tsup_code,\n" +
+        "\tsup_name\n" +
+        "ORDER BY\n" +
+        "\tsup_code")
+    List<SupplierOutputQZVo>  getSupplierOutputInfoQZList(IPage page, @Param("req")SupplierOutputVo supplierOutputVo);
+
+
+    @Select("select concat(total_produce_capacity,'-',total_price) from atw_supplier_output_info_qz_total where sup_name = #{supName}")
+    String getZgsAndZjeBySupName(String supName);
+
+    @Select("select concat(total_produce_capacity,'-',total_price) from atw_supplier_output_info_qz_total where sup_code = #{supName}")
+    String getZgsAndZjeBySupCode(String supCode);
+
 
     @Select("select gy,zgs,zcz,sup_name,round(SUM(output),2) zygs,round(SUM(weight_output)/1000,2) zycn ,round(SUM(output)-zgs,2) ycgs , round(SUM(weight_output)/1000- zcz,2)  yccn   \n" +
         ", CONCAT(round((SUM(output)-zgs)*100/zgs,2),'%') gysycbl  from (SELECT\n" +
@@ -295,17 +416,30 @@ public interface ReportMapper {
         "\t where output_cent is not NULL  and totalpo.sup_code=#{req.supCode}")
     List<SupplierOutputFromOracle> getSupplierOutputOfEcharts(@Param("req") SupplierScheduleReq supplierScheduleReq);
 
+    @Select("select b.gscn output_cent,a.* from atw_caigou_plan_data_lock_view a left join atw_supplier_output_ptph b on a.item_code=b.item_code where b.item_code is not null and pro_no is NULL and (wwpo_date>=#{Startdate} and wwpo_date<=#{Enddate})\n" +
+        "UNION\n" +
+        "select b.gscn output_cent,a.* from atw_caigou_plan_data_lock_view a left join atw_supplier_output_ptph b on a.item_code=b.item_code where b.item_code is not null and pro_no is not NULL and (req_date>=#{Startdate} and req_date<=#{Enddate})")
+    List<SupplierOutputFromOracle> getPtphOutputOfEcharts(@Param("Startdate") String Startdate,@Param("Enddate") String Enddate);
+
+    @Select("SELECT * FROM atw_caigou_plan_data_lock_view where (item_name like '%中法兰锻件%' or item_name like '%阀盘锻件%' or item_name like '%阀体锻件%' or item_name like '%阀帽锻件%')\n" +
+        "and pro_no is NULL and (wwpo_date>=#{Startdate} and wwpo_date<=#{Enddate})\n" +
+        "\n" +
+        "UNION\n" +
+        "\n" +
+        "SELECT * FROM atw_caigou_plan_data_lock_view where (item_name like '%中法兰锻件%' or item_name like '%阀盘锻件%' or item_name like '%阀体锻件%' or item_name like '%阀帽锻件%')\n" +
+        "and pro_no is not NULL and (req_date>=#{Startdate} and req_date<=#{Enddate})")
+    List<SupplierOutputFromOracle> getDjOutputOfEcharts(@Param("Startdate") String Startdate,@Param("Enddate") String Enddate);
+
+
+    @Select("select gscn output_cent,zgs from atw_supplier_output_dj where item_type=#{itemType} and kj=#{kj} and bj=#{bj} and cz=#{cz} and  sup_code=#{supCode}  LIMIT 1 ")
+    SupplierOutputFromOracle getDjOutput(@Param("itemType") String itemType,@Param("kj") String kj,@Param("bj") String bj,@Param("cz") String cz,@Param("supCode") String supCode);
+
     @Select("select  zgs, zcz from atw_supplier_output where sup_code=#{req.supCode} limit 1")
     SupplierOutputFromOracle getProductionCapacityWithSup(@Param("req")SupplierScheduleReq supplierScheduleReq);
 
     @Select("select sup_code,gy,zgs,zcz from atw_supplier_output group by sup_code,gy ")
     List<SupplierOutputFromOracle> getProductionCapacityWithGy(@Param("req")SupplierScheduleReq supplierScheduleReq);
 
-
-
-
-
-
-
-
+    @Select("select * from atw_supplier_output_info_qz where single_price is not null and sup_code = #{supCode} ORDER BY DATE")
+    List<SupplierOutputInfoQZEntity> getQZOutputOfEcharts(@Param("supCode")String supCode);
 }

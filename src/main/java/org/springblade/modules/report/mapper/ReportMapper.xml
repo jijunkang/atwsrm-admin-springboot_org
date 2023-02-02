@@ -782,7 +782,10 @@
             and valve_type = #{req.valveType}
         </if>
         <if test="null != req.material and '' != req.material ">
-            and material = #{req.material}
+            AND material like concat('%', #{req.material}, '%')
+        </if>
+        <if test="null != req.series and '' != req.series ">
+            AND series = #{req.series}
         </if>
         <if test="null != req.zjSupCode and '' != req.zjSupCode ">
             and zj_sup_code = #{req.zjSupCode}
@@ -793,10 +796,15 @@
         <if test="null != req.sampleMaterial and '' != req.sampleMaterial ">
             and sample_material = #{req.sampleMaterial}
         </if>
-        <if test="null != req.isFinish and '' != req.isFinish ">
+        <if test="req.isFinish=='是'.toString()">
             and real_date10 is not null
         </if>
-        <if test="null != req.isOverdue and '' != req.isOverdue ">
+
+        <if test="req.isFinish=='否'.toString()">
+            and real_date10 is null
+        </if>
+
+        <if test="req.isOverdue=='是'.toString()">
             and ((real_date10 is null and plan_date10&lt;=DATE_FORMAT(NOW(),'%Y-%m-%d'))
             or (real_date9 is null and plan_date9&lt;=DATE_FORMAT(NOW(),'%Y-%m-%d'))
             or (real_date8 is null and plan_date8&lt;=DATE_FORMAT(NOW(),'%Y-%m-%d'))
@@ -809,6 +817,20 @@
             or (real_date1 is null and plan_date1&lt;=DATE_FORMAT(NOW(),'%Y-%m-%d'))
             )
         </if>
+        <if test="req.isOverdue=='否'.toString()">
+            and ((real_date10 is not null or plan_date10&gt;DATE_FORMAT(NOW(),'%Y-%m-%d'))
+            and (real_date9 is not null or plan_date9&gt;DATE_FORMAT(NOW(),'%Y-%m-%d'))
+            and (real_date8 is not null or plan_date8&gt;DATE_FORMAT(NOW(),'%Y-%m-%d'))
+            and (real_date7 is not null or plan_date7&gt;DATE_FORMAT(NOW(),'%Y-%m-%d'))
+            and (real_date6 is not null or plan_date6&gt;DATE_FORMAT(NOW(),'%Y-%m-%d'))
+            and (real_date5 is not null or plan_date5&gt;DATE_FORMAT(NOW(),'%Y-%m-%d'))
+            and (real_date4 is not null or plan_date4&gt;DATE_FORMAT(NOW(),'%Y-%m-%d'))
+            and (real_date3 is not null or plan_date3&gt;DATE_FORMAT(NOW(),'%Y-%m-%d'))
+            and (real_date2 is not null or plan_date2&gt;DATE_FORMAT(NOW(),'%Y-%m-%d'))
+            and (real_date1 is not null or plan_date1&gt;DATE_FORMAT(NOW(),'%Y-%m-%d'))
+            )
+        </if>
+
         <if test="null != req.creatimeStart and '' != req.creatimeStart and  (null == req.creatimeEnd or '' == req.creatimeEnd)">
             and (plan_date1 &gt;= #{req.creatimeStart}
             or plan_date2 &gt;= #{req.creatimeStart}

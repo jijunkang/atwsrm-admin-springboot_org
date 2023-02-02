@@ -163,6 +163,12 @@ public class CaiGouSchedule implements Serializable {
 
     private String bkflag;
 
+    private int ysdsl;
+
+    private int wshsl;
+
+    private String status;
+
 
 
 

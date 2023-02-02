@@ -4,11 +4,18 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import org.springblade.modules.pr.dto.SubmitPriceReq;
 import org.springblade.modules.report.dto.*;
 import org.springblade.modules.report.entity.*;
+import org.springblade.modules.report.vo.SupplierOutputQZVo;
 import org.springblade.modules.report.vo.SupplierOutputVo;
 import org.springblade.modules.supplier.dto.CaiGouScheduleReq;
 import org.springblade.modules.supplier.dto.SupplierScheduleReq;
 import org.springblade.modules.supplier.entity.CaiGouSchedule;
 import org.springblade.modules.supplier.vo.OmsEchrtsOfSupplierVO;
+
+import org.springblade.modules.supplier.vo.OutPutEchrtsOfDjVO;
+import org.springblade.modules.supplier.vo.OutPutEchrtsOfPtphVO;
+
+import org.springblade.modules.supplier.vo.OutPutEchrtsOfQZVO;
+
 import org.springblade.modules.supplier.vo.OutPutEchrtsOfSupplierVO;
 
 import javax.servlet.http.HttpServletResponse;
@@ -92,5 +99,18 @@ public interface IReportService {
 
     void supplierOutputReportjob();
 
+    void supplierOutputReportQZJob();
+
     OutPutEchrtsOfSupplierVO getsupplierOutputEcharts(SupplierScheduleReq supplierScheduleReq);
+
+
+    OutPutEchrtsOfPtphVO getPtphOutputEcharts(SupplierScheduleReq supplierScheduleReq);
+
+    OutPutEchrtsOfDjVO getDjOutputEcharts(SupplierScheduleReq supplierScheduleReq);
+
+
+    OutPutEchrtsOfQZVO getQZOutputEcharts(SupplierScheduleReq supplierScheduleReq);
+
+    List<SupplierOutputQZVo> getQZOutputReport(IPage<Object> page, SupplierOutputVo supplierOutputVo);
+
 }

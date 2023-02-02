@@ -7,10 +7,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.api.client.util.ArrayMap;
 import com.google.api.client.util.Lists;
 import com.google.common.collect.Maps;
-import io.swagger.models.auth.In;
 import lombok.Cleanup;
 import lombok.SneakyThrows;
-import lombok.Synchronized;
 import lombok.extern.java.Log;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
@@ -33,14 +31,12 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springblade.common.config.AtwSrmConfiguration;
-import org.springblade.common.constant.CommonConstant;
 import org.springblade.common.utils.CommonUtil;
 import org.springblade.common.utils.ExcelUtils;
 import org.springblade.common.utils.WillHttpUtil;
 import org.springblade.common.utils.WillU9Util;
 import org.springblade.core.mp.base.BaseServiceImpl;
 import org.springblade.core.mp.support.Condition;
-import org.springblade.core.secure.utils.SecureUtil;
 import org.springblade.core.tool.api.R;
 import org.springblade.core.tool.utils.BeanUtil;
 import org.springblade.core.tool.utils.DateUtil;
@@ -48,7 +44,6 @@ import org.springblade.core.tool.utils.DigestUtil;
 import org.springblade.core.tool.utils.StringUtil;
 import org.springblade.modules.po.entity.PoItemEntity;
 import org.springblade.modules.pr.entity.ItemInfoEntityOfZDJ;
-import org.springblade.modules.report.dto.OrderOtdReq;
 import org.springblade.modules.report.entity.AllOtdReport;
 import org.springblade.modules.report.entity.OrderOtdReport;
 import org.springblade.modules.supplier.dto.*;
@@ -68,7 +63,6 @@ import org.springblade.modules.system.service.IParamService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -78,7 +72,6 @@ import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
@@ -274,14 +267,14 @@ class SupplierServiceImpl extends BaseServiceImpl<SupplierMapper, Supplier> impl
         String res = WillHttpUtil.postJson(atwSrmConfiguration.getU9ApiDomain() + "/api/CreateSupplier", mapper.writeValueAsString(req));
 
         req.put("Org", "002");
-        String res2 = WillHttpUtil.postJson(atwSrmConfiguration.getU9ApiDomain() + "/api/CreateSupplier", mapper.writeValueAsString(req));
+        //String res2 = WillHttpUtil.postJson(atwSrmConfiguration.getU9ApiDomain() + "/api/CreateSupplier", mapper.writeValueAsString(req));
 
 
         ObjectNode objectNode = (ObjectNode) mapper.readTree(res);
         String code = mapper.readValue(String.valueOf(objectNode.get("code")), String.class);
 
-        ObjectNode objectNode2 = (ObjectNode) mapper.readTree(res2);
-        String code2 = mapper.readValue(String.valueOf(objectNode2.get("code")), String.class);
+        /*ObjectNode objectNode2 = (ObjectNode) mapper.readTree(res2);
+        String code2 = mapper.readValue(String.valueOf(objectNode2.get("code")), String.class);*/
         /*if ((!"2000".equals(code2)||!"2000".equals(code))&&("存在重复".indexOf(String.valueOf(objectNode.get("msg")))==-1||"存在重复".indexOf(String.valueOf(objectNode2.get("msg")))==-1)) {
             throw new RuntimeException("U9接口返回异常：" +"吴江："+ mapper.readValue(String.valueOf(objectNode.get("msg")), String.class)+"常熟："+mapper.readValue(String.valueOf(objectNode2.get("msg")), String.class));
         }*/
@@ -383,7 +376,7 @@ class SupplierServiceImpl extends BaseServiceImpl<SupplierMapper, Supplier> impl
             // 调用U9接口  多组织调用两次
             res = WillHttpUtil.postJson(atwSrmConfiguration.getU9ApiDomain() + "/api/UpdateSupplier", mapper.writeValueAsString(req));
             req.put("OrgCode", "002"); //  组织编码
-            String res2 = WillHttpUtil.postJson(atwSrmConfiguration.getU9ApiDomain() + "/api/UpdateSupplier", mapper.writeValueAsString(req));
+            //String res2 = WillHttpUtil.postJson(atwSrmConfiguration.getU9ApiDomain() + "/api/UpdateSupplier", mapper.writeValueAsString(req));
 
             ObjectNode objectNode = (ObjectNode) mapper.readTree(res);
             String code = mapper.readValue(String.valueOf(objectNode.get("code")), String.class);
@@ -1219,6 +1212,97 @@ class SupplierServiceImpl extends BaseServiceImpl<SupplierMapper, Supplier> impl
     }
 
     /**
+     * 采购送货计划表
+     * @param page
+     * @param caiGouScheduleReq
+     * @return
+     */
+    @Override
+    public IPage<CaiGouSchedule> caiGouScheduleAutoSort(IPage<CaiGouSchedule> page, CaiGouScheduleReq caiGouScheduleReq) {
+
+        String driver = oracleDriver;
+        String url = oracleUrl; //mydb为数据库名
+        String user = oracleUser;
+        String password = oraclePassword;
+
+        String mRoleId  = paramService.getValue("trace_admin.role_id");
+        if(!StringUtil.containsAny(getUser().getRoleId(), mRoleId)){
+            caiGouScheduleReq.setDutyPerson(getUser().getAccount());
+        }
+        if(caiGouScheduleReq.getPoCodeLn()!=null && !caiGouScheduleReq.getPoCodeLn().isEmpty() && caiGouScheduleReq.getPoCodeLn().indexOf(",")>=0){
+            caiGouScheduleReq.setPoCodeLnBatch("1");
+        } else {
+            caiGouScheduleReq.setPoCodeLnBatch("0");
+        }
+        if(caiGouScheduleReq.getItemCode()!=null && !caiGouScheduleReq.getItemCode().isEmpty() && caiGouScheduleReq.getItemCode().indexOf(",")>=0){
+            caiGouScheduleReq.setItemCodeBatch("1");
+        } else {
+            caiGouScheduleReq.setItemCodeBatch("0");
+        }
+        if(caiGouScheduleReq.getProNo()!=null && !caiGouScheduleReq.getProNo().isEmpty() && caiGouScheduleReq.getProNo().indexOf(",")>=0){
+            caiGouScheduleReq.setProNoBatch("1");
+        } else {
+            caiGouScheduleReq.setProNoBatch("0");
+        }
+        if(caiGouScheduleReq.getDoStatuss()!=null && !caiGouScheduleReq.getDoStatuss().isEmpty() && caiGouScheduleReq.getDoStatuss().indexOf("19")>=0){
+            caiGouScheduleReq.setIsToSendStatus("1");
+        } else {
+            caiGouScheduleReq.setIsToSendStatus("0");
+        }
+
+        IPage<CaiGouSchedule> supplierSchedules = supplierScheduleMapper.getCaiGouScheduleAutoSort(page, caiGouScheduleReq);
+
+        for (CaiGouSchedule schedule : supplierSchedules.getRecords()) {
+
+            //子项目号为空且A类，需求日期取供应商承诺日期
+            if (StringUtil.isBlank(schedule.getProNo())  && "A".equals(schedule.getCodeType())){
+                schedule.setReqDate(schedule.getSupConfirmDate());
+            }
+
+            Integer doStatus = schedule.getDoStatus();
+
+            //如果不是这几个参数，报检日期置空
+            if("21,22,23,24,26".indexOf(Integer.toString(doStatus))==-1){
+                schedule.setSnCreateTime("");
+            }
+
+
+            if (doStatus == null) {
+                //schedule.setArrivalStatus("未送货");
+                schedule.setCheckStatus("19");
+                schedule.setStoreStatus("未入库");
+            } else {
+                String statusStroe = ""; // po的入库状态
+                String rcvCode = schedule.getRcvCode(); // 最近一次DO单号
+
+                if (schedule.getPoCode().indexOf("PR") > -1) {
+                    schedule.setStoreStatus("未入库");
+                } else {
+                    // 订单数量
+                    if(schedule.getOrderNum()!=null && schedule.getStoreNum()!= null) {
+                        Integer tcNum = schedule.getOrderNum().intValue();
+                        Integer storeNum = schedule.getStoreNum();
+                        if (storeNum <= 0) {
+                            statusStroe = "未入库";
+                        } else if (storeNum > 0 && storeNum < tcNum) {
+                            statusStroe = "部分入库";
+                        } else if (storeNum > 0 && storeNum >= tcNum) {
+                            statusStroe = "已入库";
+                        } else {
+                            statusStroe = "";
+                        }
+                    } else {
+                        statusStroe = "";
+                    }
+                    schedule.setCheckStatus(doStatus.toString());
+                    schedule.setStoreStatus(statusStroe);
+                }
+            }
+        }
+        return supplierSchedules;
+    }
+
+    /**
      * 导出
      * @param caiGouScheduleReq
      * @param response
@@ -1251,6 +1335,130 @@ class SupplierServiceImpl extends BaseServiceImpl<SupplierMapper, Supplier> impl
         }
 
         List<CaiGouSchedule> caiGouSchedules = supplierScheduleMapper.getCaiGouScheduleList(caiGouScheduleReq);
+
+        for (CaiGouSchedule schedule : caiGouSchedules) {
+
+
+            //子项目号为空且A类，需求日期取供应商承诺日期
+            if (StringUtil.isBlank(schedule.getProNo())  && "A".equals(schedule.getCodeType())){
+                schedule.setReqDate(schedule.getSupConfirmDate());
+            }
+
+            Integer doStatus = schedule.getDoStatus();
+
+            //如果不是这几个参数，报检日期置空
+            if("21,22,23,24,26".indexOf(Integer.toString(doStatus))==-1){
+                schedule.setSnCreateTime("");
+            }
+
+            if(doStatus == null) {
+                schedule.setArrivalStatus("未送货");
+                schedule.setCheckStatus("未送货");
+                schedule.setStoreStatus("未入库");
+            } else {
+                String statusValue = "";
+                String statusStroe = "";
+                switch (doStatus){
+                    case 20: statusValue = "送货中";break;
+                    case 21: statusValue = "厂内已报检";break;
+                    case 22: statusValue = "厂外已报检";break;
+                    case 23: statusValue = "厂内已检验";break;
+                    case 24: statusValue = "厂外已检验";break;
+                    case 25: statusValue = "处理中";break;
+                    case 26: statusValue = "已点收";break;
+                    case 27: statusValue = "虚拟已入库";break;
+                    case 30: statusValue = "已关闭";break;
+                    case 40: statusValue = "已作废";break;
+                }
+                schedule.setCheckStatus(statusValue);
+                schedule.setArrivalStatus(statusValue);
+
+                if(schedule.getPoCode().indexOf("PR")>-1){
+                    schedule.setStoreStatus("未入库");
+                } else {
+                    // 订单数量
+                    if(schedule.getOrderNum()!=null && schedule.getStoreNum()!= null) {
+                        Integer tcNum = schedule.getOrderNum().intValue();
+                        Integer storeNum = schedule.getStoreNum();
+                        if (storeNum <= 0) {
+                            statusStroe = "未入库";
+                        } else if (storeNum > 0 && storeNum < tcNum) {
+                            statusStroe = "部分入库";
+                        } else if (storeNum > 0 && storeNum >= tcNum) {
+                            statusStroe = "已入库";
+                        } else {
+                            statusStroe = "";
+                        }
+                    } else {
+                        statusStroe = "";
+                    }
+                    schedule.setStoreStatus(statusStroe);
+                }
+            }
+        }
+        List<CaiGouScheduleExcel> caiGouScheduleExcels = new ArrayList<>();
+        for (CaiGouScheduleExcel demo : caiGouScheduleExcels) {
+            System.out.println("demo = " + demo);
+        }
+
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+
+        for(CaiGouSchedule caiGouSchedule : caiGouSchedules){
+            CaiGouScheduleExcel caiGouScheduleExcel = BeanUtil.copy(caiGouSchedule,CaiGouScheduleExcel.class);
+            caiGouScheduleExcel.setAgreeDate(caiGouSchedule.getAgreeDate()==null ? "" : sdf.format(caiGouSchedule.getAgreeDate()));
+            caiGouScheduleExcel.setPlanDate(caiGouSchedule.getPlanDate()==null ? "" : sdf.format(caiGouSchedule.getPlanDate()));
+            caiGouScheduleExcel.setReqDate(caiGouSchedule.getReqDate()==null ? "" : sdf.format(caiGouSchedule.getReqDate()));
+            //caiGouScheduleExcel.setWwpoDate(caiGouSchedule.getWwpoDate()==null ? "" : sdf.format(caiGouSchedule.getWwpoDate()));
+            caiGouScheduleExcel.setNowReqDate(caiGouSchedule.getNowReqDate()==null ? "" : sdf.format(caiGouSchedule.getNowReqDate()));
+            caiGouScheduleExcel.setCheckUpdateDate(caiGouSchedule.getCheckUpdateDate()==null ? "" : sdf.format(caiGouSchedule.getCheckUpdateDate()));
+            caiGouScheduleExcel.setCheckUpdateDateFrist(caiGouSchedule.getCheckUpdateDateFrist()==null ? "" : sdf.format(caiGouSchedule.getCheckUpdateDateFrist()));
+            caiGouScheduleExcel.setCheckStatus(caiGouSchedule.getCheckStatus());
+            caiGouScheduleExcel.setStoreStatus(caiGouSchedule.getStoreStatus());
+            caiGouScheduleExcel.setWwpoDate(caiGouSchedule.getSupConfirmDate()==null ? "" :sdf.format(caiGouSchedule.getSupConfirmDate()));
+            if(caiGouSchedule.getIsUrgent()!=null) {
+                String isUrgent = caiGouSchedule.getIsUrgent().equals("1") ? "是" : "否";
+                caiGouScheduleExcel.setIsUrgent(isUrgent);
+            }
+            caiGouScheduleExcels.add(caiGouScheduleExcel);
+        }
+
+        ExcelUtils.defaultExport(caiGouScheduleExcels, CaiGouScheduleExcel.class, "采购送货计划表" + DateUtil.formatDate(new Date()), response);
+    }
+
+    /**
+     * 导出
+     * @param caiGouScheduleReq
+     * @param response
+     */
+    @Override
+    public void exportCaiGouAllAutoSort(CaiGouScheduleReq caiGouScheduleReq, HttpServletResponse response) {
+        String mRoleId  = paramService.getValue("trace_admin.role_id");
+        if(!StringUtil.containsAny(getUser().getRoleId(), mRoleId)){
+            caiGouScheduleReq.setDutyPerson(getUser().getAccount());
+        }
+        if(caiGouScheduleReq.getPoCodeLn()!=null && !caiGouScheduleReq.getPoCodeLn().isEmpty() && caiGouScheduleReq.getPoCodeLn().indexOf(",")>=0){
+            caiGouScheduleReq.setPoCodeLnBatch("1");
+        } else {
+            caiGouScheduleReq.setPoCodeLnBatch("0");
+        }
+        if(caiGouScheduleReq.getItemCode()!=null && !caiGouScheduleReq.getItemCode().isEmpty() && caiGouScheduleReq.getItemCode().indexOf(",")>=0){
+            caiGouScheduleReq.setItemCodeBatch("1");
+        } else {
+            caiGouScheduleReq.setItemCodeBatch("0");
+        }
+        if(caiGouScheduleReq.getProNo()!=null && !caiGouScheduleReq.getProNo().isEmpty() && caiGouScheduleReq.getProNo().indexOf(",")>=0){
+            caiGouScheduleReq.setProNoBatch("1");
+        } else {
+            caiGouScheduleReq.setProNoBatch("0");
+        }
+        if(caiGouScheduleReq.getDoStatuss()!=null && !caiGouScheduleReq.getDoStatuss().isEmpty() && caiGouScheduleReq.getDoStatuss().indexOf("19")>=0){
+            caiGouScheduleReq.setIsToSendStatus("1");
+        } else {
+            caiGouScheduleReq.setIsToSendStatus("0");
+        }
+
+        List<CaiGouSchedule> caiGouSchedules = supplierScheduleMapper.getCaiGouScheduleAutoSortList(caiGouScheduleReq);
 
         for (CaiGouSchedule schedule : caiGouSchedules) {
 
@@ -1984,40 +2192,202 @@ class SupplierServiceImpl extends BaseServiceImpl<SupplierMapper, Supplier> impl
         return true;
     }
 
+    @Scheduled(cron = "0 0 5 ? * *")
     //@PostConstruct
-    public void autoMatchLockOfCaiGou(){
-        log.info("采购计划送货表定时匹配锁定任务开始："+new Date());
-        //找出所有的符合条件的数据（铸件15110开头的数据）
+    public void autoSortPlan() {
+        log.info("采购计划送货表任务排程开始：" + new Date());
+
+        List<CaiGouSchedule> selectCaiGouPlandiff = supplierScheduleMapper.selectCaiGouPlandiff();
+        for ( CaiGouSchedule diff:selectCaiGouPlandiff) {
+            supplierScheduleMapper.deleteAllCaiGouPlanFromDisk(String.valueOf(diff.getId()));
+        }
+
+        //找出所有的符合条件的数据（15110、130301、130302、130101、130102、131111、131106 开头的数据）
         List<CaiGouSchedule> caiGouSchedules = supplierScheduleMapper.selectAllCaiGouPlan();
-        for (CaiGouSchedule item:caiGouSchedules) {
-            //查询新的PO，用料号搜索，未收货数量-锁定的数量>=需求数量
+        caigouPlanSort(caiGouSchedules);
+
+        //保存历史数据
+        saveHistoryData();
+
+
+        log.info("采购计划送货表任务排程结束：" + new Date());
+
+    }
+
+
+
+    private void caigouPlanSort(List<CaiGouSchedule> caiGouSchedules) {
+        for (CaiGouSchedule item : caiGouSchedules) {
+
+            List<CaiGouSchedule> polist = null;
+
+            //reqNum为null的是 下阶物料 通过PR找上阶的需求数量就行了  计划时间需要改掉减掉7天
+            if(item.getReqNum()==null){
+                CaiGouSchedule qitao = supplierScheduleMapper.selectQtData(item.getItemCode(), item.getProNo());
+                CaiGouSchedule PRdata = supplierScheduleMapper.selectQtDataReqNum(qitao.getPoCodeLn(),qitao.getProNo());
+                item.setReqNum(PRdata.getReqNum());
+                //item.setPlanDate(cn.hutool.core.date.DateUtil.offsetDay(item.getPlanDate(), -7));
+                item.setReqDate(cn.hutool.core.date.DateUtil.offsetDay(PRdata.getReqDate(), -7));
+            }
+
+
+            //查询新的PO，用料号搜索，未收货数量>锁定的数量
             BigDecimal reqNum = item.getReqNum();
 
-            List<CaiGouSchedule> polist = supplierScheduleMapper.selectAllCaiGouPlanPo(item.getItemCode());
-            for (CaiGouSchedule po:polist) {
-                if (reqNum.compareTo(BigDecimal.ZERO)==1){//如果目前需求数量还是大于0，那么继续匹配po
-                    reqNum=reqNum.subtract(po.getOrderNum());
-                    //匹配po之后，需要插入锁定表
-                    CaiGouSchedule lockdata=new CaiGouSchedule();
-                    BeanUtil.copy(po,lockdata);
-                    lockdata.setProNo(item.getProNo());
-                    lockdata.setAgreeDate(item.getAgreeDate());
-                    lockdata.setPlanDate(item.getPlanDate());
-                    lockdata.setProNum(item.getProNum());
-                    lockdata.setReqNum(item.getReqNum());
-
-                    supplierScheduleMapper.insertMatchLockCaiGou(lockdata);
 
 
-                }else{
-                    continue;
+            //查询新的PO之前还要再判断是不是已经排序了，有的话需要优先匹配排序的po
+            List<CaiGouSchedule> caiGouSchedules1 = supplierScheduleMapper.selectLockData(item.getItemCode(), item.getProNo());
+
+            if (caiGouSchedules1.size() > 0) {
+                for (CaiGouSchedule lockdataitem:caiGouSchedules1) {
+                    List<CaiGouSchedule> caiGouSchedules2 = supplierScheduleMapper.selectAllCaiGouPlanPoWithPoln(lockdataitem.getItemCode(), lockdataitem.getPoCodeLn());
+
+                    if(caiGouSchedules2.size()<=0){
+                        continue;
+                    }
+
+                    CaiGouSchedule podata=caiGouSchedules2.get(0);
+
+                    int po_kysl = podata.getWshsl() - podata.getYsdsl();//po可用数量
+                    if(po_kysl<=0){
+                        po_kysl=0;
+                    }
+                    BigDecimal reqNumOld = lockdataitem.getReqNum()==null?new BigDecimal("0"):lockdataitem.getReqNum();
+                    reqNumOld=reqNumOld.add(new BigDecimal(po_kysl));//可用数量+需求数量
+
+
+                    if(reqNum.compareTo(reqNumOld)==1){//总需求数量>可用数量+需求数量
+                        supplierScheduleMapper.updateReqNum(item.getPlanDate(),item.getReqDate(),String.valueOf(reqNumOld),lockdataitem.getId().toString());
+                        reqNum=reqNum.subtract(reqNumOld);
+                    }else{
+                        //总需求数量<可用数量+需求数量
+                        if(reqNum.compareTo(BigDecimal.ZERO) == 0){
+                            supplierScheduleMapper.DeleteCaiGouPlan(lockdataitem.getItemCode(),lockdataitem.getProNo(),lockdataitem.getId().toString());
+                        }
+                        supplierScheduleMapper.updateReqNum(item.getPlanDate(),item.getReqDate(),reqNum.toString(),lockdataitem.getId().toString());
+                        reqNum=reqNum.subtract(reqNum);
+
+                    }
                 }
+
+                if(reqNum.compareTo(BigDecimal.ZERO) == 1){
+                    polist = supplierScheduleMapper.selectAllCaiGouPlanPo(item.getItemCode());
+                    for (CaiGouSchedule po : polist) {
+                        int po_kysl = po.getWshsl() - po.getYsdsl();//po可用数量
+
+                        if (reqNum.compareTo(BigDecimal.ZERO) == 1 && po_kysl>=0) {//如果目前需求数量还是大于0，那么继续匹配po
+
+                            //匹配po之后，需要插入锁定表
+                            CaiGouSchedule lockdata = new CaiGouSchedule();
+                            BeanUtil.copy(po, lockdata);
+                            lockdata.setProNo(caiGouSchedules1.get(0).getProNo());
+                            lockdata.setAgreeDate(caiGouSchedules1.get(0).getAgreeDate());
+                            lockdata.setPlanDate(caiGouSchedules1.get(0).getPlanDate());
+                            lockdata.setProNum(caiGouSchedules1.get(0).getProNum());
+                            lockdata.setReqDate(item.getReqDate());
+
+                            if (reqNum.compareTo(new BigDecimal(po_kysl)) == 1) {
+                                lockdata.setReqNum(new BigDecimal(po_kysl));
+                            } else {
+                                lockdata.setReqNum(reqNum);
+                            }
+                            reqNum = reqNum.subtract(new BigDecimal(po_kysl));
+                            supplierScheduleMapper.insertMatchLockCaiGou(lockdata);
+
+                        }
+                    }
+                }
+
+                //如果可用的Po匹配完了，reqNum还是大于0，那么给个PR
+                if (reqNum.compareTo(BigDecimal.ZERO) == 1){
+                    CaiGouSchedule caiGouSchedule = supplierScheduleMapper.selectCaiGouPlanPR(item.getItemCode());
+                    if(caiGouSchedule!=null){
+                        //匹配po之后，需要插入锁定表
+                        CaiGouSchedule lockdata = new CaiGouSchedule();
+                        BeanUtil.copy(caiGouSchedule, lockdata);
+                        lockdata.setProNo(caiGouSchedules1.get(0).getProNo());
+                        lockdata.setAgreeDate(caiGouSchedules1.get(0).getAgreeDate());
+                        lockdata.setPlanDate(caiGouSchedules1.get(0).getPlanDate());
+                        lockdata.setProNum(caiGouSchedules1.get(0).getProNum());
+                        lockdata.setReqNum(reqNum);
+                        lockdata.setReqDate(item.getReqDate());
+                        supplierScheduleMapper.insertMatchLockCaiGou(lockdata);
+                    }
+                }
+
+            } else {
+                polist = supplierScheduleMapper.selectAllCaiGouPlanPo(item.getItemCode());
+                for (CaiGouSchedule po : polist) {
+                    int po_kysl = po.getWshsl() - po.getYsdsl();//po可用数量
+
+                    if (reqNum.compareTo(BigDecimal.ZERO) == 1 && po_kysl>=0) {//如果目前需求数量还是大于0，那么继续匹配po
+
+                        //匹配po之后，需要插入锁定表
+                        CaiGouSchedule lockdata = new CaiGouSchedule();
+                        BeanUtil.copy(po, lockdata);
+                        lockdata.setProNo(item.getProNo());
+                        lockdata.setAgreeDate(item.getAgreeDate());
+                        lockdata.setPlanDate(item.getPlanDate());
+                        lockdata.setProNum(item.getProNum());
+                        lockdata.setReqDate(item.getReqDate());
+
+                        if (reqNum.compareTo(new BigDecimal(po_kysl)) == 1) {
+                            lockdata.setReqNum(new BigDecimal(po_kysl));
+                        } else {
+                            lockdata.setReqNum(reqNum);
+                        }
+                        reqNum = reqNum.subtract(new BigDecimal(po_kysl));
+                        supplierScheduleMapper.insertMatchLockCaiGou(lockdata);
+
+                    }
+                }
+                //如果可用的Po匹配完了，reqNum还是大于0，那么给个PR
+                if (reqNum.compareTo(BigDecimal.ZERO) == 1){
+                    CaiGouSchedule caiGouSchedule = supplierScheduleMapper.selectCaiGouPlanPR(item.getItemCode());
+                    if(caiGouSchedule!=null){
+                        //匹配po之后，需要插入锁定表
+                        CaiGouSchedule lockdata = new CaiGouSchedule();
+                        BeanUtil.copy(caiGouSchedule, lockdata);
+                        lockdata.setProNo(item.getProNo());
+                        lockdata.setAgreeDate(item.getAgreeDate());
+                        lockdata.setPlanDate(item.getPlanDate());
+                        lockdata.setProNum(item.getProNum());
+                        lockdata.setReqNum(reqNum);
+                        lockdata.setReqDate(item.getReqDate());
+                        supplierScheduleMapper.insertMatchLockCaiGou(lockdata);
+
+
+                    }
+                }
+
             }
 
 
         }
-
     }
+
+    private void saveHistoryData() {
+        supplierScheduleMapper.saveAllCaiGouPlanAsHistory();
+        supplierScheduleMapper.updateCaiGouPlanHistoryDate();
+    }
+
+    public static void main(String[] args) {
+        String date5=DateUtil.format(cn.hutool.core.date.DateUtil.nextMonth(), "yyyy-MM");
+        System.out.println(date5);
+    }
+
+
+    /*public void autoLockPlan() {
+        log.info("每月16号采购计划送货表任务锁定开始：" + new Date());
+        //锁定下个月的主计划
+
+        String nextMonth=DateUtil.format(cn.hutool.core.date.DateUtil.nextMonth(), "yyyy-MM");
+        supplierScheduleMapper.LockCaiGouPlan(nextMonth);
+
+
+        log.info("每月16号采购计划送货表任务锁定结束：" + new Date());
+    }*/
 
 
     //@Scheduled(cron = "0 0 5 ? * *")
@@ -3760,7 +4130,8 @@ class SupplierServiceImpl extends BaseServiceImpl<SupplierMapper, Supplier> impl
                 }
                 otdMap.put(key,otd);
             });
-        } else if ( Integer.valueOf(year) >= 2022 && Integer.valueOf(startDate) > 21) {
+        //} else if ( Integer.valueOf(year) >= 2022 && Integer.valueOf(startDate) > 21)) {//原意是  2022年21周后就走这个逻辑   跨年之后可以改了
+        } else if ( Integer.valueOf(year) >= 2022 ) {
             // 合格的数据
             List<OtdReport> otdReportsOfOk = supplierScheduleMapper.getOkMapWeekOfReqDate(startDate,endDate,type,year);
             // 全部的数据

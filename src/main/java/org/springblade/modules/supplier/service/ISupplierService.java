@@ -107,6 +107,8 @@ public interface ISupplierService extends BaseService<Supplier> {
 
     IPage<CaiGouSchedule> getCaiGouSchedules(IPage<CaiGouSchedule> page, CaiGouScheduleReq caiGouScheduleReq);
 
+    IPage<CaiGouSchedule> caiGouScheduleAutoSort(IPage<CaiGouSchedule> page, CaiGouScheduleReq caiGouScheduleReq);
+
     IPage<CaiGouSchedule> getCaiGouSchedulesUnchecked(IPage<CaiGouSchedule> page, CaiGouScheduleReq caiGouScheduleReq);
 
     IPage<CaiGouSchedule> getCaiGouSchedulesOffset(IPage<CaiGouSchedule> page, CaiGouScheduleReq caiGouScheduleReq);
@@ -126,6 +128,8 @@ public interface ISupplierService extends BaseService<Supplier> {
     void exportAll(SupplierScheduleReq supplierScheduleReq, HttpServletResponse response);
 
     void exportCaiGouAll(CaiGouScheduleReq caiGouScheduleReq, HttpServletResponse response);
+
+    void exportCaiGouAllAutoSort(CaiGouScheduleReq caiGouScheduleReq, HttpServletResponse response);
     void exportCaiGouAllOffset(CaiGouScheduleReq caiGouScheduleReq, HttpServletResponse response);
     void exportCaiGouAllUnchecked(CaiGouScheduleReq caiGouScheduleReq, HttpServletResponse response);
     void exportCaiGouAllUnpip(CaiGouScheduleReq caiGouScheduleReq, HttpServletResponse response);

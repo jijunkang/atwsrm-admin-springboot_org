@@ -21,6 +21,7 @@ import org.springblade.modules.supplier.vo.SupplierScheduleVO;
 import org.springblade.modules.supplier.vo.SupplierVO;
 
 import java.math.BigDecimal;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -40,6 +41,12 @@ public interface SupplierScheduleMapper {
 
     @SqlParser(filter = true)
     List<CaiGouSchedule> getCaiGouScheduleList(@Param("caiGouScheduleReq") CaiGouScheduleReq caiGouScheduleReq);
+
+    @SqlParser(filter = true) // 为了防止sql不被mybatisplus 识别
+    IPage<CaiGouSchedule> getCaiGouScheduleAutoSort(IPage page, @Param("caiGouScheduleReq") CaiGouScheduleReq caiGouScheduleReq);
+
+    @SqlParser(filter = true)
+    List<CaiGouSchedule> getCaiGouScheduleAutoSortList(@Param("caiGouScheduleReq") CaiGouScheduleReq caiGouScheduleReq);
 
     @SqlParser(filter = true) // 为了防止sql不被mybatisplus 识别
     IPage<CaiGouSchedule> getCaiGouScheduleUnchecked(IPage page, @Param("caiGouScheduleReq") CaiGouScheduleReq caiGouScheduleReq);
@@ -117,19 +124,92 @@ public interface SupplierScheduleMapper {
     @Select("SELECT DISTINCT pro_no from BI_Supdeliv_Plan_Data_Detail where pro_no is not null  ")
     List<String> selectAllProNo();
 
-    @Select("select * from BI_Supdeliv_Plan_Data_Detail_View where item_code like '15110%' and pro_no is not null  ORDER BY plan_date desc ")
+    @Delete("delete from atw_caigou_plan_data_lock WHERE pro_no = #{prono} AND item_code = #{itemcode} AND id =#{id}  ")
+    Boolean DeleteCaiGouPlan(@Param("itemcode") String itemcode ,@Param("prono") String prono,@Param("id") String id);
+
+    @Update("update atw_caigou_plan_data_lock set plan_date= #{planDate},req_date= #{reqDate},req_num= #{reqNum} where id= #{id}  ")
+    Boolean updateReqNum(@Param("planDate") Date planDate, @Param("reqDate") Date reqDate, @Param("reqNum") String reqNum, @Param("id") String id);
+
+
+    @Update("update  atw_caigou_plan_data_lock a set status =1 where DATE_FORMAT(plan_date,'%Y-%m')=#{monthString}  ")
+    Boolean LockCaiGouPlan(@Param("monthString") String monthString);
+
+
+    @Delete("update atw_caigou_plan_data_lock set is_deleted=1  ")
+    Boolean deleteAllCaiGouPlan();
+
+    @Delete("delete FROM atw_caigou_plan_data_lock where id=#{id}")
+    Boolean deleteAllCaiGouPlanFromDisk(@Param("id") String id);
+
+
+    @Insert("INSERT atw_caigou_plan_data_lock_history select * from atw_caigou_plan_data_lock")
+    Boolean saveAllCaiGouPlanAsHistory();
+
+    @Update("update atw_caigou_plan_data_lock_history set updatetime=NOW() where updatetime is null")
+    Boolean updateCaiGouPlanHistoryDate();
+
+    /*@Select("select * from BI_Supdeliv_Plan_Data_Detail_View where item_code like '15110%' and pro_no is not null and plan_date is not null ORDER BY plan_date  ")
+    List<CaiGouSchedule> selectAllCaiGouPlan();*/
+
+    @Select("SELECT\n" +
+        "\tpro_no,\n" +
+        "\titem_code,\n" +
+        "\tagree_date,\n" +
+        "\tplan_date,\n" +
+        "\tpro_num,\n" +
+        "\treq_date,\n" +
+        "\tSUM( req_num ) req_num \n" +
+        "FROM\n" +
+        "\tBI_Supdeliv_Plan_Data_Detail_View \n" +
+        "WHERE\n" +
+        "\t(\n" +
+        "\t\titem_code LIKE '15110%' \n" +
+        "\t\tOR item_code LIKE '130301%' \n" +
+        "\t\tOR item_code LIKE '130302%' \n" +
+        "\t\tOR item_code LIKE '130101%' \n" +
+        "\t\tOR item_code LIKE '130102%' \n" +
+        "\t\tOR item_code LIKE '131111%' \n" +
+        "\t\tOR item_code LIKE '131106%' \n" +
+        "\t) \n" +
+        "\tAND pro_no IS NOT NULL  \n" +
+        "\tAND plan_date IS NOT NULL \n" +
+        "\tAND plan_date >= DATE_FORMAT( CURDATE(), '%Y-%m-01' ) \n" +
+        "GROUP BY\n" +
+        "\tpro_no,\n" +
+        "\titem_code,\n" +
+        "\tagree_date,\n" +
+        "\tplan_date,\n" +
+        "\treq_date,\n" +
+        "\tpro_num \n" +
+        "ORDER BY\n" +
+        "\tplan_date")
     List<CaiGouSchedule> selectAllCaiGouPlan();
 
-    @Select("select * from  (SELECT\n" +
-        "  (select IFNULL(SUM(acpdl.req_num),0) from atw_caigou_plan_data_lock acpdl where acpdl.po_code=a.po_code  and acpdl.po_ln=a.po_ln) ysdsl,\n" +
-        "\t(select api.tc_num-api.arv_goods_num from atw_po_item api where api.po_code=a.po_code and api.po_ln=a.po_ln ) wshsl,\n" +
-        "\ta.* \n" +
-        "FROM\n" +
-        "\tBI_Supdeliv_Plan_Data_Detail_View a \n" +
-        "WHERE\n" +
-        "\titem_code = #{itemcode} ORDER BY wwpo_date DESC ) selectpo \n" +
-        "\twhere wshsl>ysdsl  ")
+
+
+
+    @Select(" SELECT * FROM atw_caigou_plan_data_lock a WHERE not  EXISTS (select * from BI_Supdeliv_Plan_Data_Detail b where a.pro_no=b.pro_no and a.item_code=b.item_code ) or (a.po_code like 'PR%') ")
+    List<CaiGouSchedule> selectCaiGouPlandiff();
+
+    @Select("SELECT * FROM (SELECT (SELECT IFNULL(SUM(acpdl.req_num), 0) FROM atw_caigou_plan_data_lock acpdl WHERE acpdl.po_code = a.po_code AND acpdl.po_ln = a.po_ln and acpdl.is_deleted=0) ysdsl, (SELECT api.tc_num - api.arv_goods_num FROM atw_po_item api WHERE api.po_code = a.po_code AND api.po_ln = a.po_ln) wshsl, a.* FROM BI_Supdeliv_Plan_Data_Detail_View a WHERE item_code = #{itemcode}  ) selectpo WHERE wshsl > ysdsl GROUP BY po_code_ln  ORDER BY wwpo_date")
     List<CaiGouSchedule> selectAllCaiGouPlanPo(@Param("itemcode") String itemcode );
+
+
+    @Select("SELECT * FROM (SELECT (SELECT IFNULL(SUM(acpdl.req_num), 0) FROM atw_caigou_plan_data_lock acpdl WHERE acpdl.po_code = a.po_code AND acpdl.po_ln = a.po_ln and acpdl.is_deleted=0) ysdsl, (SELECT api.tc_num - api.arv_goods_num FROM atw_po_item api WHERE api.po_code = a.po_code AND api.po_ln = a.po_ln) wshsl, a.* FROM BI_Supdeliv_Plan_Data_Detail_View a WHERE item_code = #{itemcode}  ) selectpo WHERE  po_code_ln=#{poln} GROUP BY po_code_ln ORDER BY wwpo_date")
+    List<CaiGouSchedule> selectAllCaiGouPlanPoWithPoln(@Param("itemcode") String itemcode ,@Param("poln") String poln);
+
+
+    @Select("select  * from atw_caigou_plan_data_lock where pro_no =#{prono} and item_code=#{itemcode}  ")
+    List<CaiGouSchedule> selectLockData(@Param("itemcode") String itemcode ,@Param("prono") String prono);
+
+    @Select("select * from BI_Supdeliv_Plan_Data_Detail_View where pro_no =#{prono} and item_code=#{itemcode} limit 1")
+    CaiGouSchedule selectQtData(@Param("itemcode") String itemcode ,@Param("prono") String prono);
+
+    @Select("select * from BI_Supdeliv_Plan_Data_Detail_View where po_code_ln=#{poln} and pro_no=#{prono} and req_num is not null limit 1")
+    CaiGouSchedule selectQtDataReqNum(@Param("poln") String poln,@Param("prono") String prono);
+
+    @Select("select b.pr_date,a.* from BI_Supdeliv_Plan_Data_Detail_View a left join atw_u9_pr b on a.po_code=b.pr_code and a.po_ln=b.pr_ln where a.item_code=#{itemcode}  and b.pr_date is not null ORDER BY b.pr_date LIMIT 1 ")
+    CaiGouSchedule selectCaiGouPlanPR(@Param("itemcode") String itemcode );
 
     boolean insertLockCaiGou(@Param("caiGouSchedule") CaiGouSchedule caiGouSchedule);
 

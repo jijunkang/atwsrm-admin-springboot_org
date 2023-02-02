@@ -1,5 +1,6 @@
 package org.springblade.modules.report.service.impl;
 
+import cn.hutool.core.date.DateTime;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import lombok.Cleanup;
 import org.apache.commons.lang3.StringUtils;
@@ -13,32 +14,47 @@ import org.springblade.core.secure.utils.AuthUtil;
 import org.springblade.core.secure.utils.SecureUtil;
 import org.springblade.core.tool.utils.BeanUtil;
 import org.springblade.core.tool.utils.DateUtil;
+import org.springblade.modules.pr.entity.ItemInfoEntityOfQZ;
 import org.springblade.modules.pr.entity.ItemInfoEntityOfZDJ;
 import org.springblade.modules.report.dto.*;
 import org.springblade.modules.report.entity.*;
 import org.springblade.modules.report.mapper.ReportMapper;
 import org.springblade.modules.report.service.IReportService;
 import org.springblade.modules.report.vo.KeyItemFixedExcel;
+import org.springblade.modules.report.vo.SupplierOutputQZVo;
 import org.springblade.modules.report.vo.SupplierOutputVo;
 import org.springblade.modules.supplier.dto.CaiGouScheduleExcel;
 import org.springblade.modules.supplier.dto.CaiGouScheduleReq;
 import org.springblade.modules.supplier.dto.SupplierScheduleReq;
 import org.springblade.modules.supplier.entity.CaiGouSchedule;
+
+import org.springblade.modules.supplier.vo.OutPutEchrtsOfDjVO;
+import org.springblade.modules.supplier.vo.OutPutEchrtsOfPtphVO;
+
+import org.springblade.modules.supplier.vo.OutPutEchrtsOfQZVO;
+
 import org.springblade.modules.supplier.vo.OutPutEchrtsOfSupplierVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Flux;
 
 import javax.servlet.http.HttpServletResponse;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.*;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Date;
 import java.util.stream.Collectors;
+
+
+import static cn.hutool.core.date.DateUtil.offsetMonth;
+
+import static org.springblade.common.utils.ItemAnalysisUtil.getItemInfoOfQiuZuo;
 
 import static org.springblade.common.utils.ItemAnalysisUtil.getItemInfoOfZhuDuanJian;
 import static org.springblade.core.secure.utils.AuthUtil.getUser;
@@ -56,6 +72,7 @@ class IReportServiceImpl implements IReportService {
     private String oracleUrl;
 
     @Value("${oracle.user}")
+
     private String oracleUser;
 
     @Value("${oracle.password}")
@@ -66,6 +83,7 @@ class IReportServiceImpl implements IReportService {
 
     @Autowired
     private ReportMapper reportMapper;
+
 
     @Override
     public IPage<VmiReport> getVmiConsumeReport(IPage<VmiReport> page, VmiReportReq vmiReportReq) {
@@ -1941,7 +1959,12 @@ class IReportServiceImpl implements IReportService {
                 orderOtdStatistics.setThreeNum(0);
             }
             int days = 0;
+
             try {
+                if(prCheckDate==null ||poCheckDate==null){
+                    return;
+                }
+
                 days = CommonUtil.daysBetween(prCheckDate, poCheckDate);
             } catch (Exception e) {
                 throw new RuntimeException("日期格式出错，请查验。");
@@ -2184,6 +2207,9 @@ class IReportServiceImpl implements IReportService {
 
             int days = 0;
             try {
+                if(prCheckDate==null ||poCheckDate==null){
+                    return;
+                }
                 days = CommonUtil.daysBetween(prCheckDate, poCheckDate);
             } catch (Exception e) {
                 throw new RuntimeException("日期格式出错，请查验。");
@@ -2276,6 +2302,9 @@ class IReportServiceImpl implements IReportService {
             String poCheckDate = item.getPoCheckDate();
             int days = 0;
             try {
+                if(prCheckDate==null ||poCheckDate==null){
+                    return;
+                }
                 days = CommonUtil.daysBetween(prCheckDate, poCheckDate);
             } catch (Exception e) {
                 throw new RuntimeException("日期格式出错，请查验。");
@@ -2778,6 +2807,74 @@ class IReportServiceImpl implements IReportService {
     }
 
     @Override
+    public List<SupplierOutputQZVo> getQZOutputReport(IPage<Object> page, SupplierOutputVo supplierOutputVo) {
+        // 找出总条数、占用总公时、占用总金额
+        List<SupplierOutputQZVo> supplierOutputQZVoList = this.reportMapper.getSupplierOutputInfoQZList(page,supplierOutputVo);
+
+        for (SupplierOutputQZVo item : supplierOutputQZVoList) {
+
+            String zgsAndZje = this.reportMapper.getZgsAndZjeBySupName(item.getSupName());
+
+            String zgs = new BigDecimal(zgsAndZje.split("-")[0]).divide(new BigDecimal("2"),2,RoundingMode.HALF_UP).toString(); //总工时/2 （冷喷热喷各一半）
+            String zje = new BigDecimal(zgsAndZje.split("-")[1]).divide(new BigDecimal("2"),2,RoundingMode.HALF_UP).toString();; //总金额/2 （冷喷热喷各一半）
+            String zygs = item.getZygs(); // 占用工时
+            String zyje = item.getZyje(); // 占用金额
+            String ycgs = new BigDecimal(zgs).subtract(new BigDecimal(zygs)).setScale(BigDecimal.ROUND_HALF_UP, 2).toString();
+            String ycje = new BigDecimal(zje).subtract(new BigDecimal(zyje)).setScale(BigDecimal.ROUND_HALF_UP, 2).toString();
+            String gssycbl = new BigDecimal(ycgs).multiply(new BigDecimal("100")).divide(new BigDecimal(zgs),2,RoundingMode.HALF_UP).toString()+"%";
+
+            item.setZgs(zgs);
+            item.setZje(zje);
+            item.setZygs(zygs);
+            item.setZyje(zyje);
+            item.setYcgs(ycgs);
+            item.setYcje(ycje);
+            item.setGysycbl(gssycbl);
+        }
+
+        return supplierOutputQZVoList;
+    }
+
+
+    @Override
+    public void supplierOutputReportQZJob() {
+        //供应商产能溢出报表（球座）的业务逻辑
+        //先清表
+        this.reportMapper.deleteSupplierOutputInfoQZ();
+
+        //从oracle找到所有的供应商、物料、需求数量
+        List<SupplierOutputFromOracle> supplierOutputFromOracleList = this.reportMapper.getSupplierOutputFromOracleListQZ();
+        for (SupplierOutputFromOracle supplierOutputFromOracle : supplierOutputFromOracleList) {
+            //先拆解，在匹配数据，然后丢到 atw_supplier_output_info_qz
+            ItemInfoEntityOfQZ itemInfoEntity = getItemInfoOfQiuZuo(supplierOutputFromOracle.getItemName());
+
+            SupplierOutputInfoQZEntity supplierOutputInfoEntity = new SupplierOutputInfoQZEntity();
+            supplierOutputInfoEntity.setSupName(supplierOutputFromOracle.getSupName());
+            supplierOutputInfoEntity.setSupCode(supplierOutputFromOracle.getSupCode());
+            supplierOutputInfoEntity.setItemCode(supplierOutputFromOracle.getItemCode());
+            supplierOutputInfoEntity.setItemName(supplierOutputFromOracle.getItemName());
+            supplierOutputInfoEntity.setMaterialType(itemInfoEntity.getItemize());
+            supplierOutputInfoEntity.setCj(itemInfoEntity.getSize());
+            supplierOutputInfoEntity.setType(itemInfoEntity.getForm());
+            supplierOutputInfoEntity.setBj(itemInfoEntity.getPound());
+            supplierOutputInfoEntity.setTc(itemInfoEntity.getCoat());
+            supplierOutputInfoEntity.setDj(itemInfoEntity.getGrade());
+            supplierOutputInfoEntity.setMaterial(itemInfoEntity.getMaterial());
+            supplierOutputInfoEntity.setNumber(supplierOutputFromOracle.getReqNum());
+            supplierOutputInfoEntity.setDate(supplierOutputFromOracle.getDate());
+
+            //获取产能 工艺
+            System.out.println(supplierOutputInfoEntity.getItemName());
+            String produceAndPrice = this.reportMapper.getProductionCapacityQZ(supplierOutputInfoEntity);
+            if (produceAndPrice != null) {
+                supplierOutputInfoEntity.setProduceCapacity(produceAndPrice.split("-")[0]);
+                supplierOutputInfoEntity.setSinglePrice(produceAndPrice.split("-")[1]);
+            }
+            this.reportMapper.insertSupplierOutputInfoQZ(supplierOutputInfoEntity);
+        }
+    }
+
+    @Override
     public void supplierOutputReportjob() {
         //供应商产能溢出报表的业务逻辑
         //先清表
@@ -3115,7 +3212,538 @@ class IReportServiceImpl implements IReportService {
         return outPutEchrtsOfSupplierVO;
     }
 
+    @Override
+    public OutPutEchrtsOfPtphVO getPtphOutputEcharts(SupplierScheduleReq supplierScheduleReq) {
 
+
+        OutPutEchrtsOfPtphVO OutPutEchrtsOfPtphVO=new OutPutEchrtsOfPtphVO();
+
+
+
+
+        Date date = cn.hutool.core.date.DateUtil.nextMonth();
+
+        String format = cn.hutool.core.date.DateUtil.format(date, "yyyy-MM");
+        String oneWeek=format+"-07";
+        String twoWeek=format+"-14";
+        String threeWeek=format+"-21";
+        String fourWeek=format+"-28";
+
+        Date nowdate = cn.hutool.core.date.DateUtil.date();
+        String nowdateformat = cn.hutool.core.date.DateUtil.format(nowdate, "yyyy-MM");
+        String startdate=nowdateformat+"-20";
+
+        Date end =offsetMonth(new DateTime(), 2);
+        String enddateformat = cn.hutool.core.date.DateUtil.format(end, "yyyy-MM");
+        String enddate=enddateformat+"-10";
+
+        List<SupplierOutputFromOracle> PtphOutputOfEcharts = this.reportMapper.getPtphOutputOfEcharts(startdate,enddate);
+
+
+        Date oneWeekDate = cn.hutool.core.date.DateUtil.parse(oneWeek);
+        Date twoWeekDate = cn.hutool.core.date.DateUtil.parse(twoWeek);
+        Date threeWeekDate = cn.hutool.core.date.DateUtil.parse(threeWeek);
+        Date fourWeekDate = cn.hutool.core.date.DateUtil.parse(fourWeek);
+
+        double oneWeekGS=0;
+        double twoWeekGS=0;
+        double threeWeekGS=0;
+        double fourWeekGS=0;
+
+        for (SupplierOutputFromOracle supplierOutputFromOracle:PtphOutputOfEcharts) {
+
+            if(StringUtils.isNotBlank(supplierOutputFromOracle.getProNo())){
+                //有项目的用需求数量
+
+            }else{
+                //无项目的用未到货数量
+                supplierOutputFromOracle.setReqNum(supplierOutputFromOracle.getNotRcvNum());
+            }
+
+            String outputCent = supplierOutputFromOracle.getOutputCent();//工时
+            String weightCent = supplierOutputFromOracle.getWeightCent();//重量
+            String num = supplierOutputFromOracle.getReqNum();
+            Date wwpoDate = supplierOutputFromOracle.getWwpoDate();
+            Date planDate = supplierOutputFromOracle.getPlanDate();
+            String gy = supplierOutputFromOracle.getGy();
+
+            /*if (StringUtils.isBlank(num)||StringUtils.isBlank(outputCent)||StringUtils.isBlank(weightCent)||StringUtils.isBlank(gy)||"#N/A".equals(outputCent)||"#N/A".equals(weightCent)){
+                continue;
+            }*/
+
+            if (cn.hutool.core.date.DateUtil.compare(wwpoDate, oneWeekDate)<=0) {
+                oneWeekGS+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+
+            } else if (cn.hutool.core.date.DateUtil.compare(wwpoDate, twoWeekDate)<=0) {
+                twoWeekGS+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+
+            }else if (cn.hutool.core.date.DateUtil.compare(wwpoDate, threeWeekDate)<=0) {
+                threeWeekGS+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+            }else {
+                fourWeekGS+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+            }
+        }
+
+        double zygs=oneWeekGS+twoWeekGS+threeWeekGS+fourWeekGS;
+        double ycz=313.2-zygs;
+        double ycbl=ycz/313.2*100;
+        String titleText="总工时："+313.2 +"占用工时："+String.format("%.2f", zygs)+"溢出值："+String.format("%.2f", ycz)+"溢出比例："+String.format("%.2f", ycbl)+"%";
+
+        String[] PtphNum = {String.format("%.2f",oneWeekGS), String.format("%.2f",twoWeekGS), String.format("%.2f",threeWeekGS), String.format("%.2f",fourWeekGS)};
+        OutPutEchrtsOfPtphVO.setPtphNum(PtphNum);
+        OutPutEchrtsOfPtphVO.setTitleText(titleText);
+        return OutPutEchrtsOfPtphVO;
+    }
+
+    @Override
+    public OutPutEchrtsOfDjVO getDjOutputEcharts(SupplierScheduleReq supplierScheduleReq) {
+
+        OutPutEchrtsOfDjVO OutPutEchrtsOfDjVO=new OutPutEchrtsOfDjVO();
+
+
+
+        Date nowdate = cn.hutool.core.date.DateUtil.date();
+        String nowdateformat = cn.hutool.core.date.DateUtil.format(nowdate, "yyyy-MM");
+        String startdate=nowdateformat+"-20";
+
+        Date end =offsetMonth(new DateTime(), 2);
+        String enddateformat = cn.hutool.core.date.DateUtil.format(end, "yyyy-MM");
+        String enddate=enddateformat+"-10";
+
+
+        Date nextMonthdate = cn.hutool.core.date.DateUtil.nextMonth();
+        String format = cn.hutool.core.date.DateUtil.format(nextMonthdate, "yyyy-MM");
+        String oneWeek=format+"-07";
+        String twoWeek=format+"-14";
+        String threeWeek=format+"-21";
+        String fourWeek=format+"-28";
+        String firstday=format+"-01";
+
+
+
+
+        List<SupplierOutputFromOracle> DjOutputOfEcharts = this.reportMapper.getDjOutputOfEcharts(startdate,enddate);
+
+        Date oneWeekDate = cn.hutool.core.date.DateUtil.parse(oneWeek);
+        Date twoWeekDate = cn.hutool.core.date.DateUtil.parse(twoWeek);
+        Date threeWeekDate = cn.hutool.core.date.DateUtil.parse(threeWeek);
+        Date fourWeekDate = cn.hutool.core.date.DateUtil.parse(fourWeek);
+
+        double oneWeekGS1=0;
+        double twoWeekGS1=0;
+        double threeWeekGS1=0;
+        double fourWeekGS1=0;
+
+        double oneWeekGS2=0;
+        double twoWeekGS2=0;
+        double threeWeekGS2=0;
+        double fourWeekGS2=0;
+
+        double oneWeekGS3=0;
+        double twoWeekGS3=0;
+        double threeWeekGS3=0;
+        double fourWeekGS3=0;
+
+        double oneWeekGS4=0;
+        double twoWeekGS4=0;
+        double threeWeekGS4=0;
+        double fourWeekGS4=0;
+
+        double oneWeekGS5=0;
+        double twoWeekGS5=0;
+        double threeWeekGS5=0;
+        double fourWeekGS5=0;
+
+        double oneWeekGS6=0;
+        double twoWeekGS6=0;
+        double threeWeekGS6=0;
+        double fourWeekGS6=0;
+
+        double oneWeekGS7=0;
+        double twoWeekGS7=0;
+        double threeWeekGS7=0;
+        double fourWeekGS7=0;
+
+        Double[] DjAvgNum1 = new Double[4];
+        Double[] DjAvgNum2 = new Double[4];
+        Double[] DjAvgNum3 = new Double[4];
+        Double[] DjAvgNum4 = new Double[4];
+        Double[] DjAvgNum5 = new Double[4];
+        Double[] DjAvgNum6 = new Double[4];
+        Double[] DjAvgNum7 = new Double[4];
+
+        for (SupplierOutputFromOracle supplierOutputFromOracle:DjOutputOfEcharts) {
+
+
+            if(StringUtils.isNotBlank(supplierOutputFromOracle.getProNo())){
+                //有项目的用需求数量
+
+            }else{
+                //无项目的用未到货数量
+                supplierOutputFromOracle.setReqNum(supplierOutputFromOracle.getNotRcvNum());
+            }
+
+
+
+            //拆解  长管中法兰锻件-10PA1-C-D-XL-F316L
+            String itemName = supplierOutputFromOracle.getItemName();
+            String[] itemNameSplit = itemName.split("-");
+            String cz = itemNameSplit[itemNameSplit.length - 1];//材质
+            String materialType = itemNameSplit[0];//材料类型
+            String kjbj = itemNameSplit[1];//口径、磅级   阀盘锻件的口径
+            String fpbj = itemNameSplit[2];//阀盘锻件的磅级
+
+            String kj="";//口径
+            String bj="";//磅级
+
+            if("A105,LF2".indexOf(cz)>-1){
+                cz="CS";
+            }else{
+                cz="SS";
+            }
+
+            if(materialType.indexOf("阀盘锻件")>-1){
+                kj=kjbj;
+                bj=fpbj;
+            }else {
+                ItemInfoEntityOfZDJ itemInfoOfZhuDuanJian = getItemInfoOfZhuDuanJian(itemName);
+                kj=itemInfoOfZhuDuanJian.getSize();
+                bj=itemInfoOfZhuDuanJian.getPound();
+            }
+
+            if (materialType.indexOf("阀帽锻件")>-1) {
+                materialType="阀帽锻件";
+            } else if (materialType.indexOf("阀盘锻件")>-1) {
+                materialType="阀盘锻件";
+            } else if (materialType.indexOf("阀体锻件")>-1) {
+                materialType="阀体锻件";
+            } else if (materialType.indexOf("中法兰锻件")>-1) {
+                materialType="中法兰锻件";
+            }
+
+            //通过materialType kj bj CZ 还有供应商查找对应的工时
+            SupplierOutputFromOracle djOutput = this.reportMapper.getDjOutput(materialType, kj, bj, cz, supplierScheduleReq.getSupCode());
+
+            if(djOutput!=null){
+                String outputCent = djOutput.getOutputCent();//工时
+                String weightCent = supplierOutputFromOracle.getWeightCent();//重量
+                String num = supplierOutputFromOracle.getReqNum();
+                Date wwpoDate = supplierOutputFromOracle.getWwpoDate();
+                Date planDate = supplierOutputFromOracle.getPlanDate();
+                String gy = supplierOutputFromOracle.getGy();
+
+            /*if (StringUtils.isBlank(num)||StringUtils.isBlank(outputCent)||StringUtils.isBlank(weightCent)||StringUtils.isBlank(gy)||"#N/A".equals(outputCent)||"#N/A".equals(weightCent)){
+                continue;
+            }*/
+                if(materialType.equals("中法兰锻件")){
+                    if(Double.parseDouble(kj)>=1 && Double.parseDouble(kj)<=4){
+                        //图形1
+
+                        double v = Double.parseDouble(djOutput.getZgs()) / 4;
+                        DjAvgNum1 = new Double[]{v, v, v, v};
+
+
+                        if (cn.hutool.core.date.DateUtil.compare(wwpoDate, oneWeekDate)<=0) {
+                            oneWeekGS1+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+
+                        } else if (cn.hutool.core.date.DateUtil.compare(wwpoDate, twoWeekDate)<=0) {
+                            twoWeekGS1+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+
+                        }else if (cn.hutool.core.date.DateUtil.compare(wwpoDate, threeWeekDate)<=0) {
+                            threeWeekGS1+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+                        }else {
+                            fourWeekGS1+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+                        }
+                    }else {
+                        //图形2
+
+                        double v = Double.parseDouble(djOutput.getZgs()) / 4;
+                        DjAvgNum2 = new Double[]{v, v, v, v};
+
+                        if (cn.hutool.core.date.DateUtil.compare(wwpoDate, oneWeekDate)<=0) {
+                            oneWeekGS2+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+
+                        } else if (cn.hutool.core.date.DateUtil.compare(wwpoDate, twoWeekDate)<=0) {
+                            twoWeekGS2+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+
+                        }else if (cn.hutool.core.date.DateUtil.compare(wwpoDate, threeWeekDate)<=0) {
+                            threeWeekGS2+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+                        }else {
+                            fourWeekGS2+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+                        }
+                    }
+                }
+
+                if(materialType.equals("阀盘锻件")){
+                    //图形3
+                    double v = Double.parseDouble(djOutput.getZgs()) / 4;
+                    DjAvgNum3 = new Double[]{v, v, v, v};
+
+                    if (cn.hutool.core.date.DateUtil.compare(wwpoDate, oneWeekDate)<=0) {
+                        oneWeekGS3+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+
+                    } else if (cn.hutool.core.date.DateUtil.compare(wwpoDate, twoWeekDate)<=0) {
+                        twoWeekGS3+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+
+                    }else if (cn.hutool.core.date.DateUtil.compare(wwpoDate, threeWeekDate)<=0) {
+                        threeWeekGS3+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+                    }else {
+                        fourWeekGS3+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+                    }
+                }
+
+                if(materialType.equals("阀体锻件")){
+                    if(Double.parseDouble(kj)>=1 && Double.parseDouble(kj)<=3){
+                        //图形4
+                        double v = Double.parseDouble(djOutput.getZgs()) / 4;
+                        DjAvgNum4 = new Double[]{v, v, v, v};
+
+                        if (cn.hutool.core.date.DateUtil.compare(wwpoDate, oneWeekDate)<=0) {
+                            oneWeekGS4+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+
+                        } else if (cn.hutool.core.date.DateUtil.compare(wwpoDate, twoWeekDate)<=0) {
+                            twoWeekGS4+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+
+                        }else if (cn.hutool.core.date.DateUtil.compare(wwpoDate, threeWeekDate)<=0) {
+                            threeWeekGS4+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+                        }else {
+                            fourWeekGS4+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+                        }
+                    }else {
+                        //图形5
+                        double v = Double.parseDouble(djOutput.getZgs()) / 4;
+                        DjAvgNum5 = new Double[]{v, v, v, v};
+
+                        if (cn.hutool.core.date.DateUtil.compare(wwpoDate, oneWeekDate)<=0) {
+                            oneWeekGS5+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+
+                        } else if (cn.hutool.core.date.DateUtil.compare(wwpoDate, twoWeekDate)<=0) {
+                            twoWeekGS5+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+
+                        }else if (cn.hutool.core.date.DateUtil.compare(wwpoDate, threeWeekDate)<=0) {
+                            threeWeekGS5+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+                        }else {
+                            fourWeekGS5+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+                        }
+                    }
+                }
+
+                if(materialType.equals("阀帽锻件")){
+                    if(Double.parseDouble(kj)>=1 && Double.parseDouble(kj)<=4){
+                        //图形6
+                        double v = Double.parseDouble(djOutput.getZgs()) / 4;
+                        DjAvgNum6 = new Double[]{v, v, v, v};
+
+                        if (cn.hutool.core.date.DateUtil.compare(wwpoDate, oneWeekDate)<=0) {
+                            oneWeekGS6+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+
+                        } else if (cn.hutool.core.date.DateUtil.compare(wwpoDate, twoWeekDate)<=0) {
+                            twoWeekGS6+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+
+                        }else if (cn.hutool.core.date.DateUtil.compare(wwpoDate, threeWeekDate)<=0) {
+                            threeWeekGS6+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+                        }else {
+                            fourWeekGS6+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+                        }
+                    }else {
+                        //图形7
+                        double v = Double.parseDouble(djOutput.getZgs()) / 4;
+                        DjAvgNum7 = new Double[]{v, v, v, v};
+
+                        if (cn.hutool.core.date.DateUtil.compare(wwpoDate, oneWeekDate)<=0) {
+                            oneWeekGS7+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+
+                        } else if (cn.hutool.core.date.DateUtil.compare(wwpoDate, twoWeekDate)<=0) {
+                            twoWeekGS7+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+
+                        }else if (cn.hutool.core.date.DateUtil.compare(wwpoDate, threeWeekDate)<=0) {
+                            threeWeekGS7+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+                        }else {
+                            fourWeekGS7+=Double.parseDouble(num)*Double.parseDouble(outputCent);
+                        }
+                    }
+                }
+
+
+            }
+
+
+        }
+
+        String[] DjNum1 = {String.format("%.2f",oneWeekGS1), String.format("%.2f",twoWeekGS1), String.format("%.2f",threeWeekGS1), String.format("%.2f",fourWeekGS1)};
+        String[] DjNum2 = {String.format("%.2f",oneWeekGS2), String.format("%.2f",twoWeekGS2), String.format("%.2f",threeWeekGS2), String.format("%.2f",fourWeekGS2)};
+        String[] DjNum3 = {String.format("%.2f",oneWeekGS3), String.format("%.2f",twoWeekGS3), String.format("%.2f",threeWeekGS3), String.format("%.2f",fourWeekGS3)};
+        String[] DjNum4 = {String.format("%.2f",oneWeekGS4), String.format("%.2f",twoWeekGS4), String.format("%.2f",threeWeekGS4), String.format("%.2f",fourWeekGS4)};
+        String[] DjNum5 = {String.format("%.2f",oneWeekGS5), String.format("%.2f",twoWeekGS5), String.format("%.2f",threeWeekGS5), String.format("%.2f",fourWeekGS5)};
+        String[] DjNum6 = {String.format("%.2f",oneWeekGS6), String.format("%.2f",twoWeekGS6), String.format("%.2f",threeWeekGS6), String.format("%.2f",fourWeekGS6)};
+        String[] DjNum7 = {String.format("%.2f",oneWeekGS7), String.format("%.2f",twoWeekGS7), String.format("%.2f",threeWeekGS7), String.format("%.2f",fourWeekGS7)};
+
+        OutPutEchrtsOfDjVO.setDjNum1(DjNum1);
+        OutPutEchrtsOfDjVO.setDjNum2(DjNum2);
+        OutPutEchrtsOfDjVO.setDjNum3(DjNum3);
+        OutPutEchrtsOfDjVO.setDjNum4(DjNum4);
+        OutPutEchrtsOfDjVO.setDjNum5(DjNum5);
+        OutPutEchrtsOfDjVO.setDjNum6(DjNum6);
+        OutPutEchrtsOfDjVO.setDjNum7(DjNum7);
+
+        OutPutEchrtsOfDjVO.setDjAvgNum1(DjAvgNum1);
+        OutPutEchrtsOfDjVO.setDjAvgNum2(DjAvgNum2);
+        OutPutEchrtsOfDjVO.setDjAvgNum3(DjAvgNum3);
+        OutPutEchrtsOfDjVO.setDjAvgNum4(DjAvgNum4);
+        OutPutEchrtsOfDjVO.setDjAvgNum5(DjAvgNum5);
+        OutPutEchrtsOfDjVO.setDjAvgNum6(DjAvgNum6);
+        OutPutEchrtsOfDjVO.setDjAvgNum7(DjAvgNum7);
+        return OutPutEchrtsOfDjVO;
+    }
+
+    @Override
+    public OutPutEchrtsOfQZVO getQZOutputEcharts(SupplierScheduleReq supplierScheduleReq) {
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM");
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+
+        OutPutEchrtsOfQZVO outPutEchrtsOfQZVO = new OutPutEchrtsOfQZVO();
+
+        Date nowDate = new Date();
+        Calendar calendar = Calendar.getInstance();
+        // 设置为当前时间
+        calendar.setTime(nowDate);
+        calendar.add(Calendar.MONTH, 1);
+        nowDate = calendar.getTime();
+        String nextMonth = format.format(nowDate);
+
+        String startWeek = nextMonth + "-01";
+        String oneWeek = nextMonth + "-07";
+        String twoWeek = nextMonth + "-14";
+        String threeWeek = nextMonth + "-21";
+        String fourWeek = nextMonth + "-28";
+
+        Date startWeekDate = cn.hutool.core.date.DateUtil.parse(startWeek);
+        Date oneWeekDate = cn.hutool.core.date.DateUtil.parse(oneWeek);
+        Date twoWeekDate = cn.hutool.core.date.DateUtil.parse(twoWeek);
+        Date threeWeekDate = cn.hutool.core.date.DateUtil.parse(threeWeek);
+        Date fourWeekDate = cn.hutool.core.date.DateUtil.parse(fourWeek);
+
+        // 详细数据
+        List<SupplierOutputInfoQZEntity> supplierOutputInfoQZEntityList = this.reportMapper.getQZOutputOfEcharts(supplierScheduleReq.getSupCode());
+
+        //总工时（平均）
+        String zgsAndZje = this.reportMapper.getZgsAndZjeBySupCode(supplierScheduleReq.getSupCode());
+        if(zgsAndZje==null) {
+            throw new RuntimeException("找不到该供应商的球座分析信息");
+        }
+        String zgs = new BigDecimal(zgsAndZje.split("-")[0]).divide(new BigDecimal("2"),2,RoundingMode.HALF_UP).toString(); //总工时/2 （冷喷热喷各一半）
+        String zje = new BigDecimal(zgsAndZje.split("-")[1]).divide(new BigDecimal("2"),2,RoundingMode.HALF_UP).toString();; //总金额/2 （冷喷热喷各一半）
+        double lpZgs = Double.valueOf(zgs);
+        double lpZje = Double.valueOf(zje);
+        double rpZgs = Double.valueOf(zgs);
+        double rpZje = Double.valueOf(zje);
+
+        double aveLpZgs = lpZgs / 4;
+        double aveLpZje = lpZje / 4;
+        double aveRpZgs = rpZgs / 4;
+        double aveRpZje = rpZje / 4;
+
+        // 前期准备数据
+        double totalLpZgs = 0;//冷喷总工时
+        double totalLpZje = 0;//冷喷总金额
+        double totalRpZgs = 0;//热喷总工时
+        double totalRpZje = 0;//热喷总金额
+
+        double oneWeekLpZgs = 0;// 第一周冷喷总工时
+        double oneWeekLpZje = 0;// 第一周冷喷总金额
+        double twoWeekLpZgs = 0;// 第二周冷喷总工时
+        double twoWeekLpZje = 0;// 第二周冷喷总金额
+        double threeWeekLpZgs = 0;// 第三周冷喷总工时
+        double threeWeekLpZje = 0;// 第三周冷喷总金额
+        double fourWeekLpZgs = 0;// 第四周冷喷总工时
+        double fourWeekLpZje = 0;// 第四周冷喷总金额
+
+        double oneWeekRpZgs = 0;// 第一周热喷总工时
+        double oneWeekRpZje = 0;// 第一周热喷总金额
+        double twoWeekRpZgs = 0;// 第二周热喷总工时
+        double twoWeekRpZje = 0;// 第二周热喷总金额
+        double threeWeekRpZgs = 0;// 第三周热喷总工时
+        double threeWeekRpZje = 0;// 第三周热喷总金额
+        double fourWeekRpZgs = 0;// 第四周热喷总工时
+        double fourWeekRpZje = 0;// 第四周热喷总金额
+
+        for(SupplierOutputInfoQZEntity item:supplierOutputInfoQZEntityList) {
+            double reqNum = Double.valueOf(item.getNumber()); // 数量
+            double gs = Double.valueOf(item.getProduceCapacity());//工时
+            double je = Double.valueOf(item.getSinglePrice());// 金额
+            String tc = item.getTc(); // 图层
+            Date date = null;
+
+            try {
+                date = sdf.parse(item.getDate()); // 日期
+            }catch (Exception e) {
+                throw new RuntimeException("时间格式转换错误");
+            }
+
+            if ("G14".equals(tc) || "G20".equals(tc)) { //冷喷
+                totalLpZgs = totalLpZgs + gs * reqNum /60;
+                totalLpZje = totalLpZje + je * reqNum;
+                if(date.compareTo(startWeekDate)>=0 && date.compareTo(oneWeekDate)<=0) {
+                    oneWeekLpZgs = oneWeekLpZgs + gs*reqNum/60;
+                    oneWeekLpZje = oneWeekLpZje + je*reqNum;
+                } else if (date.compareTo(oneWeekDate) > 0 && date.compareTo(twoWeekDate)<=0) {
+                    twoWeekLpZgs = twoWeekLpZgs + gs*reqNum/60;
+                    twoWeekLpZje = twoWeekLpZje + je*reqNum;
+                } else if (date.compareTo(twoWeekDate) > 0 && date.compareTo(threeWeekDate)<=0) {
+                    threeWeekLpZgs = threeWeekLpZgs + gs*reqNum/60;
+                    threeWeekLpZje = threeWeekLpZje + je*reqNum;
+                } else if (date.compareTo(threeWeekDate) > 0 && date.compareTo(fourWeekDate)<=0) {
+                    fourWeekLpZgs = fourWeekRpZgs + gs*reqNum/60;
+                    fourWeekLpZje = fourWeekLpZje + je*reqNum;
+                } else {
+                    continue;
+                }
+            } else { // 热喷
+                totalRpZgs = totalRpZgs + gs * reqNum / 60;
+                totalRpZje = totalRpZje + je * reqNum;
+                if(date.compareTo(startWeekDate)>=0 && date.compareTo(oneWeekDate)<=0) {
+                    oneWeekRpZgs = oneWeekRpZgs + gs*reqNum/60;
+                    oneWeekRpZje = oneWeekRpZje + je*reqNum;
+                } else if (date.compareTo(oneWeekDate) > 0 && date.compareTo(twoWeekDate)<=0) {
+                    twoWeekRpZgs = twoWeekRpZgs + gs*reqNum/60;
+                    twoWeekRpZje = twoWeekRpZje + je*reqNum;
+                } else if (date.compareTo(twoWeekDate) > 0 && date.compareTo(threeWeekDate)<=0) {
+                    threeWeekRpZgs = threeWeekRpZgs + gs*reqNum/60;
+                    threeWeekRpZje = threeWeekRpZje + je*reqNum;
+                } else if (date.compareTo(threeWeekDate) > 0 && date.compareTo(fourWeekDate)<=0) {
+                    fourWeekRpZgs = fourWeekRpZgs + gs*reqNum/60;
+                    fourWeekRpZje = fourWeekRpZje + je*reqNum;
+                } else {
+                    continue;
+                }
+            }
+
+            String[] lpbzje = {String.format("%.2f",oneWeekLpZje/10000), String.format("%.2f",twoWeekLpZje/10000), String.format("%.2f",threeWeekLpZje/10000), String.format("%.2f",fourWeekLpZje/10000)};
+            String[] lppjje = {String.format("%.2f",aveLpZje), String.format("%.2f",aveLpZje), String.format("%.2f",aveLpZje), String.format("%.2f",aveLpZje)};
+            String[] lpbzgs = {String.format("%.2f",oneWeekLpZgs), String.format("%.2f",twoWeekLpZgs), String.format("%.2f",threeWeekLpZgs), String.format("%.2f",fourWeekLpZgs)};
+            String[] lppjgs = {String.format("%.2f",aveLpZgs), String.format("%.2f",aveLpZgs), String.format("%.2f",aveLpZgs), String.format("%.2f",aveLpZgs)};
+
+            String[] rpbzje = {String.format("%.2f",oneWeekRpZje/10000), String.format("%.2f",twoWeekRpZje/10000), String.format("%.2f",threeWeekRpZje/10000), String.format("%.2f",fourWeekRpZje/10000)};
+            String[] rppjje = {String.format("%.2f",aveRpZje), String.format("%.2f",aveRpZje), String.format("%.2f",aveRpZje), String.format("%.2f",aveRpZje)};
+            String[] rpbzgs = {String.format("%.2f",oneWeekRpZgs), String.format("%.2f",twoWeekRpZgs), String.format("%.2f",threeWeekRpZgs), String.format("%.2f",fourWeekRpZgs)};
+            String[] rppjgs = {String.format("%.2f",aveRpZgs), String.format("%.2f",aveRpZgs), String.format("%.2f",aveRpZgs), String.format("%.2f",aveRpZgs)};
+
+            outPutEchrtsOfQZVO.setLpbzgs(lpbzgs);
+            outPutEchrtsOfQZVO.setLpbzje(lpbzje);
+            outPutEchrtsOfQZVO.setLppjgs(lppjgs);
+            outPutEchrtsOfQZVO.setLppjje(lppjje);
+            outPutEchrtsOfQZVO.setRpbzgs(rpbzgs);
+            outPutEchrtsOfQZVO.setRpbzje(rpbzje);
+            outPutEchrtsOfQZVO.setRppjgs(rppjgs);
+            outPutEchrtsOfQZVO.setRppjje(rppjje);
+            outPutEchrtsOfQZVO.setTotalLpZgs(String.format("%.2f",totalLpZgs));
+            outPutEchrtsOfQZVO.setTotalLpZje(String.format("%.2f",totalLpZje/10000));
+            outPutEchrtsOfQZVO.setTotalRpZgs(String.format("%.2f",totalRpZgs));
+            outPutEchrtsOfQZVO.setTotalRpZje(String.format("%.2f",totalRpZje/10000));
+
+        }
+        return outPutEchrtsOfQZVO;
+    }
 
 }
 

@@ -333,6 +333,18 @@ public class SupplierController extends BladeController {
     }
 
     /**
+     * 采购送货计划表自己排程
+     */
+    @GetMapping("/caiGouScheduleAutoSort")
+    @ApiOperationSupport(order = 2)
+    @ApiOperation(value = "分页", notes = "CaiGouScheduleReq")
+    public
+    R<IPage<CaiGouSchedule>> caiGouScheduleAutoSort(CaiGouScheduleReq caiGouScheduleReq, Query query) throws RuntimeException{
+        IPage<CaiGouSchedule> pages = supplierService.caiGouScheduleAutoSort(Condition.getPage(query), caiGouScheduleReq);
+        return R.data(pages);
+    }
+
+    /**
      * 采购送货报表导出
      * @param caiGouScheduleReq
      * @param response
@@ -343,6 +355,20 @@ public class SupplierController extends BladeController {
     public void exportCaiGouAll(CaiGouScheduleReq caiGouScheduleReq , HttpServletResponse response) {
         supplierService.exportCaiGouAll(caiGouScheduleReq, response);
     }
+
+
+    /**
+     * 采购送货报表导出
+     * @param caiGouScheduleReq
+     * @param response
+     */
+    @GetMapping("/exportCaiGouAllAutoSort")
+    @ApiOperationSupport(order = 2)
+    @ApiOperation(value = "", notes = "prReq")
+    public void exportCaiGouAllAutoSort(CaiGouScheduleReq caiGouScheduleReq , HttpServletResponse response) {
+        supplierService.exportCaiGouAllAutoSort(caiGouScheduleReq, response);
+    }
+
 
     /**
      * 主界面  -- 导出

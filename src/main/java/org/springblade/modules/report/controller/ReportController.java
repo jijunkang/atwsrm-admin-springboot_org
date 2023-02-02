@@ -25,18 +25,19 @@ import org.springblade.modules.po.vo.PoItemVO;
 import org.springblade.modules.report.dto.*;
 import org.springblade.modules.report.entity.*;
 import org.springblade.modules.report.service.IReportService;
+import org.springblade.modules.report.vo.SupplierOutputQZVo;
 import org.springblade.modules.report.vo.SupplierOutputVo;
 import org.springblade.modules.supplier.dto.CaiGouScheduleReq;
 import org.springblade.modules.supplier.dto.SupplierScheduleReq;
 import org.springblade.modules.supplier.entity.CaiGouSchedule;
-import org.springblade.modules.supplier.entity.OtdReport;
-import org.springblade.modules.supplier.vo.OmsEchrtsOfSupplierVO;
+import org.springblade.modules.supplier.vo.OutPutEchrtsOfQZVO;
+import org.springblade.modules.supplier.vo.OutPutEchrtsOfDjVO;
+import org.springblade.modules.supplier.vo.OutPutEchrtsOfPtphVO;
 import org.springblade.modules.supplier.vo.OutPutEchrtsOfSupplierVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.*;
 
-import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletResponse;
 import java.math.BigDecimal;
 import java.util.List;
@@ -522,6 +523,30 @@ public class ReportController extends BladeController {
     }
 
     /**
+     * 喷涂喷焊产能图表
+     * @param
+     * @param
+     */
+    @GetMapping("/getPtphOutputEcharts")
+    @ApiOperationSupport(order = 2)
+    @ApiOperation(value = "", notes = "getPtphOutputEcharts")
+    public OutPutEchrtsOfPtphVO getPtphOutputEcharts(SupplierScheduleReq supplierScheduleReq) {
+        return reportService.getPtphOutputEcharts(supplierScheduleReq);
+    }
+
+    /**
+     * 锻件产能图表
+     * @param
+     * @param
+     */
+    @GetMapping("/getDjOutputEcharts")
+    @ApiOperationSupport(order = 2)
+    @ApiOperation(value = "", notes = "getDjOutputEcharts")
+    public OutPutEchrtsOfDjVO getDjOutputEcharts(SupplierScheduleReq supplierScheduleReq) {
+        return reportService.getDjOutputEcharts(supplierScheduleReq);
+    }
+
+    /**
      * 铸件模具管理报表
      * @param
      * @param
@@ -571,5 +596,39 @@ public class ReportController extends BladeController {
         reportService.exportMouldManagementWholeReport(mouldManagementWhole,response);
     }
 
+    /**
+     * 计算产能job(球座)
+     * @return
+     */
+    @ApiOperationSupport(order = 2)
+    @ApiOperation(value = "", notes = "supplierOutputReportQZJob")
+    @Scheduled(cron="0 0 7 * * ?")
+    void supplierOutputReportQZJob() {
+        reportService.supplierOutputReportQZJob();
+    }
+
+    /**
+     * 球座供应商产能溢出报表
+     * @param
+     */
+    @GetMapping("/qzOutputReport")
+    @ApiOperationSupport(order = 2)
+    @ApiOperation(value = "", notes = "qzOutputReport")
+    R<List<SupplierOutputQZVo>> getQZOutputReport(SupplierOutputVo supplierOutputVo, Query query) {
+        List<SupplierOutputQZVo> pages = reportService.getQZOutputReport(Condition.getPage(query), supplierOutputVo);
+        return R.data(pages);
+    }
+
+    /**
+     * 球座供应商产能溢出图表
+     * @param
+     * @return
+     */
+    @GetMapping("/getQZOutputEcharts")
+    @ApiOperationSupport(order = 2)
+    @ApiOperation(value = "", notes = "getsupplierOutputEcharts")
+    public OutPutEchrtsOfQZVO getQZOutputEcharts(SupplierScheduleReq supplierScheduleReq) {
+        return reportService.getQZOutputEcharts(supplierScheduleReq);
+    }
 
 }

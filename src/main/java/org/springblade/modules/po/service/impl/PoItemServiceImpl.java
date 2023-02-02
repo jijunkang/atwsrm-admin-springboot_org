@@ -232,7 +232,7 @@ class PoItemServiceImpl extends BaseServiceImpl<PoItemMapper, PoItemEntity> impl
             .like(StringUtil.isNotBlank(poItem.getEndUser()), "end_user", poItem.getEndUser())
             .eq(StringUtil.isNotBlank(poItem.getMoNo()), "mo_no", poItem.getMoNo())
             .apply(StringUtil.isNotBlank(poItem.getItemCode()) && length > 1, "FIND_IN_SET (" + "item_code,'"+ poItem.getItemCode() +"')")
-            .orderByAsc("po_code","tc_num","item_code");
+            .orderByAsc("sup_confirm_date","tc_num","item_code");
 
         if (!StringUtil.isEmpty(poItem.getIsSupUpdate())) {
             query.eq("is_sup_update", poItem.getIsSupUpdate());

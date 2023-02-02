@@ -39,4 +39,6 @@ public class PoReceiveDTO extends PoReceiveEntity {
 
     private String orgCode;//组织代码
 
+    private String isNew;//组织代码
+
 }

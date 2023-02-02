@@ -26,6 +26,9 @@ public class SupplierOutputFromOracle extends BaseEntity {
     @ApiModelProperty(value = "供应商编号")
     private String supCode;
 
+    @ApiModelProperty(value = "供应商简称")
+    private String supName;
+
     @ApiModelProperty(value = "物料编码")
     private String itemCode;
 
@@ -35,10 +38,10 @@ public class SupplierOutputFromOracle extends BaseEntity {
     @ApiModelProperty(value = "项目号")
     private String proNo;
 
-    @ApiModelProperty(value = "单位产能")
+    @ApiModelProperty(value = "单位工时")
     private String outputCent;
 
-    @ApiModelProperty(value = "单位工时")
+    @ApiModelProperty(value = "单位产能")
     private String weightCent;
 
     @ApiModelProperty(value = "工艺")
@@ -63,6 +66,7 @@ public class SupplierOutputFromOracle extends BaseEntity {
     @ApiModelProperty(value = "未交货数量")
     private String notRcvNum;
 
-
+    @ApiModelProperty(value = "时间【已经区分好了 planDate or wwpoDate】")
+    private String date;
 
 }

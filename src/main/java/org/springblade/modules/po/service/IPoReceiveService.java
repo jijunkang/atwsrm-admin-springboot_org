@@ -44,6 +44,8 @@ public interface IPoReceiveService extends BaseService<PoReceiveEntity> {
 
     R createAsR(List<PoReceiveDTO> poReceiveList);
 
+    R checkPO(List<PoReceiveDTO> poReceiveList);
+
     QueryWrapper<PoReceiveEntity> getQueryWrapper(PoReceiveEntity poReceive);
 
     R reCreateAsR(List<PoReceiveDTO> poReceiveList);

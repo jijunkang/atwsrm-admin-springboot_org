@@ -76,161 +76,161 @@ public class MouldManagementWholeEntity extends BaseEntity {
     /**
      * 试样申请日期
      */
-    @Excel(name = "试样申请日期")
+    @Excel(name = "试样申请日期",format = "yyyy-MM-dd")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date sampleApplyDate;
 
     /**
      * pr日期
      */
-    @Excel(name = "pr日期")
+    @Excel(name = "pr日期",format = "yyyy-MM-dd")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date prDate;
 
     /**
      * 模具图纸上传日期
      */
-    @Excel(name = "模具图纸上传日期")
+    @Excel(name = "模具图纸上传日期",format = "yyyy-MM-dd")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date mjPaperUpdate;
 
     /**
      * 计划模具po日期
      */
-    @Excel(name = "计划模具po日期")
+    @Excel(name = "计划模具po日期",format = "yyyy-MM-dd")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date planDate1;
 
     /**
      * 实际模具po日期
      */
-    @Excel(name = "系列")
+    @Excel(name = "系列",format = "yyyy-MM-dd")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date realDate1;
 
     /**
      * 计划模具完成日期
      */
-    @Excel(name = "计划模具完成日期")
+    @Excel(name = "计划模具完成日期",format = "yyyy-MM-dd")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date planDate2;
 
     /**
      * 实际模具完成日期
      */
-    @Excel(name = "实际模具完成日期")
+    @Excel(name = "实际模具完成日期",format = "yyyy-MM-dd")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date realDate2;
 
     /**
      * 计划模具检验完成日期
      */
-    @Excel(name = "计划模具检验完成日期")
+    @Excel(name = "计划模具检验完成日期",format = "yyyy-MM-dd")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date planDate3;
 
     /**
      * 实际模具检验完成日期
      */
-    @Excel(name = "实际模具检验完成日期")
+    @Excel(name = "实际模具检验完成日期",format = "yyyy-MM-dd")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date realDate3;
 
     /**
      * 计划试样订单下达日期
      */
-    @Excel(name = "计划试样订单下达日期")
+    @Excel(name = "计划试样订单下达日期",format = "yyyy-MM-dd")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date planDate4;
 
     /**
      * 实际试样订单下达日期
      */
-    @Excel(name = "实际试样订单下达日期")
+    @Excel(name = "实际试样订单下达日期",format = "yyyy-MM-dd")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date realDate4;
 
     /**
      * 计划试样铸件完成日期
      */
-    @Excel(name = "计划试样铸件完成日期")
+    @Excel(name = "计划试样铸件完成日期",format = "yyyy-MM-dd")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date planDate5;
 
     /**
      * 实际试样铸件完成日期
      */
-    @Excel(name = "实际试样铸件完成日期")
+    @Excel(name = "实际试样铸件完成日期",format = "yyyy-MM-dd")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date realDate5;
 
     /**
      * 计划样品检验完成日期
      */
-    @Excel(name = "计划样品检验完成日期")
+    @Excel(name = "计划样品检验完成日期",format = "yyyy-MM-dd")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date planDate6;
 
     /**
      * 实际样品检验完成日期
      */
-    @Excel(name = "实际样品检验完成日期")
+    @Excel(name = "实际样品检验完成日期",format = "yyyy-MM-dd")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date realDate6;
 
     /**
      * 计划加工(厂内/厂外）完成日期
      */
-    @Excel(name = "计划加工(厂内/厂外）完成日期")
+    @Excel(name = "计划加工(厂内/厂外）完成日期",format = "yyyy-MM-dd")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date planDate7;
 
     /**
      * 实际加工(厂内/厂外）完成日期
      */
-    @Excel(name = "实际加工(厂内/厂外）完成日期")
+    @Excel(name = "实际加工(厂内/厂外）完成日期",format = "yyyy-MM-dd")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date realDate7;
 
     /**
      * 计划试装物料确认到位日期
      */
-    @Excel(name = "计划试装物料确认到位日期")
+    @Excel(name = "计划试装物料确认到位日期",format = "yyyy-MM-dd")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date planDate8;
 
     /**
      * 实际试装物料确认到位日期
      */
-    @Excel(name = "实际试装物料确认到位日期")
+    @Excel(name = "实际试装物料确认到位日期",format = "yyyy-MM-dd")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date realDate8;
 
     /**
      * 计划样品装配试压完成日期
      */
-    @Excel(name = "计划样品装配试压完成日期")
+    @Excel(name = "计划样品装配试压完成日期",format = "yyyy-MM-dd")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date planDate9;
 
     /**
      * 实际样品装配试压完成日期
      */
-    @Excel(name = "实际样品装配试压完成日期")
+    @Excel(name = "实际样品装配试压完成日期",format = "yyyy-MM-dd")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date realDate9;
 
     /**
      * 计划试样完成日期（品管签字）
      */
-    @Excel(name = "计划试样完成日期（品管签字）")
+    @Excel(name = "计划试样完成日期（品管签字）",format = "yyyy-MM-dd")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date planDate10;
 
     /**
      * 实际试样完成日期（品管签字）
      */
-    @Excel(name = "实际试样完成日期（品管签字）")
+    @Excel(name = "实际试样完成日期（品管签字）",format = "yyyy-MM-dd")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date realDate10;
 

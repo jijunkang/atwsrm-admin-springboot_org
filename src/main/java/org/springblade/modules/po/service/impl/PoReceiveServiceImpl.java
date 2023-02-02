@@ -198,6 +198,41 @@ class PoReceiveServiceImpl extends BaseServiceImpl<PoReceiveMapper, PoReceiveEnt
         return R.data(rcvNo);
     }
 
+    @Override
+    public R checkPO(List<PoReceiveDTO> poReceiveList) {
+        for (PoReceiveDTO item : poReceiveList) {
+            if ("Y".equals(item.getIsNew()) && !item.getItemCode().startsWith("20") && !item.getItemCode().startsWith("17")) {
+                //判断是否存在更早的
+                List<PoReceiveDTO> existItemList = this.baseMapper.checkLastestPO(item.getSupCode(), item.getItemCode(), item.getPoCode(), item.getPoLn());
+                if (existItemList.size() <= 0) {
+                    //不存在先不作处理
+                } else {
+
+                    //判断是否在列表中
+                    for (PoReceiveDTO existItem : existItemList) {
+                        Boolean isExistInList = isExistInList(poReceiveList, existItem);
+                        if(isExistInList==false){
+                            return R.fail("不可以选择,因为这个"+existItem.getItemCode()+"物料还有更早的行，请按照顺序选择");
+                        }
+                    }
+                }
+            }
+        }
+        return R.success("可以选择");
+    }
+
+    private Boolean isExistInList(List<PoReceiveDTO> poReceiveList, PoReceiveDTO existItem) {
+        for (PoReceiveDTO selectItem : poReceiveList) {
+            if(selectItem.getPoCode()==null){
+                continue;
+            }
+            if (selectItem.getPoLn().equals(existItem.getPoLn()) && selectItem.getPoCode().equals(existItem.getPoCode())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 
     private void checkOrder(List<PoReceiveDTO> poReceiveList, PoReceiveDTO poReceiveDTO) {
 
@@ -243,7 +278,8 @@ class PoReceiveServiceImpl extends BaseServiceImpl<PoReceiveMapper, PoReceiveEnt
 
     private void checkOrganize(List<PoReceiveDTO> poReceiveList, PoReceiveDTO poReceiveDTO) {
         String orgCode = StringUtil.isBlank(poReceiveDTO.getOrgCode())?"001":poReceiveDTO.getOrgCode();
-        if(orgCode!=null&&!orgCode.equals(poReceiveList.get(0).getOrgCode())){
+        String POorgCode = StringUtil.isBlank(poReceiveList.get(0).getOrgCode()) ?"001":poReceiveList.get(0).getOrgCode();
+        if(orgCode!=null&&!orgCode.equals(POorgCode)){
             throw new RuntimeException("不同组织的订单，不允许一起打印： " + poReceiveDTO.getPoCode()+" "+ poReceiveDTO.getPoLn());
         }
     }

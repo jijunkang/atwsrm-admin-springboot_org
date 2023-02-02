@@ -213,6 +213,16 @@ public class PoReceiveController extends BladeController {
         return poReceiveService.createAsR(poReceiveList);
     }
 
+    /**
+     * 校验送货单行是否可选
+     */
+    @PostMapping("/checkPO")
+    @ApiOperationSupport(order = 4)
+    @ApiOperation(value = "创建送货单", notes = "传入poReceive")
+    public R checkPO(@Valid @RequestBody List<PoReceiveDTO> poReceiveList) {
+        return poReceiveService.checkPO(poReceiveList);
+    }
+
 
     /**
      * 创建送货单

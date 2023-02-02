@@ -695,7 +695,7 @@
                 and INSTR(`fz_coat`,#{itemInfoEntity.fzCoat})
             </if>
 
-        GROUP BY  k
+        GROUP BY  k,sup_code
 
     </select>
 

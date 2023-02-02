@@ -19,12 +19,12 @@ spring:
       strict: false
       datasource:
         master:
-          url: jdbc:mysql://10.29.1.216:3306/db_atwsrm3?useSSL=false&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&serverTimezone=GMT%2B8&nullCatalogMeansCurrent=true&allowPublicKeyRetrieval=true
-          username: root
-          password: atwadmin
-#          url: jdbc:mysql://10.29.1.59:3306/db_atwsrm3?useSSL=false&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&serverTimezone=GMT%2B8&nullCatalogMeansCurrent=true&allowPublicKeyRetrieval=true
-#          username: db_atwsrm3
-#          password: '!6U0Ulu6hEBvYxwQ'
+#          url: jdbc:mysql://10.29.1.216:3306/db_atwsrm3?useSSL=false&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&serverTimezone=GMT%2B8&nullCatalogMeansCurrent=true&allowPublicKeyRetrieval=true
+#          username: root
+#          password: atwadmin
+          url: jdbc:mysql://10.29.1.59:3306/db_atwsrm3?useSSL=false&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&serverTimezone=GMT%2B8&nullCatalogMeansCurrent=true&allowPublicKeyRetrieval=true
+          username: db_atwsrm3
+          password: '!6U0Ulu6hEBvYxwQ'
         oracle:
           url: jdbc:oracle:thin:@10.29.1.215:1521:atwdb
           username: atwsrm

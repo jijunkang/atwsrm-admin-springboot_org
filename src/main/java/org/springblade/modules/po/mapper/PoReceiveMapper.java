@@ -63,6 +63,16 @@ public interface PoReceiveMapper extends BaseMapper<PoReceiveEntity> {
     @Select("select is_out_check from atw_po_receive where rcv_code = #{rcvCode} and is_deleted = 0 group by is_out_check")
     String getIsOutCheck(@Param("rcvCode") String  rcvCode);
 
+    @Select("SELECT\n" +
+        "\t*\n" +
+        "FROM\n" +
+        "\tatw_po_item \n" +
+        "WHERE\n" +
+        "\tis_deleted = 0 \n" +
+        "\tAND ( pro_goods_num > 0 AND STATUS = 20 AND sup_code = #{sup_code} AND item_code = #{item_code} )\n" +
+        "\tAND\t\tsup_confirm_date<(select sup_confirm_date  from  atw_po_item where po_code=#{po_code} and po_ln=#{po_ln})")
+    List<PoReceiveDTO>  checkLastestPO(@Param("sup_code") String  sup_code,@Param("item_code") String  item_code,@Param("po_code") String  po_code,@Param("po_ln") String  po_ln);
+
     @Select("select count(*) from atw_po_receive where rcv_code = #{rcvCode} and is_deleted = 0 and status in ('20','22','24','25')")
     int  getCountByRcvCode( @Param("rcvCode") String  rcvCode);
 
