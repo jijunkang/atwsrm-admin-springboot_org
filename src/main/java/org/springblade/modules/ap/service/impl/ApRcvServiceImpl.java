@@ -1,17 +1,20 @@
 package org.springblade.modules.ap.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.google.api.client.util.ArrayMap;
 import com.google.api.client.util.Lists;
 import io.swagger.models.auth.In;
+import lombok.extern.java.Log;
 import org.springblade.common.utils.ExcelUtils;
 import org.springblade.common.utils.WillDateUtil;
 import org.springblade.core.mp.base.BaseServiceImpl;
 import org.springblade.core.mp.support.Condition;
 import org.springblade.core.secure.BladeUser;
 import org.springblade.core.secure.utils.AuthUtil;
+import org.springblade.core.tool.api.R;
 import org.springblade.core.tool.utils.BeanUtil;
 import org.springblade.core.tool.utils.DateUtil;
 import org.springblade.core.tool.utils.Func;
@@ -19,6 +22,7 @@ import org.springblade.core.tool.utils.StringUtil;
 import org.springblade.modules.ap.dto.*;
 import org.springblade.modules.ap.entity.ApRcvEntity;
 import org.springblade.modules.ap.entity.ApRcvReqEntity;
+import org.springblade.modules.ap.entity.ApReqSettle;
 import org.springblade.modules.ap.mapper.ApRcvMapper;
 import org.springblade.modules.ap.service.IApRcvService;
 import org.springblade.modules.ap.service.IApService;
@@ -27,6 +31,7 @@ import org.springblade.modules.ncr.entity.NcrEntity;
 import org.springblade.modules.ncr.service.INcrService;
 import org.springblade.modules.po.entity.PoEntity;
 import org.springblade.modules.po.entity.PoItemEntity;
+import org.springblade.modules.pr.entity.ItemInfoEntityOfQZ;
 import org.springblade.modules.system.service.IParamService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -38,12 +43,17 @@ import javax.servlet.http.HttpServletResponse;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
+import java.util.stream.Collectors;
+
+import static org.springblade.common.utils.ItemAnalysisUtil.getItemInfoOfFZ;
+import static org.springblade.common.utils.ItemAnalysisUtil.getItemInfoOfQiuZuo;
 
 /**
  *  服务实现类
  *
  * @author Will
  */
+@Log
 @Service
 public class ApRcvServiceImpl extends BaseServiceImpl<ApRcvMapper, ApRcvEntity> implements IApRcvService {
 
@@ -74,7 +84,135 @@ public class ApRcvServiceImpl extends BaseServiceImpl<ApRcvMapper, ApRcvEntity> 
 
     @Override
     public IPage<ApRcvEntity> getPage(IPage<ApRcvEntity> page, ApReq apReq) {
-        return this.baseMapper.getPage(page, apReq);
+        IPage<ApRcvEntity> apRcvEntityIPage = this.baseMapper.getPage(page, apReq);
+
+        // 球座排序
+        if(apReq.getItemName()!=null && apReq.getItemName().equals("球")) {
+            apReq.setItemName("阀座");
+            List<ApRcvEntity> apRcvEntityList = this.getQTFZList(apReq,apRcvEntityIPage.getRecords());
+            apRcvEntityIPage.setRecords(apRcvEntityList);
+        }
+
+        return apRcvEntityIPage;
+    }
+
+
+    private List<ApRcvEntity> getQTFZList(ApReq apReq ,List<ApRcvEntity> qtList) {
+        List<ApRcvEntity> fzEntityList = this.baseMapper.getList(apReq);
+
+        Map<String, ApRcvEntity> qtfzMap = new LinkedHashMap<>();
+        Map<String, ApRcvEntity> fzMap = new LinkedHashMap<>();
+        Map<String, ApRcvEntity> qtMap = new LinkedHashMap<>();
+
+        // 将 阀座 List 变为 MAP
+        for (ApRcvEntity item : fzEntityList) {
+            ItemInfoEntityOfQZ itemInfoEntity = getItemInfoOfFZ(item.getItemName());
+            String name1 = "阀座"; // 阀座
+            String name2 = item.getItemName().split("-")[1]; // 规格
+            String name3 = itemInfoEntity.getMaterial(); // 材质
+            if ("Monel400".equals(name3)) {
+                name3 = "MonelK500";  // 3、球体材质MonelK500阀座Monel400排序在一起；
+            }
+            String name4 = itemInfoEntity.getFzCoat(); // 喷涂材质
+            String key = name1 + name2 + name3 + name4;
+            fzMap.put(key, item);
+        }
+
+
+        // 处理其他因素,先排序球体
+        boolean isExistQZ = true;
+        int name6 = 0;
+        for (ApRcvEntity dto : qtList) {
+            if(!dto.getItemName().split("-")[0].equals("球体")) {
+                String qzKey = "球座其他" + name6;
+                qtMap.put(qzKey, dto);
+                name6++;
+                continue;
+            }
+            // 拆解
+            ItemInfoEntityOfQZ itemInfoEntity = getItemInfoOfQiuZuo(dto.getItemName());
+            String name1 = "球座";
+            String name2 = dto.getItemName().split("-")[1]; // 规格
+            String name3 = itemInfoEntity.getMaterial(); // 材质
+            String name4 = itemInfoEntity.getCoat(); // 喷涂材质
+            if (name4.equals("G20")) {
+                name4 = "G14";
+            }
+            String name5 = "Y";
+            if (dto.getItemName().split("-")[1].indexOf("F") > -1) {
+                name5 = "F";
+            }
+            String qzKey = name1 + name2 + name3 + name4 + name5 + "-" + name6;
+            qtMap.put(qzKey, dto);
+            name6++;
+        }
+        // 将排好序并且去重后的MAP转换成list
+        Map<String, ApRcvEntity> sortedQzMap = qtMap.entrySet().stream().sorted(Map.Entry.comparingByKey()).collect(Collectors.toMap(
+            Map.Entry::getKey,
+            Map.Entry::getValue,
+            (oldVal, newVal) -> oldVal,
+            LinkedHashMap::new
+        ));
+        qtList = sortedQzMap.values().stream().collect(Collectors.toList());
+
+
+        // 开始匹配 球体 和 阀座
+        for (ApRcvEntity dto : qtList) {
+            // 先在最终的MAP中插入球体数据
+            String key = dto.getRcvCode() + dto.getRcvLn() + dto.getItemCode();
+            qtfzMap.put(key, dto);
+
+            // 开始匹配对应的阀座
+            String itemName = dto.getItemName(); // 球体信息
+            if (itemName.split("-").length > 2 && itemName.split("-")[0].toString().equals("球体") && itemName.split("-")[1].indexOf("F") < 0 && isExistQZ) { // 球体且不包含软密封（规格不能有 F）
+                Map<String, ApRcvEntity> matchFzMap = this.getMatchFzInfo(itemName, fzMap);
+                if (!matchFzMap.isEmpty()) {
+                    for (String tempKey : matchFzMap.keySet()) {
+                        // 得到与球座相匹配的阀座
+                        ApRcvEntity apRcvEntity = matchFzMap.get(tempKey);
+                        // fz的key值： prCode + prLn + itemCode
+                        String fzKey = apRcvEntity.getRcvCode() + apRcvEntity.getRcvLn() + apRcvEntity.getItemCode();
+                        // 判断最终的球座&&阀座集合里面是否已经存在，是，则移除；(为了将阀座放在球体下面，一个阀座可能对应多个球体)
+                        if (qtfzMap.containsKey(fzKey)) {
+                            qtfzMap.remove(fzKey);
+                        }
+
+                        // 在最终集合里面添加 阀座信息
+                        qtfzMap.put(fzKey, apRcvEntity);
+                    }
+                }
+            }
+        }
+        return qtfzMap.values().stream().collect(Collectors.toList());
+    }
+
+    private Map<String, ApRcvEntity> getMatchFzInfo(String itemname, Map<String, ApRcvEntity> fzMap) {
+        Map<String, ApRcvEntity> matchFzMap = new LinkedHashMap<>();
+        // 拆解
+        ItemInfoEntityOfQZ itemInfoEntity = getItemInfoOfQiuZuo(itemname);
+        String name1 = "阀座";
+        String name2 = itemname.split("-")[1]; // 规格
+        String name3 = itemInfoEntity.getMaterial(); // 材质
+        String name4 = itemInfoEntity.getCoat(); // 喷涂材质
+        String name5 = "G50";// 表面处理
+
+        if("G20".equals(name4) ||"G14".equals(name4) ) {
+            name4 = "G06";
+        } else if("G06".equals(name4)) {
+            name4 = "G05";
+        } else {
+            name4 = "";
+        }
+        // 键
+        String key1 = name1 + name2 + name3 + name4;
+        String key2 = name1 + name2 + name3 + name4 + "+" + name5;
+        if(fzMap.containsKey(key1)) {
+            matchFzMap.put(key1,fzMap.get(key1));
+        }
+        if(fzMap.containsKey(key2)) {
+            matchFzMap.put(key2,fzMap.get(key2));
+        }
+        return matchFzMap;
     }
 
     @Override
@@ -105,6 +243,44 @@ public class ApRcvServiceImpl extends BaseServiceImpl<ApRcvMapper, ApRcvEntity> 
 
         return apRcvReqEntityIPage;
 
+    }
+
+    @Override
+    @Transactional
+    public R deleteVmiSettle(ApReq apReq) {
+        log.info("/aprcv/deleteVmiSettle"+JSON.toJSONString(apReq));
+
+        //校验atw_ap_req_settle 是否已经被对账
+        int accumCount = this.baseMapper.getAccumCount(apReq.getRcvCode());
+        if (accumCount>0){
+            return R.fail(apReq.getRcvCode()+"这个结算单已经对账了");
+        }
+        //反冲数据
+        List<ApReqSettle> apReqSettleBySettleCode = this.baseMapper.getApReqSettleBySettleCode(apReq.getRcvCode());
+        if(apReqSettleBySettleCode.size()<=0){
+            return R.fail(apReq.getRcvCode()+"没有找到这个结算单");
+        }
+
+        for (ApReqSettle apReqSettle: apReqSettleBySettleCode) {
+
+            String reqRcvNum = apReqSettle.getReqRcvNum();
+            //req_rcv_code req_rcv_ln搜索
+            //ApRcvEntity apReqByCodeLn = this.baseMapper.getApReqByCodeLn(apReqSettle.getReqRcvCode(), apReqSettle.getReqRcvLn());
+            this.baseMapper.updateApReqByCodeLn(apReqSettle.getReqRcvCode(), apReqSettle.getReqRcvLn(),reqRcvNum);
+
+        }
+
+
+        //删除atw_ap_req_settle中的数据
+        this.baseMapper.deleteSettleRcv(apReq.getRcvCode());
+
+        //删除atw_ap_rcv表中的数据
+        this.baseMapper.deleteApRcv(apReq.getRcvCode());
+
+
+
+
+        return R.success("成功");
     }
 
     @Override

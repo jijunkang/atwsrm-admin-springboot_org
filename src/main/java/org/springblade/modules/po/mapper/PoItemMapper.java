@@ -17,6 +17,7 @@ import org.springblade.modules.po.vo.PoItemNewReportVO;
 import org.springblade.modules.po.vo.PoItemExcelVO;
 import org.springblade.modules.po.vo.PoItemNewVO;
 import org.springblade.modules.po.vo.PoItemVO;
+import org.springblade.modules.supplier.entity.CaiGouSchedule;
 import org.springframework.core.annotation.Order;
 
 import java.math.BigDecimal;
@@ -37,6 +38,10 @@ public interface PoItemMapper extends BaseMapper<PoItemEntity> {
     PoItemEntity getLastPoInfo(@Param("itemCode")String itemCode,@Param("itemName")String itemName);
 
     IPage<PoItemVO> pageWithPr(IPage<Object> page,PoItemDTO poItem );
+
+    IPage<PoItemVO> pageWithPrList(IPage<Object> page,PoItemDTO poItem );
+
+    List<PoItemVO> fzPrList(@Param("poItem") PoItemDTO poItem);
 
     IPage<PoItemVO> pageWithItemPoContract(IPage<Object> page,PoItemDTO poItem );
 
@@ -118,7 +123,7 @@ public interface PoItemMapper extends BaseMapper<PoItemEntity> {
 
     List<PoItemVO> getHistoryPrice(IPage page, String itemCode);
 
-    List<PoItemNewVO> getExcelData(@Param("poItemEntity") PoItemEntity poItemEntity);
+    List<PoItemVO> getExcelData(@Param("poItemEntity") PoItemEntity poItemEntity);
 
     @Select("select COALESCE(SUM(rcv_num),0) from atw_po_receive where pi_id = #{piId} and is_deleted = 0 and status <=30")
     Integer getRcvAllNumByPiId(String piId);
@@ -161,4 +166,22 @@ public interface PoItemMapper extends BaseMapper<PoItemEntity> {
     @DS("oracle")
     @SqlParser(filter = true)
     List<PoItemEntity> getPoItemEntityPageFromOracleList(@Param("poItem")PoItemDTO poItem);
+
+    @Select("select * from atw_po_item where is_reserve='Y'")
+    List<PoItemEntity> selectPoItemLock();
+
+    @Select("select * from atw_caigou_plan_data_lock where po_code=#{poCode} and po_ln=#{poLn} ORDER BY req_date LIMIT 1")
+    CaiGouSchedule isLocked(@Param("poCode") String poCode, @Param("poLn") String poLn);
+
+    @Update("update atw_po_item set sup_confirm_date=#{SupConfirmDate},is_reserve='' where po_code=#{poCode} and po_ln=#{poLn}")
+    Boolean updateSupConfirmDateJOB(@Param("SupConfirmDate")Long SupConfirmDate,@Param("poCode") String poCode, @Param("poLn") String poLn);
+
+    @Update("update atw_po_item set sup_confirm_date=#{SupConfirmDate} where pr_code=#{poCode} and pr_ln=#{poLn}")
+    Boolean updateSupConfirmDate(@Param("SupConfirmDate")Long SupConfirmDate,@Param("poCode") String poCode, @Param("poLn") String poLn);
+
+    @Select("select * from atw_po where is_reserve='Y' and  id not in (select DISTINCT a.id from atw_po a left join atw_po_item b on a.order_code=b.po_code where a.is_reserve='Y' and b.is_reserve='Y')")
+    List<PoEntity> selectUnLockPo();
+
+    @Update("update atw_po set is_reserve=''  where id=#{id}")
+    Boolean updateIsReserve(@Param("id")Long id);
 }

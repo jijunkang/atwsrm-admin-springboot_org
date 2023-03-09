@@ -31,6 +31,7 @@ import org.springblade.modules.item.dto.ItemMoreReq;
 import org.springblade.modules.item.dto.ItemReq;
 import org.springblade.modules.item.dto.SupItemSaveDTO;
 import org.springblade.modules.item.entity.Item;
+import org.springblade.modules.item.mapper.ItemMapper;
 import org.springblade.modules.item.service.IItemService;
 import org.springblade.modules.item.vo.ItemVO;
 import org.springblade.modules.item.wrapper.ItemWrapper;
@@ -55,6 +56,7 @@ import java.util.List;
 public class ItemController extends BladeController {
 
     private IItemService itemService;
+    private ItemMapper itemMapper;
 
     /**
      * 详情
@@ -63,8 +65,9 @@ public class ItemController extends BladeController {
     @ApiOperationSupport(order = 1)
     @ApiOperation(value = "详情", notes = "传入item")
     public R<ItemVO> detail(Item item) {
-        Item detail = itemService.getOne(Condition.getQueryWrapper(item));
-        return R.data(ItemWrapper.build().entityVO(detail));
+        //Item detail = itemService.getOne(Condition.getQueryWrapper(item));
+        List<ItemVO> records =  itemMapper.selectItemPage(null, item);
+        return R.data(ItemWrapper.build().entityVO(records.get(0)));
     }
 
     /**

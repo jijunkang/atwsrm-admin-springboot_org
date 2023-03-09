@@ -68,6 +68,9 @@ public interface U9PrMapper extends BaseMapper<U9PrEntity> {
 
     List<U9PrDTO> selectFlowCheckList(@Param("prReq") PrReq prReq);
 
+    @Select("select count(1) from atw_po where is_reserve='Y'")
+    int getPoReserveCount();
+
     List<U9PrDTO> selectFlowCheckListOfOthers(@Param("prReq") PrReq prReq);
 
     String selectSupRemarks(@Param("qoNo") String qoNo, @Param("itemDesc") String itemDesc);
@@ -306,6 +309,8 @@ public interface U9PrMapper extends BaseMapper<U9PrEntity> {
     Integer isExistedDjAutoOrder(@Param("prCode") String prCode,@Param("prLn") String prLn,@Param("supCode") String supCode);
 
     List<U9PrDTO> selectFzList(@Param("itemCode") String itemCode,@Param("statuss") String statuss);
+
+    List<U9PrDTO> selectAllFzList(@Param("statuss") String statuss);
 
     IPage<AutoOrderOfDJ> getAutoOrderOfDJ(IPage<AutoOrderOfDJ> page,@Param("req") SubmitPriceReq req);
 

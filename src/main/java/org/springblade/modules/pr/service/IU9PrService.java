@@ -114,6 +114,13 @@ interface IU9PrService extends BaseService<U9PrEntity>{
      */
     int flowCount();
 
+
+    /**
+     * 预订单数量
+     * @return
+     */
+    int poReserveCount();
+
     /**
      * 流标数量_小零件
      * @return

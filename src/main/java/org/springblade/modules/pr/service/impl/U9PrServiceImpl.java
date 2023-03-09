@@ -192,6 +192,7 @@ class U9PrServiceImpl extends BaseServiceImpl<U9PrMapper, U9PrEntity> implements
             .like(StringUtils.isNotBlank(u9Pr.getPurchName()), "purch_name", u9Pr.getPurchName())
             .eq(u9Pr.getStatus() != null, "status", u9Pr.getStatus())
             .eq(StringUtils.isNotBlank(u9Pr.getMoNo()), "mo_no", u9Pr.getMoNo())
+            .eq(StringUtils.isNotBlank(u9Pr.getOrgcode()), "OrgCode", u9Pr.getOrgcode())
             .like(StringUtils.isNotBlank(u9Pr.getLastSupName()), "last_sup_name", u9Pr.getLastSupName());
     }
 
@@ -223,7 +224,10 @@ class U9PrServiceImpl extends BaseServiceImpl<U9PrMapper, U9PrEntity> implements
         io.setSupName(sup.getName());
         //是否按重量计算
         io.setIsByWeight(dto.getIsByWeight());
-        io.setPromiseDate(dto.getPromiseDate().getTime() / 1000 + 8 * 3600);
+        if(dto.getPromiseDate()!=null){
+            io.setPromiseDate(dto.getPromiseDate().getTime() / 1000 + 8 * 3600);
+        }
+
         io.setIsPersent(dto.getIsPersent());
         io.setQuotePrice(dto.getQuotePrice());
         io.setQuoteDate(new Date().getTime() / 1000);
@@ -574,6 +578,22 @@ class U9PrServiceImpl extends BaseServiceImpl<U9PrMapper, U9PrEntity> implements
         // 自动下单
         List<SubmitPriceDTO> items = submitPriceReq.getSubmitPriceDTOs();
         for (SubmitPriceDTO item : items) {
+            if (!item.getItemCode().startsWith("15110")
+                && !item.getItemCode().startsWith("130301")
+                && !item.getItemCode().startsWith("130302")
+                && !item.getItemCode().startsWith("130101")
+                && !item.getItemCode().startsWith("130102")
+                && !item.getItemCode().startsWith("131111")
+                && !item.getItemCode().startsWith("131106")
+                && item.getItemName().indexOf("锻")<0
+            ) {
+                //不属于关键物料
+                if (item.getPromiseDate()==null){
+                    throw new RuntimeException("非关键物料的承诺交期必填");
+                }
+
+            }
+
             result = submitPrice(item);
         }
         return result;
@@ -963,6 +983,59 @@ class U9PrServiceImpl extends BaseServiceImpl<U9PrMapper, U9PrEntity> implements
         }
 
         Map<String, U9PrDTO> qzfzMap = new LinkedHashMap<>();
+        Map<String, U9PrDTO> fzMap = new LinkedHashMap<>();
+        Map<String, U9PrDTO> qzMap = new LinkedHashMap<>();
+
+        boolean isExistQZ = false;
+
+        // 若查询球
+        if(prReq.getItemName()!=null && !prReq.getItemName().isEmpty() && prReq.getItemName().indexOf("球")>-1) {
+            isExistQZ = true;
+            fzMap = this.getFzMap(prReq);
+            int name6 = 0;
+            for(U9PrDTO dto : retPage.getRecords()) {
+
+                if(!dto.getItemName().split("-")[0].equals("球体")) {
+                    String qzKey = "球座其他" + name6;
+                    qzMap.put(qzKey, dto);
+                    name6++;
+                    continue;
+                }
+
+                // 拆解
+                ItemInfoEntityOfQZ itemInfoEntity = getItemInfoOfQiuZuo(dto.getItemName());
+                if(itemInfoEntity==null || itemInfoEntity.getMaterial()==null || itemInfoEntity.getCoat()==null) {
+                    String qzKey = "球座其他" + name6;
+                    qzMap.put(qzKey, dto);
+                    name6++;
+                    continue;
+                }
+                String name1 = "球座";
+                String name2 = dto.getItemName().split("-")[1]; // 规格
+                String name3 = itemInfoEntity.getMaterial(); // 材质
+                String name4 = itemInfoEntity.getCoat(); // 喷涂材质
+                if(name4.equals("G20")) {
+                    name4 = "G14";
+                }
+                String name5 = "Y";
+                if(dto.getItemName().split("-")[1].indexOf("F") > -1) {
+                    name5 = "F";
+                }
+                String qzKey = name1+name2+name3+name4+name5+"-"+name6;
+                qzMap.put(qzKey,dto);
+                name6++;
+            }
+
+            // 将排好序并且去重后的MAP转换成list
+            Map<String, U9PrDTO> sortedQzMap = qzMap.entrySet().stream().sorted(Map.Entry.comparingByKey()).collect(Collectors.toMap(
+                Map.Entry::getKey,
+                Map.Entry::getValue,
+                (oldVal, newVal) -> oldVal,
+                LinkedHashMap::new
+            ));
+            retList = sortedQzMap.values().stream().collect(Collectors.toList());
+            retPage.setRecords(retList);
+        }
 
         // 第一次将球座的阀座信息都带出来
         for (U9PrDTO dto : retPage.getRecords()) {
@@ -972,30 +1045,42 @@ class U9PrServiceImpl extends BaseServiceImpl<U9PrMapper, U9PrEntity> implements
 
             // 球座附带阀座信息新增逻辑
             String itemName = dto.getItemName();
-            String FZItemInfo = "";
-            if (itemName.indexOf("球") > -1) {
-                FZItemInfo = this.getFZItemInfo(dto.getItemCode());
-                dto.setRelationFzItemInfo(FZItemInfo);
-            }
-            if (!FZItemInfo.isEmpty()) {
-                List<String> fzItemCodeList = Arrays.asList(FZItemInfo.split(","));
-                for (String fzItemCode : fzItemCodeList) {
-                    List<U9PrDTO> listFz = this.baseMapper.selectFzList(fzItemCode.split(":")[0], prReq.getStatuss());
-                    if (listFz != null && listFz.size() > 0) {
-                        for (U9PrDTO fzdto : listFz) {
-                            String fzKey = fzdto.getPrCode() + fzdto.getPrLn() + fzdto.getItemCode();
-                            if (qzfzMap.containsKey(fzKey)) {
-                                // 防止数据重复
-                                fzdto.setCodeType(qzfzMap.get(fzKey).getCodeType());
-                                qzfzMap.remove(fzKey);
-                                qzfzMap.put(fzKey, fzdto);
-                            } else {
-                                qzfzMap.put(fzKey, fzdto);
-                            }
+            if (itemName.split("-").length > 2 && itemName.split("-")[0].toString().equals("球体") && itemName.split("-")[1].indexOf("F") < 0 && isExistQZ ) { // 球体且不包含软密封（规格不能有 F）
+                Map<String, U9PrDTO> FZMapTemp = this.getFZItemInfoNew(itemName,fzMap);
+                if(!FZMapTemp.isEmpty()) {
+                    for (String tempKey : FZMapTemp.keySet()) {
+                        // 得到与球座相匹配的阀座
+                        U9PrDTO fzU9PrDto = FZMapTemp.get(tempKey);
+                        // fz的key值： prCode + prLn + itemCode
+                        String fzKey = fzU9PrDto.getPrCode() + fzU9PrDto.getPrLn() + fzU9PrDto.getItemCode();
+                        // 判断最终的球座&&阀座集合里面是否已经存在，是，则移除；
+                        if(qzfzMap.containsKey(fzKey)) {
+                            qzfzMap.remove(fzKey);
                         }
+                        // 在最终集合里面添加 阀座信息
+                        qzfzMap.put(fzKey,fzU9PrDto);
                     }
                 }
             }
+//            if (!FZItemInfo.isEmpty()) {
+//                List<String> fzItemCodeList = Arrays.asList(FZItemInfo.split(","));
+//                for (String fzItemCode : fzItemCodeList) {
+//                    List<U9PrDTO> listFz = this.baseMapper.selectFzList(fzItemCode.split(":")[0], prReq.getStatuss());
+//                    if (listFz != null && listFz.size() > 0) {
+//                        for (U9PrDTO fzdto : listFz) {
+//                            String fzKey = fzdto.getPrCode() + fzdto.getPrLn() + fzdto.getItemCode();
+//                            if (qzfzMap.containsKey(fzKey)) {
+//                                // 防止数据重复
+//                                fzdto.setCodeType(qzfzMap.get(fzKey).getCodeType());
+//                                qzfzMap.remove(fzKey);
+//                                qzfzMap.put(fzKey, fzdto);
+//                            } else {
+//                                qzfzMap.put(fzKey, fzdto);
+//                            }
+//                        }
+//                    }
+//                }
+//            }
         }
 
         // 将排好序并且去重后的MAP转换成list
@@ -1005,6 +1090,28 @@ class U9PrServiceImpl extends BaseServiceImpl<U9PrMapper, U9PrEntity> implements
         for (U9PrDTO dto : retList) {
             // 承诺交期就是从U9那边传来的要求交期
             dto.setPromiseDate(dto.getReqDate());
+            // 关键的物料的承诺交期需要改成齐套需求时间 20230228
+            if (!dto.getItemCode().startsWith("15110")
+                && !dto.getItemCode().startsWith("130301")
+                && !dto.getItemCode().startsWith("130302")
+                && !dto.getItemCode().startsWith("130101")
+                && !dto.getItemCode().startsWith("130102")
+                && !dto.getItemCode().startsWith("131111")
+                && !dto.getItemCode().startsWith("131106")
+                && dto.getItemName().indexOf("锻")<0
+            ) {
+                dto.setPromiseDate(dto.getReqDate());
+
+            }else{
+                if (dto.getPromiseDateFromQt()==null){
+                    //dto.setPromiseDate(null);
+                }else{
+                    Date promiseDateFromQt = cn.hutool.core.date.DateUtil.offsetDay(dto.getPromiseDateFromQt(),-25) ;
+                    dto.setPromiseDate(promiseDateFromQt.getTime()/1000);
+                }
+            }
+
+
 
             // 球座附带阀座信息新增逻辑
             String itemName = dto.getItemName();
@@ -1018,7 +1125,6 @@ class U9PrServiceImpl extends BaseServiceImpl<U9PrMapper, U9PrEntity> implements
                 dto.setLastPrice(poItemEntity.getPrice());
                 dto.setLastSupName(poItemEntity.getSupName());
             }
-
 
             if (dto.getPiLastSupName() != null && !dto.getPiLastSupName().isEmpty()) {
                 dto.setLastSupName(dto.getPiLastSupName());
@@ -1039,6 +1145,58 @@ class U9PrServiceImpl extends BaseServiceImpl<U9PrMapper, U9PrEntity> implements
 
         retPage.setRecords(retList);
         return retPage;
+    }
+
+    private Map<String, U9PrDTO> getFZItemInfoNew(String itemname, Map<String, U9PrDTO> fzMap) {
+        Map<String, U9PrDTO> qzMap = new LinkedHashMap<>();
+        // 拆解
+        ItemInfoEntityOfQZ itemInfoEntity = getItemInfoOfQiuZuo(itemname);
+        String name1 = "阀座";
+        String name2 = itemname.split("-")[1]; // 规格
+        String name3 = itemInfoEntity.getMaterial(); // 材质
+        String name4 = itemInfoEntity.getCoat(); // 喷涂材质
+        String name5 = "G50";// 表面处理
+
+        if("G20".equals(name4) ||"G14".equals(name4) ) {
+            name4 = "G06";
+        } else if("G06".equals(name4)) {
+            name4 = "G05";
+        } else {
+            name4 = "";
+        }
+        // 键
+        String key1 = name1 + name2 + name3 + name4;
+        String key2 = name1 + name2 + name3 + name4 + "+" + name5;
+        if(fzMap.containsKey(key1)) {
+            qzMap.put(key1,fzMap.get(key1));
+        }
+        if(fzMap.containsKey(key2)) {
+            qzMap.put(key2,fzMap.get(key2));
+        }
+        return qzMap;
+    }
+
+    /**
+     * 得到阀座的map
+     * @param prReq
+     * @return
+     */
+    public Map<String, U9PrDTO> getFzMap(PrReq prReq){
+        Map<String, U9PrDTO> fzMap = new LinkedHashMap<>();
+        List<U9PrDTO> allListFz = this.baseMapper.selectAllFzList(prReq.getStatuss());
+        for(U9PrDTO item : allListFz) {
+            ItemInfoEntityOfQZ itemInfoEntity = getItemInfoOfFZ(item.getItemName());
+            String name1 = "阀座"; // 阀座
+            String name2 = item.getItemName().split("-")[1]; // 规格
+            String name3 = itemInfoEntity.getMaterial(); // 材质
+            if("Monel400".equals(name3)) {
+                name3 = "MonelK500";  // 3、球体材质MonelK500阀座Monel400排序在一起；
+            }
+            String name4 = itemInfoEntity.getFzCoat(); // 喷涂材质
+            String key = name1+name2+name3+name4;
+            fzMap.put(key,item);
+        }
+        return fzMap;
     }
 
     private String getFZItemInfo(String itemCode) {
@@ -1383,6 +1541,12 @@ class U9PrServiceImpl extends BaseServiceImpl<U9PrMapper, U9PrEntity> implements
             .eq("purch_code", getUser().getAccount())
             .eq("purchase_type", PURCHASE_TYPE_NORMAL);
         return count(query);
+    }
+
+    @Override
+    public int poReserveCount() {
+
+        return this.baseMapper.getPoReserveCount();
     }
 
 

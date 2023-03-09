@@ -86,7 +86,9 @@
             ai.purch_mix,
             ai.stock_lower_limit,
             ai.is_vmi,
-            ai.s_or_n codeType
+            ai.s_or_n codeType,
+        (select MIN(plan_date) from atw_caigou_plan_data_lock where po_code=pi.pr_code and po_ln=pi.pr_ln ) promiseDateFromQt,
+        (select pro_no  from atw_caigou_plan_data_lock where po_code=pi.pr_code and po_ln=pi.pr_ln LIMIT 1 ) qtProNo
         FROM
             atw_po_item pi
         LEFT JOIN atw_u9_pr pr ON left(pi.pr_code,2)='PR'
@@ -167,6 +169,205 @@
         </if>
         order by pi.pr_code,pi.pr_ln,pi.item_code
     </select>
+
+
+    <select id="pageWithPrList" resultType="org.springblade.modules.po.vo.PoItemVO">
+        SELECT
+        pi.*,
+        pr.biz_type,
+        pr.is_urgent,
+        pr.is_havesup AS is_havesup,
+        IFNULL(pr.available_quantity,outpr.available_quantity) available_quantity,
+        IFNULL(pr.project_occupancy_num,outpr.project_occupancy_num) project_occupancy_num,
+        IFNULL(pr.requisition_remark,outpr.requisition_remark) requisition_remark,
+        ai.purch_mix,
+        ai.stock_lower_limit,
+        ai.is_vmi,
+        ai.s_or_n codeType,
+        (select MIN(plan_date) from atw_caigou_plan_data_lock where po_code=pi.pr_code and po_ln=pi.pr_ln ) promiseDateFromQt,
+        (select pro_no  from atw_caigou_plan_data_lock where po_code=pi.pr_code and po_ln=pi.pr_ln LIMIT 1 ) qtProNo
+        FROM
+        atw_po_item pi
+        LEFT JOIN atw_u9_pr pr ON left(pi.pr_code,2)='PR'
+        AND pi.pr_code = pr.pr_code
+        AND pi.pr_ln = pr.pr_ln
+        AND pr.is_deleted = 0
+        <if test="poItem.bizType != null and poItem.bizType == 1">
+            AND pr.`biz_type` = 1
+        </if>
+        LEFT JOIN atw_out_pr_item outpr ON left(pi.pr_code,2)='WX'
+        AND pi.pr_code = outpr.pr_code
+        AND outpr.is_deleted = 0
+        LEFT JOIN atw_item ai ON pi.item_code = ai.CODE
+        WHERE
+        pi.is_deleted = 0
+        and (outpr.available_quantity is not null or pr.available_quantity is not null)
+        <if test="poItem.isVmi!= null and poItem.isVmi !=''">
+            AND ai.is_vmi = #{poItem.isVmi}
+        </if>
+        <if test="poItem.orgCode!= null and poItem.orgCode !=''">
+            AND pi.org_code = #{poItem.orgCode}
+        </if>
+        <if test="poItem.bizType != null and poItem.bizType == 0">
+            AND pr.`biz_type` = #{poItem.bizType} and ai.is_vmi = '0'
+        </if>
+        <if test="poItem.bizType != null and poItem.bizType == 1">
+            AND  ai.is_vmi != '1'
+        </if>
+        <if test="poItem.status!= null and poItem.status !=''">
+            AND pi.status = #{poItem.status}
+        </if>
+        <if test="poItem.isByWeight!= null and poItem.isByWeight !=''">
+            AND pi.is_by_weight = #{poItem.isByWeight}
+        </if>
+        <if test="poItem.prCode!= null and poItem.prCode !=''">
+            AND pi.pr_code LIKE CONCAT('%',#{poItem.prCode},'%')
+        </if>
+        <if test="poItem.poCode!= null and poItem.poCode !=''">
+            AND pi.po_code LIKE CONCAT('%',#{poItem.poCode},'%')
+        </if>
+        <if test="poItem.supCode!= null and poItem.supCode !=''">
+            AND pi.sup_code LIKE CONCAT('%',#{poItem.supCode},'%')
+        </if>
+        <if test="poItem.purchCode!= null and poItem.purchCode !=''">
+            and if(left(pi.pr_code,2)='PR',pr.purch_code=#{poItem.purchCode},outpr.purch_code=#{poItem.purchCode})
+        </if>
+        <if test="poItem.supName!= null and poItem.supName !=''">
+            AND pi.sup_name LIKE CONCAT('%',#{poItem.supName},'%')
+        </if>
+        <if test="poItem.itemCode!= null and poItem.itemCode !=''">
+            AND find_in_set(pi.item_code,#{poItem.itemCode})
+        </if>
+        <if test="poItem.itemName!= null and poItem.itemName !=''">
+            AND pi.item_name LIKE CONCAT('%',#{poItem.itemName},'%')
+        </if>
+        <if test="poItem.reqDateStart!= null and poItem.reqDateStart !=''">
+            AND pi.req_date &gt;= #{poItem.reqDateStart}
+        </if>
+        <if test="poItem.reqDateEnd!= null and poItem.reqDateEnd !=''">
+            AND pi.req_date &lt;= #{poItem.reqDateEnd}
+        </if>
+
+        <if test="poItem.isDeliverablesFull!= null and poItem.isDeliverablesFull !=''">
+            AND pi.is_deliverables_full LIKE CONCAT('%',#{poItem.isDeliverablesFull},'%')
+        </if>
+        <if test="poItem.isHavesup!= null and poItem.isHavesup !=''">
+            AND pr.is_havesup LIKE CONCAT('%',#{poItem.isHavesup},'%')
+        </if>
+        <if test="poItem.isComBill != null and poItem.isComBill != ''">
+            <choose>
+                <when test="poItem.isComBill == 1">
+                    AND pi.biz_branch IS NOT NULL
+                </when>
+                <otherwise>
+                    AND pi.biz_branch IS NULL
+                </otherwise>
+            </choose>
+        </if>
+        order by pi.pr_code,pi.pr_ln,pi.item_code
+    </select>
+
+
+
+    <select id="fzPrList" resultType="org.springblade.modules.po.vo.PoItemVO">
+        SELECT
+        pi.*,
+        pr.biz_type,
+        pr.is_urgent,
+        pr.is_havesup AS is_havesup,
+        IFNULL(pr.available_quantity,outpr.available_quantity) available_quantity,
+        IFNULL(pr.project_occupancy_num,outpr.project_occupancy_num) project_occupancy_num,
+        IFNULL(pr.requisition_remark,outpr.requisition_remark) requisition_remark,
+        ai.purch_mix,
+        ai.stock_lower_limit,
+        ai.is_vmi,
+        ai.s_or_n codeType
+        FROM
+        atw_po_item pi
+        LEFT JOIN atw_u9_pr pr ON left(pi.pr_code,2)='PR'
+        AND pi.pr_code = pr.pr_code
+        AND pi.pr_ln = pr.pr_ln
+        AND pr.is_deleted = 0
+        <if test="poItem.bizType != null and poItem.bizType == 1">
+            AND pr.`biz_type` = 1
+        </if>
+        LEFT JOIN atw_out_pr_item outpr ON left(pi.pr_code,2)='WX'
+        AND pi.pr_code = outpr.pr_code
+        AND outpr.is_deleted = 0
+        LEFT JOIN atw_item ai ON pi.item_code = ai.CODE
+        WHERE
+        pi.is_deleted = 0
+        and (outpr.available_quantity is not null or pr.available_quantity is not null)
+        <if test="poItem.isVmi!= null and poItem.isVmi !=''">
+            AND ai.is_vmi = #{poItem.isVmi}
+        </if>
+        <if test="poItem.orgCode!= null and poItem.orgCode !=''">
+            AND pi.org_code = #{poItem.orgCode}
+        </if>
+        <if test="poItem.bizType != null and poItem.bizType == 0">
+            AND pr.`biz_type` = #{poItem.bizType} and ai.is_vmi = '0'
+        </if>
+        <if test="poItem.bizType != null and poItem.bizType == 1">
+            AND  ai.is_vmi != '1'
+        </if>
+        <if test="poItem.status!= null and poItem.status !=''">
+            AND pi.status = #{poItem.status}
+        </if>
+        <if test="poItem.isByWeight!= null and poItem.isByWeight !=''">
+            AND pi.is_by_weight = #{poItem.isByWeight}
+        </if>
+        <if test="poItem.prCode!= null and poItem.prCode !=''">
+            AND pi.pr_code LIKE CONCAT('%',#{poItem.prCode},'%')
+        </if>
+        <if test="poItem.poCode!= null and poItem.poCode !=''">
+            AND pi.po_code LIKE CONCAT('%',#{poItem.poCode},'%')
+        </if>
+        <if test="poItem.supCode!= null and poItem.supCode !=''">
+            AND pi.sup_code LIKE CONCAT('%',#{poItem.supCode},'%')
+        </if>
+        <if test="poItem.purchCode!= null and poItem.purchCode !=''">
+            and if(left(pi.pr_code,2)='PR',pr.purch_code=#{poItem.purchCode},outpr.purch_code=#{poItem.purchCode})
+        </if>
+        <if test="poItem.supName!= null and poItem.supName !=''">
+            AND pi.sup_name LIKE CONCAT('%',#{poItem.supName},'%')
+        </if>
+
+        <if test='poItem.itemCode!= null and poItem.itemCode !="" and poItem.itemCode.contains(",")'>
+            and find_in_set(pi.item_code,#{poItem.itemCode})
+        </if>
+        <if test='poItem.itemCode!= null and poItem.itemCode !="" and !poItem.itemCode.contains(",")'>
+            AND pi.item_code LIKE CONCAT('%',#{poItem.itemCode},'%')
+        </if>
+
+        <if test="poItem.itemName!= null and poItem.itemName !=''">
+            AND pi.item_name LIKE CONCAT('%',#{poItem.itemName},'%')
+        </if>
+        <if test="poItem.reqDateStart!= null and poItem.reqDateStart !=''">
+            AND pi.req_date &gt;= #{poItem.reqDateStart}
+        </if>
+        <if test="poItem.reqDateEnd!= null and poItem.reqDateEnd !=''">
+            AND pi.req_date &lt;= #{poItem.reqDateEnd}
+        </if>
+
+        <if test="poItem.isDeliverablesFull!= null and poItem.isDeliverablesFull !=''">
+            AND pi.is_deliverables_full LIKE CONCAT('%',#{poItem.isDeliverablesFull},'%')
+        </if>
+        <if test="poItem.isHavesup!= null and poItem.isHavesup !=''">
+            AND pr.is_havesup LIKE CONCAT('%',#{poItem.isHavesup},'%')
+        </if>
+        <if test="poItem.isComBill != null and poItem.isComBill != ''">
+            <choose>
+                <when test="poItem.isComBill == 1">
+                    AND pi.biz_branch IS NOT NULL
+                </when>
+                <otherwise>
+                    AND pi.biz_branch IS NULL
+                </otherwise>
+            </choose>
+        </if>
+        order by pi.pr_code,pi.pr_ln,pi.item_code
+    </select>
+
     <!-- 交期偏移 -->
 
 
@@ -969,7 +1170,7 @@
         SELECT * FROM  atw_po_item WHERE item_code = #{itemCode} AND status !=10
     </select>
 
-    <select id="getExcelData" resultType="org.springblade.modules.po.vo.PoItemNewVO">
+    <select id="getExcelData" resultType="org.springblade.modules.po.vo.PoItemVO">
         SELECT
             poi.* ,po.`status` as poStatus
         FROM

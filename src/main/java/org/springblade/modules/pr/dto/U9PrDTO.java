@@ -1,6 +1,7 @@
 package org.springblade.modules.pr.dto;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.NullSerializer;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -8,6 +9,7 @@ import lombok.EqualsAndHashCode;
 import org.springblade.modules.pr.entity.U9PrEntity;
 
 import java.math.BigDecimal;
+import java.util.Date;
 
 /**
  * 请购单 模型DTO
@@ -39,6 +41,7 @@ public class U9PrDTO extends U9PrEntity {
     private Long quoteDate;
 
     @ApiModelProperty(value = "承诺交期")
+    @JsonSerialize(nullsUsing = NullSerializer.class)
     private Long promiseDate;
 
     @ApiModelProperty(value = "供应商编码")
@@ -96,4 +99,12 @@ public class U9PrDTO extends U9PrEntity {
     private String prCode;
 
     private String jobDate;
+
+    @ApiModelProperty(value = "齐套项目号")
+    private String qtProNo;
+
+    private Date promiseDateFromQt;
+
+    private Date qtPlanDate;
+
 }

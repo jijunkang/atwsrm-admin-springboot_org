@@ -3,12 +3,12 @@ package org.springblade.modules.ap.mapper;
 import com.baomidou.mybatisplus.annotation.SqlParser;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Update;
+import org.apache.ibatis.annotations.*;
+import org.springblade.core.tool.utils.BeanUtil;
 import org.springblade.modules.ap.dto.ApReq;
 import org.springblade.modules.ap.entity.ApRcvEntity;
 import org.springblade.modules.ap.entity.ApRcvReqEntity;
+import org.springblade.modules.ap.entity.ApReqSettle;
 import org.springblade.modules.ap.vo.ApRcvVO;
 
 import java.util.Date;
@@ -29,6 +29,25 @@ public interface ApRcvMapper extends BaseMapper<ApRcvEntity> {
     List<ApRcvReqEntity> getVmiList(@Param("apReq") ApReq apReq);
 
     IPage<ApRcvReqEntity> getVmiPage(IPage<ApRcvEntity> page, ApReq apReq);
+
+    @Select("SELECT ifnull(SUM(req_accum_rec_qty),0) from  atw_ap_req_settle where settle_rcv_code=#{settleCode} ")
+    int getAccumCount(@Param("settleCode") String settleCode);
+
+    @Select("SELECT * from  atw_ap_req_settle where settle_rcv_code=#{settleCode} ")
+    List<ApReqSettle> getApReqSettleBySettleCode(@Param("settleCode") String settleCode);
+
+    @Select("select * from atw_ap_rcv where rcv_code=#{RcvCode} and rcv_ln=#{RcvLn} limit 1")
+    ApRcvEntity getApReqByCodeLn(@Param("RcvCode") String RcvCode,@Param("RcvLn") String RcvLn);
+
+    @Update("update atw_ap_rcv set  accum_rec_qty =accum_rec_qty-#{AccQty}  where rcv_code=#{RcvCode} and rcv_ln=#{RcvLn}")
+    Boolean updateApReqByCodeLn(@Param("RcvCode") String RcvCode,@Param("RcvLn") String RcvLn,@Param("AccQty") String AccQty);
+
+
+    @Delete("delete from  atw_ap_rcv where rcv_code=#{settleCode}")
+    Boolean deleteApRcv(@Param("settleCode") String settleCode);
+
+    @Delete("delete from  atw_ap_req_settle where settle_rcv_code=#{settleCode}")
+    Boolean deleteSettleRcv(@Param("settleCode") String settleCode);
 
     int getPageCount();
 

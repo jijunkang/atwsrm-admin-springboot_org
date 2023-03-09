@@ -131,6 +131,18 @@ public class ApRcvController extends BladeController {
     }
 
     /**
+     * U9删除VMI结算同步到SRM
+     */
+    @PostMapping("/deleteVmiSettle")
+    @ApiOperationSupport(order = 2)
+    @ApiOperation(value = "分页", notes = "传入aprcv")
+    public R deleteVmiSettle(@RequestBody ApReq apReq) {
+        R r = aprcvService.deleteVmiSettle(apReq);
+        return r;
+    }
+
+
+    /**
      * 扣款新增
      */
     @PostMapping("/kksave")

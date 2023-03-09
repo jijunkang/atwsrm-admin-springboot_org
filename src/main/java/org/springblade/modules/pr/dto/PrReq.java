@@ -41,6 +41,7 @@ class PrReq extends U9PrEntity{
     private Integer itemCodeCount;
     private Integer prCodeCount;
     private String isVmi;
+    private String orgCode;
 
 
     public Set<String> getStatusList(){

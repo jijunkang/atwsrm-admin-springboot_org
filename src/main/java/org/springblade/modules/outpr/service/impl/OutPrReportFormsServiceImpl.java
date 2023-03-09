@@ -14,6 +14,7 @@ import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.json.JSONObject;
 import org.springblade.common.config.AtwSrmConfiguration;
+import org.springblade.common.utils.WillHttpUtil;
 import org.springblade.core.mp.base.BaseServiceImpl;
 import org.springblade.core.secure.utils.AuthUtil;
 import org.springblade.core.tool.api.R;
@@ -331,8 +332,9 @@ public class OutPrReportFormsServiceImpl extends BaseServiceImpl<OutPrReportForm
     @Override
     public R pass(OutPrReportFormsReq outPrReportFormsReq) {
         // 判断是否 外检，是否 检验结束放行
-        for(PoReceiveEntity poReceiveEntity : outPrReportFormsReq.getPoReceiveEntities()){
-            String doCode = poReceiveEntity.getRcvCode();
+        //for(PoReceiveEntity poReceiveEntity : outPrReportFormsReq.getPoReceiveEntities()){
+            //String doCode = poReceiveEntity.getRcvCode();
+            String doCode = outPrReportFormsReq.getPoReceiveEntities().get(0).getRcvCode();
             List<PoReceiveEntity> rcvInfo  = poReceiveMapper.getDoInfoByRcvCode(doCode);
             if(rcvInfo.size() == 0){
                 throw  new RuntimeException(doCode + " :该送货单不存在！");
@@ -355,9 +357,13 @@ public class OutPrReportFormsServiceImpl extends BaseServiceImpl<OutPrReportForm
                 throw new RuntimeException(doCode + "出错了，错误信息：" + mesVo.getMsg());
             }
 
-            // 改变虚拟入库标志(已入库)、且关闭该送货单
-            this.baseMapper.virtualWareById(doCode);
-        }
+            if(MES_SUCC.equals(mesVo.getCode())){
+                // 改变虚拟入库标志(已入库)、且关闭该送货单
+                this.baseMapper.virtualWareById(doCode);
+            }
+
+
+        //}
         return R.status(true);
     }
 
@@ -399,12 +405,32 @@ public class OutPrReportFormsServiceImpl extends BaseServiceImpl<OutPrReportForm
         MesVo mesVo = new MesVo();
         log.info("/api/APICreateU9RCV"+json);
 
-        String res = OkHttpUtil.postJson(atwSrmConfiguration.getMesApiDomain() + "/api/APICreateU9RCV", json);
+
+        //String res = OkHttpUtil.postJson(atwSrmConfiguration.getMesApiDomain() + "/api/APICreateU9RCV", json);
+
+        String res = WillHttpUtil.postJson(atwSrmConfiguration.getMesApiDomain() + "/api/APICreateU9RCV", json,600L);
 
         log.info("/api/APICreateU9RCV  res:"+res);
 
-        if(res.isEmpty() || new JSONObject(res).getString("code").equals("1")){
+        //20230207  接口处理逻辑修改
+        /*if(res.isEmpty() || new JSONObject(res).getString("code").equals("1")){
             mesVo.setCode("1");
+
+        } else {
+            JSONObject returnJson = new JSONObject(res);
+            String code = returnJson.getString("code");
+            String msg = returnJson.getString("msg");
+            String RCVDocNo = returnJson.getString("RCVDocNo");
+            String U9RCVDocNo = returnJson.getString("U9RCVDocNo");
+            mesVo.setCode(code);
+            mesVo.setMsg(msg);
+            mesVo.setRCVDocNo(RCVDocNo);
+            mesVo.setU9RCVDocNo(U9RCVDocNo);
+        }*/
+
+        if(res.isEmpty() ){
+            mesVo.setCode("0");
+            mesVo.setMsg("MES接口超时,请稍后再试");
 
         } else {
             JSONObject returnJson = new JSONObject(res);

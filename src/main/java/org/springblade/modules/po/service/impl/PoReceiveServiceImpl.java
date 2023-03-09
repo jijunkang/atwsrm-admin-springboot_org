@@ -108,6 +108,8 @@ class PoReceiveServiceImpl extends BaseServiceImpl<PoReceiveMapper, PoReceiveEnt
     @Transactional(rollbackFor = Exception.class)
     public R createAsR(List<PoReceiveDTO> poReceiveList) {
 
+
+
         HashMap<String, List<PoReceiveDTO>> supMap = new HashMap<>();
         List<PoReceiveDTO> poReceiveListOfAtw = new ArrayList<>();
         List<PoReceiveDTO> poReceiveListOfOthers = new ArrayList<>();

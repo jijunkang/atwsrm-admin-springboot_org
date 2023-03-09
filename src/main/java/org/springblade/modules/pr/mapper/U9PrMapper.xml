@@ -302,7 +302,10 @@
 
     <select id="selectFlowPage" resultType="org.springblade.modules.pr.dto.U9PrDTO">
         SELECT
-        pr.*,highest_price,lowest_price,purch_mix,stock_lower_limit,item.is_vmi,item.s_or_n codeType
+        pr.*,highest_price,lowest_price,purch_mix,stock_lower_limit,item.is_vmi,item.s_or_n codeType,
+        (select MIN(plan_date) from atw_caigou_plan_data_lock where po_code=pr.pr_code and po_ln=pr.pr_ln ) promiseDateFromQt,
+        (select pro_no  from atw_caigou_plan_data_lock where po_code=pr.pr_code and po_ln=pr.pr_ln LIMIT 1 ) qtProNo,
+        (select MIN(plan_date) from atw_caigou_plan_data_lock where po_code=pr.pr_code and po_ln=pr.pr_ln ) qtPlanDate
         <if test="prReq.lastSupName != null and prReq.lastSupName != ''">
             ,( SELECT sup_name FROM atw_po_item WHERE item_code = pr.item_code AND sup_name LIKE concat('%', #{prReq.lastSupName}, '%') ORDER BY create_time DESC LIMIT 1 ) pi_last_sup_name
         </if>
@@ -330,6 +333,21 @@
         WHERE
         pr.is_deleted = 0
         and pr.item_code = #{itemCode} and find_in_set(pr.status,#{statuss}) and pr.is_deleted = 0
+        ORDER BY
+        pr.update_time DESC
+    </select>
+
+    <select id="selectAllFzList" resultType="org.springblade.modules.pr.dto.U9PrDTO">
+        SELECT
+        pr.*,highest_price,lowest_price,purch_mix,stock_lower_limit,item.is_vmi,item.s_or_n codeType
+        FROM
+        atw_u9_pr pr
+        left join (SELECT item_code,min(price) lowest_price,MAX(price) highest_price FROM  atw_po_item WHERE status !=10 group by item_code ) pric on pr.item_code=pric.item_code
+        left join (SELECT code,purch_mix,stock_lower_limit,is_vmi,s_or_n FROM  atw_item ) item on pr.item_code=item.code
+        WHERE
+        pr.is_deleted = 0
+        and find_in_set(pr.status,#{statuss}) and pr.is_deleted = 0
+        and left(item_name,3) = '阀座-'
         ORDER BY
         pr.update_time DESC
     </select>

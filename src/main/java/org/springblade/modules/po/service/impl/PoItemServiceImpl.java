@@ -4,12 +4,14 @@ import cn.afterturn.easypoi.excel.ExcelExportUtil;
 import cn.afterturn.easypoi.excel.entity.ExportParams;
 import cn.afterturn.easypoi.excel.entity.enmus.ExcelType;
 import cn.afterturn.easypoi.excel.entity.params.ExcelExportEntity;
+import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.util.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.HttpPost;
@@ -40,6 +42,7 @@ import org.springblade.common.config.AtwSrmConfiguration;
 import org.springblade.common.utils.ExcelExportStatisticStyler;
 import org.springblade.common.utils.ExcelUtils;
 import org.springblade.common.utils.WillDateUtil;
+import org.springblade.common.utils.WillHttpUtil;
 import org.springblade.core.mp.base.BaseServiceImpl;
 import org.springblade.core.mp.support.Condition;
 import org.springblade.core.mp.support.Query;
@@ -60,11 +63,7 @@ import org.springblade.modules.outpr.entity.OutSupPreOrderEntity;
 import org.springblade.modules.outpr.service.IOutPrItemProcessService;
 import org.springblade.modules.outpr.service.IOutPrItemService;
 import org.springblade.modules.outpr.service.IOutSupPreOrderService;
-import org.springblade.modules.po.dto.PoItemDTO;
-import org.springblade.modules.po.dto.PoItemNodeDTO;
-import org.springblade.modules.po.dto.PoItemNodeReq;
-import org.springblade.modules.po.dto.PoItemReqRepotCurrMonthDTO;
-import org.springblade.modules.po.dto.PoUpDateReq;
+import org.springblade.modules.po.dto.*;
 import org.springblade.modules.po.entity.CraftCtrlNodeEntity;
 import org.springblade.modules.po.entity.PoEntity;
 import org.springblade.modules.po.entity.PoItemCraftCtrlNodeEntity;
@@ -80,6 +79,8 @@ import org.springblade.modules.po.service.IPoPronoService;
 import org.springblade.modules.po.service.IPoService;
 import org.springblade.modules.po.vo.*;
 import org.springblade.modules.po.wrapper.PoItemWrapper;
+import org.springblade.modules.pr.dto.U9PrDTO;
+import org.springblade.modules.pr.entity.ItemInfoEntityOfQZ;
 import org.springblade.modules.pr.mapper.U9PrMapper;
 import org.springblade.modules.pricelib.service.IPriceLibService;
 import org.springblade.modules.queue.entity.QueueEmailEntity;
@@ -106,7 +107,10 @@ import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
+import static org.springblade.common.utils.ItemAnalysisUtil.getItemInfoOfFZ;
+import static org.springblade.common.utils.ItemAnalysisUtil.getItemInfoOfQiuZuo;
 import static org.springblade.core.secure.utils.AuthUtil.*;
 
 /**
@@ -165,6 +169,8 @@ class PoItemServiceImpl extends BaseServiceImpl<PoItemMapper, PoItemEntity> impl
 
     @Autowired
     private PoMapper poMapper;
+    @Autowired
+    private ISupplierService iSupplierService;
 
     @Autowired
     SupplierScheduleMapper supplierScheduleMapper;
@@ -407,20 +413,48 @@ class PoItemServiceImpl extends BaseServiceImpl<PoItemMapper, PoItemEntity> impl
     @Override
     public IPage<PoItemVO> getDeliveryPage(IPage<PoItemEntity> page, PoItemDTO poItem) {
         IPage<PoItemEntity> entityPage = getPoItemEntityIPage(page, poItem);
-
         IPage<PoItemVO>     retPage    = new Page<>(entityPage.getCurrent(), entityPage.getSize(), entityPage.getTotal());
         List<PoItemVO>      voList     = Lists.newArrayList();
-        for(PoItemEntity entity : entityPage.getRecords()){
-            PoItemVO vo = PoItemWrapper.build().entityVO(entity);
-            PoEntity po = poMapper.getPoInfoByPoCode(vo.getPoCode());
-            Integer rcvNumAll = this.baseMapper.getRcvAllNumByPiId(entity.getId().toString());
-            String codeType =this.baseMapper.getABCType(entity.getItemCode());
-            vo.setCodeType(codeType);
-            vo.setNotSendNum(entity.getTcNum().add(entity.getFillGoodsNum().subtract(new BigDecimal(rcvNumAll))));
-            vo.setPoStatus(po.getStatus());
-            vo.setTemplateType(po.getTemplateType());
-            voList.add(vo);
+
+        // 针对球体查询的特殊处理
+        if (((poItem.getSupCode() != null && !poItem.getSupCode().isEmpty()) || (poItem.getSupName() != null && !poItem.getSupName().isEmpty() && poItem.getItemName() != null)) && (poItem.getItemName()!=null && poItem.getItemName().equals("球"))) {
+
+            List<PoItemEntity> qzList = entityPage.getRecords();
+            poItem.setItemName("阀座");
+            page.setSize(1000000);
+            page.setCurrent(1);
+            IPage<PoItemEntity> fzPage = getPoItemEntityIPage(page, poItem);
+            List<PoItemEntity> fzList = fzPage.getRecords();
+            List<PoItemEntity> qtFzList = this.getQTFZListOfEntity(poItem, qzList,fzList);
+
+            for(PoItemEntity entity : qtFzList){
+                PoItemVO vo = PoItemWrapper.build().entityVO(entity);
+                PoEntity po = poMapper.getPoInfoByPoCode(vo.getPoCode());
+                Integer rcvNumAll = this.baseMapper.getRcvAllNumByPiId(entity.getId().toString());
+                String codeType =this.baseMapper.getABCType(entity.getItemCode());
+                vo.setCodeType(codeType);
+                vo.setNotSendNum(entity.getTcNum().add(entity.getFillGoodsNum().subtract(new BigDecimal(rcvNumAll))));
+                vo.setPoStatus(po.getStatus());
+                vo.setTemplateType(po.getTemplateType());
+                voList.add(vo);
+            }
+
+        } else {
+
+            for(PoItemEntity entity : entityPage.getRecords()){
+                PoItemVO vo = PoItemWrapper.build().entityVO(entity);
+                PoEntity po = poMapper.getPoInfoByPoCode(vo.getPoCode());
+                Integer rcvNumAll = this.baseMapper.getRcvAllNumByPiId(entity.getId().toString());
+                String codeType =this.baseMapper.getABCType(entity.getItemCode());
+                vo.setCodeType(codeType);
+                vo.setNotSendNum(entity.getTcNum().add(entity.getFillGoodsNum().subtract(new BigDecimal(rcvNumAll))));
+                vo.setPoStatus(po.getStatus());
+                vo.setTemplateType(po.getTemplateType());
+                voList.add(vo);
+            }
+
         }
+
         retPage.setRecords(voList);
         return retPage;
     }
@@ -469,11 +503,18 @@ class PoItemServiceImpl extends BaseServiceImpl<PoItemMapper, PoItemEntity> impl
     public
     void getDeliveryExport(PoItemDTO poItem, HttpServletResponse response){
 
-        List<PoItemNewVO> list = this.baseMapper.getExcelData(poItem);
-
+        List<PoItemVO> list = this.baseMapper.getExcelData(poItem);
         List<PoItemExcelVO> excelVOS = new ArrayList<>();
 
-        for (PoItemNewVO poItemVO : list) {
+        // 针对球体查询的特殊处理
+        if (((poItem.getSupCode() != null && !poItem.getSupCode().isEmpty()) || (poItem.getSupName() != null && !poItem.getSupName().isEmpty() && poItem.getItemName() != null)) && poItem.getItemName().equals("球")) {
+            poItem.setItemName("阀座");
+            List<PoItemVO> fzList = this.baseMapper.getExcelData(poItem);
+            List<PoItemVO> qtFzList = this.getQTFZListOfVO(poItem, list,fzList);
+            list = qtFzList;
+        }
+
+        for (PoItemVO poItemVO : list) {
             PoItemExcelVO poItemExcelVO = BeanUtil.copy(poItemVO,PoItemExcelVO.class);
 
             Integer key = 0;
@@ -793,6 +834,8 @@ class PoItemServiceImpl extends BaseServiceImpl<PoItemMapper, PoItemEntity> impl
     @Override
     public
     IPage<PoItemVO> pageWithPr(Query query, PoItemDTO poItemEntity){
+
+        IPage<PoItemVO> page = null;
         String mRoleId  = paramService.getValue("purch_manager.role_id");
         String account = getUser().getAccount();
         if(!StringUtil.containsAny(getUser().getRoleId(), mRoleId)){
@@ -802,16 +845,582 @@ class PoItemServiceImpl extends BaseServiceImpl<PoItemMapper, PoItemEntity> impl
             poItemEntity.setIsVmi("1");
             poItemEntity.setBizType(null);
         }
-        return baseMapper.pageWithPr(Condition.getPage(query), poItemEntity);
 
+        if(StringUtils.isNotEmpty(poItemEntity.getItemCode()) && poItemEntity.getItemCode().split(",").length > 1){
+             page = baseMapper.pageWithPrList(Condition.getPage(query), poItemEntity);
+        } else {
+            page = baseMapper.pageWithPr(Condition.getPage(query), poItemEntity);
+        }
+
+        for (PoItemVO poItemVO:page.getRecords()) {
+
+            //订单发布页面关键物料要修改 承诺交期 20230228
+            //承诺交期要么是0要么是用户自己填写的
+            if (!poItemVO.getItemCode().startsWith("15110")
+                && !poItemVO.getItemCode().startsWith("130301")
+                && !poItemVO.getItemCode().startsWith("130302")
+                && !poItemVO.getItemCode().startsWith("130101")
+                && !poItemVO.getItemCode().startsWith("130102")
+                && !poItemVO.getItemCode().startsWith("131111")
+                && !poItemVO.getItemCode().startsWith("131106")
+                && poItemVO.getItemName().indexOf("锻")<0
+            ) {
+                continue;
+            }else {
+                //承诺交期为null的时候 修改承诺日期
+                if(poItemVO.getPromiseDateFromQt()!=null && poItemVO.getSupConfirmDate()==null){
+                    Date promiseDateFromQt = cn.hutool.core.date.DateUtil.offsetDay(poItemVO.getPromiseDateFromQt(),-25);
+                    long time = promiseDateFromQt.getTime()/1000;
+                    poItemVO.setSupConfirmDate(time);
+
+                }
+            }
+
+            poItemVO.setQtPlanDate(poItemVO.getPromiseDateFromQt());
+
+
+
+
+
+        }
+
+
+
+        // 针对球体查询的特殊处理
+        if (((poItemEntity.getSupCode() != null && !poItemEntity.getSupCode().isEmpty()) || (poItemEntity.getSupName() != null && !poItemEntity.getSupName().isEmpty() && poItemEntity.getItemName() != null)) && poItemEntity.getItemName().indexOf("球") > -1) {
+            List<PoItemVO> qtFzList = this.getQTFZList(poItemEntity, page);
+            page.setRecords(qtFzList);
+        }
+        return page;
+    }
+
+    private List<PoItemVO> getQTFZList(PoItemDTO poItemEntity, IPage<PoItemVO> page) {
+
+        Map<String, PoItemVO> qzfzMap = new LinkedHashMap<>();
+        Map<String, PoItemVO> fzMap = new LinkedHashMap<>();
+        Map<String, PoItemVO> qzMap = new LinkedHashMap<>();
+
+        // 球体的集合已经出来了
+        List<PoItemVO> qtList = page.getRecords();
+        // 再将所有的阀座查出来
+        poItemEntity.setItemName("阀座");
+        List<PoItemVO> fzList = baseMapper.fzPrList(poItemEntity);
+        // 将阀座List 变为 MAP
+        for(PoItemVO item : fzList) {
+            ItemInfoEntityOfQZ itemInfoEntity = getItemInfoOfFZ(item.getItemName());
+            String name1 = "阀座"; // 阀座
+            String name2 = item.getItemName().split("-")[1]; // 规格
+            String name3 = itemInfoEntity.getMaterial(); // 材质
+            if("Monel400".equals(name3)) {
+                name3 = "MonelK500";  // 3、球体材质MonelK500阀座Monel400排序在一起；
+            }
+            String name4 = itemInfoEntity.getFzCoat(); // 喷涂材质
+            String key = name1+name2+name3+name4;
+            fzMap.put(key,item);
+        }
+
+        // 处理球体,先排序球体
+        boolean isExistQZ = true;
+        int name6 = 0;
+        for (PoItemVO dto : qtList) {
+
+            if(!dto.getItemName().split("-")[0].equals("球体")) {
+                String qzKey = "球座其他" + name6;
+                qzMap.put(qzKey, dto);
+                name6++;
+                continue;
+            }
+
+            // 拆解
+            ItemInfoEntityOfQZ itemInfoEntity = getItemInfoOfQiuZuo(dto.getItemName());
+            if(itemInfoEntity==null || itemInfoEntity.getMaterial()==null || itemInfoEntity.getCoat()==null) {
+                String qzKey = "球座其他" + name6;
+                qzMap.put(qzKey, dto);
+                name6++;
+                continue;
+            }
+            String name1 = "球座";
+            String name2 = dto.getItemName().split("-")[1]; // 规格
+            String name3 = itemInfoEntity.getMaterial(); // 材质
+            String name4 = itemInfoEntity.getCoat(); // 喷涂材质
+            if (name4.equals("G20")) {
+                name4 = "G14";
+            }
+            String name5 = "Y";
+            if (dto.getItemName().split("-")[1].indexOf("F") > -1) {
+                name5 = "F";
+            }
+            String qzKey = name1 + name2 + name3 + name4 + name5 + "-" + name6;
+            qzMap.put(qzKey, dto);
+            name6++;
+        }
+        // 将排好序并且去重后的MAP转换成list
+        Map<String, PoItemVO> sortedQzMap = qzMap.entrySet().stream().sorted(Map.Entry.comparingByKey()).collect(Collectors.toMap(
+            Map.Entry::getKey,
+            Map.Entry::getValue,
+            (oldVal, newVal) -> oldVal,
+            LinkedHashMap::new
+        ));
+        qtList = sortedQzMap.values().stream().collect(Collectors.toList());
+
+
+        // 开始匹配 球体 和 阀座
+        for (PoItemVO dto : qtList) {
+            // 先在最终的MAP中插入球体数据
+            String key = dto.getPrCode() + dto.getPrLn() + dto.getItemCode();
+            qzfzMap.put(key, dto);
+
+            // 开始匹配对应的阀座
+            String itemName = dto.getItemName(); // 球体信息
+            if (itemName.split("-").length > 2 && itemName.split("-")[0].toString().equals("球体") && itemName.split("-")[1].indexOf("F") < 0 && isExistQZ) { // 球体且不包含软密封（规格不能有 F）
+                Map<String, PoItemVO> matchFzMap = this.getMatchFzInfo(itemName,fzMap);
+                if(!matchFzMap.isEmpty()) {
+                    for (String tempKey : matchFzMap.keySet()) {
+                        // 得到与球座相匹配的阀座
+                        PoItemVO qtfzPoItem = matchFzMap.get(tempKey);
+                        // fz的key值： prCode + prLn + itemCode
+                        String fzKey = qtfzPoItem.getPrCode() + qtfzPoItem.getPrLn() + qtfzPoItem.getItemCode();
+                        // 判断最终的球座&&阀座集合里面是否已经存在，是，则移除；(为了将阀座放在球体下面，一个阀座可能对应多个球体)
+                        if(qzfzMap.containsKey(fzKey)) {
+                            qzfzMap.remove(fzKey);
+                        }
+                        // 在最终集合里面添加 阀座信息
+                        qzfzMap.put(fzKey,qtfzPoItem);
+                    }
+                }
+            }
+        }
+        return qzfzMap.values().stream().collect(Collectors.toList());
+    }
+
+    private Map<String, PoItemVO> getMatchFzInfo(String itemname, Map<String, PoItemVO> fzMap) {
+        Map<String, PoItemVO> matchFzMap = new LinkedHashMap<>();
+        // 拆解
+        ItemInfoEntityOfQZ itemInfoEntity = getItemInfoOfQiuZuo(itemname);
+        String name1 = "阀座";
+        String name2 = itemname.split("-")[1]; // 规格
+        String name3 = itemInfoEntity.getMaterial(); // 材质
+        String name4 = itemInfoEntity.getCoat(); // 喷涂材质
+        String name5 = "G50";// 表面处理
+
+        if("G20".equals(name4) ||"G14".equals(name4) ) {
+            name4 = "G06";
+        } else if("G06".equals(name4)) {
+            name4 = "G05";
+        } else {
+            name4 = "";
+        }
+        // 键
+        String key1 = name1 + name2 + name3 + name4;
+        String key2 = name1 + name2 + name3 + name4 + "+" + name5;
+        if(fzMap.containsKey(key1)) {
+            matchFzMap.put(key1,fzMap.get(key1));
+        }
+        if(fzMap.containsKey(key2)) {
+            matchFzMap.put(key2,fzMap.get(key2));
+        }
+        return matchFzMap;
+    }
+
+    private List<PoItemEntity> getQTFZListOfEntity(PoItemDTO poItemEntity, List<PoItemEntity> qtList,List<PoItemEntity> fzList) {
+
+        Map<String, PoItemEntity> qzfzMap = new LinkedHashMap<>();
+        Map<String, PoItemEntity> fzMap = new LinkedHashMap<>();
+        Map<String, PoItemEntity> qzMap = new LinkedHashMap<>();
+
+        // 将阀座List 变为 MAP
+        for(PoItemEntity item : fzList) {
+            ItemInfoEntityOfQZ itemInfoEntity = getItemInfoOfFZ(item.getItemName());
+            String name1 = "阀座"; // 阀座
+            String name2 = item.getItemName().split("-")[1]; // 规格
+            String name3 = itemInfoEntity.getMaterial(); // 材质
+            if("Monel400".equals(name3)) {
+                name3 = "MonelK500";  // 3、球体材质MonelK500阀座Monel400排序在一起；
+            }
+            String name4 = itemInfoEntity.getFzCoat(); // 喷涂材质
+            String key = name1+name2+name3+name4;
+            fzMap.put(key,item);
+        }
+
+        // 处理球体,先排序球体
+        boolean isExistQZ = true;
+        int name6 = 0;
+        for (PoItemEntity dto : qtList) {
+
+            if(!dto.getItemName().split("-")[0].equals("球体")) {
+                String qzKey = "球座其他" + name6;
+                qzMap.put(qzKey, dto);
+                name6++;
+                continue;
+            }
+
+            // 拆解
+            ItemInfoEntityOfQZ itemInfoEntity = getItemInfoOfQiuZuo(dto.getItemName());
+            if(itemInfoEntity==null || itemInfoEntity.getMaterial()==null || itemInfoEntity.getCoat()==null) {
+                String qzKey = "球座其他" + name6;
+                qzMap.put(qzKey, dto);
+                name6++;
+                continue;
+            }
+            String name1 = "球座";
+            String name2 = dto.getItemName().split("-")[1]; // 规格
+            String name3 = itemInfoEntity.getMaterial(); // 材质
+            String name4 = itemInfoEntity.getCoat(); // 喷涂材质
+            if (name4.equals("G20")) {
+                name4 = "G14";
+            }
+            String name5 = "Y";
+            if (dto.getItemName().split("-")[1].indexOf("F") > -1) {
+                name5 = "F";
+            }
+            String qzKey = name1 + name2 + name3 + name4 + name5 + "-" + name6;
+            qzMap.put(qzKey, dto);
+            name6++;
+        }
+        // 将排好序并且去重后的MAP转换成list
+        Map<String, PoItemEntity> sortedQzMap = qzMap.entrySet().stream().sorted(Map.Entry.comparingByKey()).collect(Collectors.toMap(
+            Map.Entry::getKey,
+            Map.Entry::getValue,
+            (oldVal, newVal) -> oldVal,
+            LinkedHashMap::new
+        ));
+        qtList = sortedQzMap.values().stream().collect(Collectors.toList());
+
+
+        // 开始匹配 球体 和 阀座
+        for (PoItemEntity dto : qtList) {
+            // 先在最终的MAP中插入球体数据
+            String key = dto.getPrCode() + dto.getPrLn() + dto.getItemCode();
+            qzfzMap.put(key, dto);
+
+            // 开始匹配对应的阀座
+            String itemName = dto.getItemName(); // 球体信息
+            if (itemName.split("-").length > 2 && itemName.split("-")[0].toString().equals("球体") && itemName.split("-")[1].indexOf("F") < 0 && isExistQZ) { // 球体且不包含软密封（规格不能有 F）
+                Map<String, PoItemEntity> matchFzMap = this.getMatchFzInfoOfEntity(itemName,fzMap);
+                if(!matchFzMap.isEmpty()) {
+                    for (String tempKey : matchFzMap.keySet()) {
+                        // 得到与球座相匹配的阀座
+                        PoItemEntity qtfzPoItem = matchFzMap.get(tempKey);
+                        // fz的key值： prCode + prLn + itemCode
+                        String fzKey = qtfzPoItem.getPrCode() + qtfzPoItem.getPrLn() + qtfzPoItem.getItemCode();
+                        // 判断最终的球座&&阀座集合里面是否已经存在，是，则移除；(为了将阀座放在球体下面，一个阀座可能对应多个球体)
+                        if(qzfzMap.containsKey(fzKey)) {
+                            qzfzMap.remove(fzKey);
+                        }
+                        // 在最终集合里面添加 阀座信息
+                        qzfzMap.put(fzKey,qtfzPoItem);
+                    }
+                }
+            }
+        }
+        return qzfzMap.values().stream().collect(Collectors.toList());
+    }
+
+    private Map<String, PoItemEntity> getMatchFzInfoOfEntity(String itemname, Map<String, PoItemEntity> fzMap) {
+        Map<String, PoItemEntity> matchFzMap = new LinkedHashMap<>();
+        // 拆解
+        ItemInfoEntityOfQZ itemInfoEntity = getItemInfoOfQiuZuo(itemname);
+        String name1 = "阀座";
+        String name2 = itemname.split("-")[1]; // 规格
+        String name3 = itemInfoEntity.getMaterial(); // 材质
+        String name4 = itemInfoEntity.getCoat(); // 喷涂材质
+        String name5 = "G50";// 表面处理
+
+        if("G20".equals(name4) ||"G14".equals(name4) ) {
+            name4 = "G06";
+        } else if("G06".equals(name4)) {
+            name4 = "G05";
+        } else {
+            name4 = "";
+        }
+        // 键
+        String key1 = name1 + name2 + name3 + name4;
+        String key2 = name1 + name2 + name3 + name4 + "+" + name5;
+        if(fzMap.containsKey(key1)) {
+            matchFzMap.put(key1,fzMap.get(key1));
+        }
+        if(fzMap.containsKey(key2)) {
+            matchFzMap.put(key2,fzMap.get(key2));
+        }
+        return matchFzMap;
+    }
+
+    private List<PoItemVO> getQTFZListOfVO(PoItemDTO poItemEntity, List<PoItemVO> qtList,List<PoItemVO> fzList) {
+
+        Map<String, PoItemVO> qzfzMap = new LinkedHashMap<>();
+        Map<String, PoItemVO> fzMap = new LinkedHashMap<>();
+        Map<String, PoItemVO> qzMap = new LinkedHashMap<>();
+
+        // 将阀座List 变为 MAP
+        for(PoItemVO item : fzList) {
+            ItemInfoEntityOfQZ itemInfoEntity = getItemInfoOfFZ(item.getItemName());
+            String name1 = "阀座"; // 阀座
+            String name2 = item.getItemName().split("-")[1]; // 规格
+            String name3 = itemInfoEntity.getMaterial(); // 材质
+            if("Monel400".equals(name3)) {
+                name3 = "MonelK500";  // 3、球体材质MonelK500阀座Monel400排序在一起；
+            }
+            String name4 = itemInfoEntity.getFzCoat(); // 喷涂材质
+            String key = name1+name2+name3+name4;
+            fzMap.put(key,item);
+        }
+
+        // 处理球体,先排序球体
+        boolean isExistQZ = true;
+        int name6 = 0;
+        for (PoItemVO dto : qtList) {
+
+            if(!dto.getItemName().split("-")[0].equals("球体")) {
+                String qzKey = "球座其他" + name6;
+                qzMap.put(qzKey, dto);
+                name6++;
+                continue;
+            }
+
+            // 拆解
+            ItemInfoEntityOfQZ itemInfoEntity = getItemInfoOfQiuZuo(dto.getItemName());
+            if(itemInfoEntity==null || itemInfoEntity.getMaterial()==null || itemInfoEntity.getCoat()==null) {
+                String qzKey = "球座其他" + name6;
+                qzMap.put(qzKey, dto);
+                name6++;
+                continue;
+            }
+
+            String name1 = "球座";
+            String name2 = dto.getItemName().split("-")[1]; // 规格
+            String name3 = itemInfoEntity.getMaterial(); // 材质
+            String name4 = itemInfoEntity.getCoat(); // 喷涂材质
+
+            if (name4.equals("G20")) {
+                name4 = "G14";
+            }
+            String name5 = "Y";
+            if (dto.getItemName().split("-")[1].indexOf("F") > -1) {
+                name5 = "F";
+            }
+            String qzKey = name1 + name2 + name3 + name4 + name5 + "-" + name6;
+            qzMap.put(qzKey, dto);
+            name6++;
+        }
+        // 将排好序并且去重后的MAP转换成list
+        Map<String, PoItemVO> sortedQzMap = qzMap.entrySet().stream().sorted(Map.Entry.comparingByKey()).collect(Collectors.toMap(
+            Map.Entry::getKey,
+            Map.Entry::getValue,
+            (oldVal, newVal) -> oldVal,
+            LinkedHashMap::new
+        ));
+        qtList = sortedQzMap.values().stream().collect(Collectors.toList());
+
+
+        // 开始匹配 球体 和 阀座
+        for (PoItemVO dto : qtList) {
+            // 先在最终的MAP中插入球体数据
+            String key = dto.getPrCode() + dto.getPrLn() + dto.getItemCode();
+            qzfzMap.put(key, dto);
+
+            // 开始匹配对应的阀座
+            String itemName = dto.getItemName(); // 球体信息
+            if (itemName.split("-").length > 2 && itemName.split("-")[0].toString().equals("球体") && itemName.split("-")[1].indexOf("F") < 0 && isExistQZ) { // 球体且不包含软密封（规格不能有 F）
+                Map<String, PoItemVO> matchFzMap = this.getMatchFzInfoOfVO(itemName,fzMap);
+                if(!matchFzMap.isEmpty()) {
+                    for (String tempKey : matchFzMap.keySet()) {
+                        // 得到与球座相匹配的阀座
+                        PoItemVO qtfzPoItem = matchFzMap.get(tempKey);
+                        // fz的key值： prCode + prLn + itemCode
+                        String fzKey = qtfzPoItem.getPrCode() + qtfzPoItem.getPrLn() + qtfzPoItem.getItemCode();
+                        // 判断最终的球座&&阀座集合里面是否已经存在，是，则移除；(为了将阀座放在球体下面，一个阀座可能对应多个球体)
+                        if(qzfzMap.containsKey(fzKey)) {
+                            qzfzMap.remove(fzKey);
+                        }
+                        // 在最终集合里面添加 阀座信息
+                        qzfzMap.put(fzKey,qtfzPoItem);
+                    }
+                }
+            }
+        }
+        return qzfzMap.values().stream().collect(Collectors.toList());
+    }
+
+    private Map<String, PoItemVO> getMatchFzInfoOfVO(String itemname, Map<String, PoItemVO> fzMap) {
+        Map<String, PoItemVO> matchFzMap = new LinkedHashMap<>();
+        // 拆解
+        ItemInfoEntityOfQZ itemInfoEntity = getItemInfoOfQiuZuo(itemname);
+        String name1 = "阀座";
+        String name2 = itemname.split("-")[1]; // 规格
+        String name3 = itemInfoEntity.getMaterial(); // 材质
+        String name4 = itemInfoEntity.getCoat(); // 喷涂材质
+        String name5 = "G50";// 表面处理
+
+        if("G20".equals(name4) ||"G14".equals(name4) ) {
+            name4 = "G06";
+        } else if("G06".equals(name4)) {
+            name4 = "G05";
+        } else {
+            name4 = "";
+        }
+        // 键
+        String key1 = name1 + name2 + name3 + name4;
+        String key2 = name1 + name2 + name3 + name4 + "+" + name5;
+        if(fzMap.containsKey(key1)) {
+            matchFzMap.put(key1,fzMap.get(key1));
+        }
+        if(fzMap.containsKey(key2)) {
+            matchFzMap.put(key2,fzMap.get(key2));
+        }
+        return matchFzMap;
     }
 
     @Override
     public
     IPage<PoItemVO> pageWithItemPoContract(Query query, PoItemDTO poItemEntity){
-        return baseMapper.pageWithItemPoContract(Condition.getPage(query), poItemEntity);
+        IPage<PoItemVO> voiPage = baseMapper.pageWithItemPoContract(Condition.getPage(query), poItemEntity);
+        List<PoItemVO> poItemDTOList = voiPage.getRecords();
+        boolean isQT = false;
+        boolean isFz = false;
+        for(PoItemVO item : poItemDTOList) {
+            if(item.getItemName().indexOf("球体")>-1) {
+                isQT = true;
+            }
+            if (item.getItemName().indexOf("阀座")>-1) {
+                isFz = true;
+            }
+        }
+        // 订单里面又有球体又有阀座，则需要重新排序
+        if(isQT && isFz) {
+            List<PoItemVO> list = this.getQTFZListOfOrder(poItemDTOList);
+            voiPage.setRecords(list);
+        }
 
+        return voiPage;
     }
+
+    /**
+     * 订单查询的球座排序
+     * @param poItemDTOList
+     * @return
+     */
+    private List<PoItemVO> getQTFZListOfOrder(List<PoItemVO> poItemDTOList) {
+
+        Map<String, PoItemVO> qzfzMap = new LinkedHashMap<>();
+        Map<String, PoItemVO> fzMap = new LinkedHashMap<>();
+        Map<String, PoItemVO> qtMap = new LinkedHashMap<>();
+        Map<String, PoItemVO> othersMap = new LinkedHashMap<>();
+
+        List<PoItemVO> finalAllList = new ArrayList<>();
+        List<PoItemVO> qtList = new ArrayList<>();
+        List<PoItemVO> fzList = new ArrayList<>();
+
+        // 将 球体、阀座、其他分开
+        for (PoItemVO item : poItemDTOList) {
+            if (item.getItemName().split("-")[0].equals("球体")) {
+                if (item.getItemName().split("-").length > 2 && item.getItemName().split("-")[1].indexOf("F") < 0) { // 是球体还不够，还得是Y密封
+                    qtList.add(item);
+                } else {
+                    finalAllList.add(item);
+                }
+            } else if (item.getItemName().split("-")[0].equals("阀座")) {
+                fzList.add(item);
+            } else {
+                finalAllList.add(item);
+            }
+        }
+
+        // 将 阀座 List 变为 MAP
+        for (PoItemVO item : fzList) {
+            ItemInfoEntityOfQZ itemInfoEntity = getItemInfoOfFZ(item.getItemName());
+            String name1 = "阀座"; // 阀座
+            String name2 = item.getItemName().split("-")[1]; // 规格
+            String name3 = itemInfoEntity.getMaterial(); // 材质
+            if ("Monel400".equals(name3)) {
+                name3 = "MonelK500";  // 3、球体材质MonelK500阀座Monel400排序在一起；
+            }
+            String name4 = itemInfoEntity.getFzCoat(); // 喷涂材质
+            String key = name1 + name2 + name3 + name4;
+            fzMap.put(key, item);
+        }
+
+        // 处理其他因素,先排序球体
+        boolean isExistQZ = true;
+        int name6 = 0;
+        for (PoItemVO dto : qtList) {
+            if(!dto.getItemName().split("-")[0].equals("球体")) {
+                String qzKey = "球座其他" + name6;
+                qtMap.put(qzKey, dto);
+                name6++;
+                continue;
+            }
+            // 拆解
+            ItemInfoEntityOfQZ itemInfoEntity = getItemInfoOfQiuZuo(dto.getItemName());
+            String name1 = "球座";
+            String name2 = dto.getItemName().split("-")[1]; // 规格
+            String name3 = itemInfoEntity.getMaterial(); // 材质
+            String name4 = itemInfoEntity.getCoat(); // 喷涂材质
+            if (name4.equals("G20")) {
+                name4 = "G14";
+            }
+            String name5 = "Y";
+            if (dto.getItemName().split("-")[1].indexOf("F") > -1) {
+                name5 = "F";
+            }
+            String qzKey = name1 + name2 + name3 + name4 + name5 + "-" + name6;
+            qtMap.put(qzKey, dto);
+            name6++;
+        }
+        // 将排好序并且去重后的MAP转换成list
+        Map<String, PoItemVO> sortedQzMap = qtMap.entrySet().stream().sorted(Map.Entry.comparingByKey()).collect(Collectors.toMap(
+            Map.Entry::getKey,
+            Map.Entry::getValue,
+            (oldVal, newVal) -> oldVal,
+            LinkedHashMap::new
+        ));
+        qtList = sortedQzMap.values().stream().collect(Collectors.toList());
+
+        // 开始匹配 球体 和 阀座
+        for (PoItemVO dto : qtList) {
+            // 先在最终的MAP中插入球体数据
+            String key = dto.getPrCode() + dto.getPrLn() + dto.getItemCode();
+            qzfzMap.put(key, dto);
+
+            // 开始匹配对应的阀座
+            String itemName = dto.getItemName(); // 球体信息
+            if (itemName.split("-").length > 2 && itemName.split("-")[0].toString().equals("球体") && itemName.split("-")[1].indexOf("F") < 0 && isExistQZ) { // 球体且不包含软密封（规格不能有 F）
+                Map<String, PoItemVO> matchFzMap = this.getMatchFzInfo(itemName, fzMap);
+                if (!matchFzMap.isEmpty()) {
+                    for (String tempKey : matchFzMap.keySet()) {
+                        // 得到与球座相匹配的阀座
+                        PoItemVO qtfzPoItem = matchFzMap.get(tempKey);
+                        // fz的key值： prCode + prLn + itemCode
+                        String fzKey = qtfzPoItem.getPrCode() + qtfzPoItem.getPrLn() + qtfzPoItem.getItemCode();
+                        // 判断最终的球座&&阀座集合里面是否已经存在，是，则移除；(为了将阀座放在球体下面，一个阀座可能对应多个球体)
+                        if (qzfzMap.containsKey(fzKey)) {
+                            qzfzMap.remove(fzKey);
+                        }
+                        // 在最终集合里面添加 阀座信息
+                        qzfzMap.put(fzKey, qtfzPoItem);
+                    }
+                }
+            }
+        }
+
+        // 匹配完阀座之后，若还有剩余的阀座，则需要重新安排进入最终的list
+        for (String tempKey : fzMap.keySet()) {
+            // 得到与球座相匹配的阀座
+            PoItemVO qtfzPoItem = fzMap.get(tempKey);
+            // fz的key值： prCode + prLn + itemCode
+            String fzKey = qtfzPoItem.getPrCode() + qtfzPoItem.getPrLn() + qtfzPoItem.getItemCode();
+            // 判断该阀座是否存在于 球体阀座组合map 中，若不存在，则添加在最终list
+            if (!qzfzMap.containsKey(fzKey)) {
+                finalAllList.add(fzMap.get(tempKey));
+            }
+        }
+
+        List<PoItemVO> qtfzList = qzfzMap.values().stream().collect(Collectors.toList());
+
+        finalAllList.addAll(qtfzList);
+
+        return finalAllList;
+    }
+
 
     /**
      * @return columnValues:[
@@ -3606,15 +4215,41 @@ class PoItemServiceImpl extends BaseServiceImpl<PoItemMapper, PoItemEntity> impl
         IPage<PoItemEntity> entityPage = this.baseMapper.getPoItemEntityPage(page, poItem);
         IPage<PoItemVO> retPage = new Page<>(entityPage.getCurrent(), entityPage.getSize(), entityPage.getTotal());
         List<PoItemVO> voList = Lists.newArrayList();
-        for (PoItemEntity entity : entityPage.getRecords()) {
-            PoItemVO vo = PoItemWrapper.build().entityVO(entity);
-            PoEntity po = poService.getById(vo.getPoId());
-            vo.setCodeType(this.baseMapper.getABCType(entity.getItemCode()));
-            vo.setPoStatus(po.getStatus());
-            //获取工艺卡控进度
-            getCraftCtrl(vo);
-            voList.add(vo);
+
+        // 针对球体查询的特殊处理
+        if (((poItem.getSupCode() != null && !poItem.getSupCode().isEmpty()) || (poItem.getSupName() != null && !poItem.getSupName().isEmpty() && poItem.getItemName() != null)) && poItem.getItemName().equals("球")) {
+
+            List<PoItemEntity> qzList = entityPage.getRecords();
+            poItem.setItemName("阀座");
+            page.setSize(1000000);
+            page.setCurrent(1);
+            IPage<PoItemEntity> fzPage = getPoItemEntityIPage(page, poItem);
+            List<PoItemEntity> fzList = fzPage.getRecords();
+            List<PoItemEntity> qtFzList = this.getQTFZListOfEntity(poItem, qzList,fzList);
+
+            for(PoItemEntity entity : qtFzList){
+                PoItemVO vo = PoItemWrapper.build().entityVO(entity);
+                PoEntity po = poService.getById(vo.getPoId());
+                vo.setCodeType(this.baseMapper.getABCType(entity.getItemCode()));
+                vo.setPoStatus(po.getStatus());
+                //获取工艺卡控进度
+                getCraftCtrl(vo);
+                voList.add(vo);
+            }
+
+        } else {
+
+            for (PoItemEntity entity : entityPage.getRecords()) {
+                PoItemVO vo = PoItemWrapper.build().entityVO(entity);
+                PoEntity po = poService.getById(vo.getPoId());
+                vo.setCodeType(this.baseMapper.getABCType(entity.getItemCode()));
+                vo.setPoStatus(po.getStatus());
+                //获取工艺卡控进度
+                getCraftCtrl(vo);
+                voList.add(vo);
+            }
         }
+
         retPage.setRecords(voList);
         return retPage;
     }
@@ -3654,6 +4289,15 @@ class PoItemServiceImpl extends BaseServiceImpl<PoItemMapper, PoItemEntity> impl
     @Override
     public void craftCtrlExport(PoItemDTO poItem, HttpServletResponse response) throws Exception {
         List<PoItemEntity> poItemEntities = this.baseMapper.getPoItemEntity(poItem);
+
+        // 针对球体查询的特殊处理
+        if (((poItem.getSupCode() != null && !poItem.getSupCode().isEmpty()) || (poItem.getSupName() != null && !poItem.getSupName().isEmpty() && poItem.getItemName() != null)) && poItem.getItemName().equals("球")) {
+            poItem.setItemName("阀座");
+            List<PoItemEntity> fzList = this.baseMapper.getPoItemEntity(poItem);
+            List<PoItemEntity> qtFzList = this.getQTFZListOfEntity(poItem, poItemEntities,fzList);
+            poItemEntities = qtFzList;
+        }
+
         List<PoItemNodeDTO> dtos = Lists.newArrayList();
         for (PoItemEntity entity : poItemEntities) {
             PoItemVO vo = PoItemWrapper.build().entityVO(entity);
@@ -3698,6 +4342,51 @@ class PoItemServiceImpl extends BaseServiceImpl<PoItemMapper, PoItemEntity> impl
         });
         return true;
     }
+
+    @Override
+    public boolean updatePromiseDateBatchToU9(List<PoItemDTO> poItemDTOS) {
+        if(poItemDTOS.size()==0){
+            return true;
+        }
+
+
+        List<PromiseDateDTO> promiseDateDTOS=new ArrayList<>();
+        poItemDTOS.forEach(dto ->{
+            PoItemEntity poItemEntity = getById(dto.getId());
+            poItemEntity.setSupConfirmDate(dto.getSupConfirmDate());
+            poItemEntity.setIsReserve("N");
+            updateById(poItemEntity);
+            promiseDateDTOS.add(new PromiseDateDTO(poItemEntity.getPoCode(),String.valueOf(poItemEntity.getPoLn()),dto.getSupConfirmDate(),poItemEntity.getOrgCode()));
+
+        });
+
+        /*调用接口
+        [{
+                "DocNo":"PO0012302250001",
+                "DocLineNo":"10",
+                "ConfirmDate":"123465",
+                "OrgCode":"001"
+
+        }]*/
+        String jsonString = JSON.toJSONString(promiseDateDTOS);
+        String res = WillHttpUtil.postJson(atwSrmConfiguration.getU9ApiDomain() + "/api/ModifyPOConfirmDate", jsonString,600L);
+        if(res.isEmpty()){
+            throw  new RuntimeException("调用U9接口超时");
+        }else {
+            org.json.JSONObject returnJson = new org.json.JSONObject(res);
+            boolean IsSuccess= returnJson.getBoolean("IsSuccess");
+            if (!IsSuccess){
+                throw  new RuntimeException("调用U9接口失败："+res);
+            }
+
+        }
+
+        //更新预PO订单状态
+        updatePoStatus();
+
+        return true;
+    }
+
 
 
     @Transactional(rollbackFor = Exception.class)
@@ -3917,6 +4606,8 @@ class PoItemServiceImpl extends BaseServiceImpl<PoItemMapper, PoItemEntity> impl
     }
 
 
+
+
     @Override
     public boolean sendEmail(String ids) {
         List<String> idArr = new ArrayList<>(Arrays.asList(ids.split(",")));
@@ -4034,5 +4725,65 @@ class PoItemServiceImpl extends BaseServiceImpl<PoItemMapper, PoItemEntity> impl
             }
         }
         return true;
+    }
+
+    @Override
+    public boolean updatePromiseDateBatchFromShjh(List<PoItemDTO> poItemDTOS) {
+        for (PoItemEntity poItemEntity:poItemDTOS) {
+            //不是关键物料直接跳过
+            String itemCode = poItemEntity.getItemCode();
+            String itemName = poItemEntity.getItemName();
+            if (!itemCode.startsWith("15110")
+                && !itemCode.startsWith("130301")
+                && !itemCode.startsWith("130302")
+                && !itemCode.startsWith("130101")
+                && !itemCode.startsWith("130102")
+                && !itemCode.startsWith("131111")
+                && !itemCode.startsWith("131106")
+                && itemName.indexOf("锻")<0
+            ) {
+                continue;
+
+            }
+
+            CaiGouSchedule locked=null;
+
+            locked = this.baseMapper.isLocked(poItemEntity.getPrCode(), String.valueOf(poItemEntity.getPrLn()));
+
+
+            if(locked!=null){
+                Date reqDate = locked.getReqDate();
+                long reqDate_sjc = reqDate.getTime()/1000;
+                this.baseMapper.updateSupConfirmDate(reqDate_sjc,poItemEntity.getPrCode(), String.valueOf(poItemEntity.getPrLn()));
+            }else{
+                this.baseMapper.updateSupConfirmDate(0L,poItemEntity.getPrCode(), String.valueOf(poItemEntity.getPrLn()));
+            }
+        }
+
+        return true;
+    }
+
+    @Override
+    public void updatePoStatus() {
+
+        List<PoEntity> poEntities = this.baseMapper.selectUnLockPo();
+        for (PoEntity po:poEntities) {
+            this.baseMapper.updateIsReserve(po.getId());
+            //邮件提醒
+            QueueEmailEntity queueEmailEntity = new QueueEmailEntity();
+            queueEmailEntity.setSender(IQueueEmailService.AP_INTI_SENDER);
+
+            Supplier byCode = iSupplierService.getByCode(po.getSupCode());
+            if (byCode!=null){
+                queueEmailEntity.setReceiver(byCode.getEmail());//供应商邮件
+            }
+            queueEmailEntity.setSubject(IQueueEmailService.AP_SUBJECT_MSG);
+            queueEmailEntity.setContent("您有预订单转为正常订单【"+po.getOrderCode()+"】，请确认回传合同。");
+            queueEmailEntity.setSendCount(0);
+            queueEmailEntity.setStatus(IQueueEmailService.STATUS_INIT);
+            queueEmailService.save(queueEmailEntity);
+
+        }
+
     }
 }

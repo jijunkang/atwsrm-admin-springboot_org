@@ -25,4 +25,6 @@ class PoDTO extends PoEntity{
     private String createTimeEnd;
     private Long docDateStart;
     private Long docDateEnd;
+
+    private String isReserve;
 }

@@ -12,22 +12,15 @@ import org.springblade.core.mp.support.Condition;
 import org.springblade.core.mp.support.Query;
 import org.springblade.core.tool.api.R;
 import org.springblade.core.tool.utils.Func;
-import org.springblade.modules.material.dto.MaterialPriceDTO;
-import org.springblade.modules.pr.dto.PrReq;
-import org.springblade.modules.supplier.dto.CaiGouScheduleReq;
-import org.springblade.modules.supplier.dto.SupplierDTO;
-import org.springblade.modules.supplier.dto.SupplierScheduleReq;
-import org.springblade.modules.supplier.dto.SupplierUpdateReq;
-import org.springblade.modules.supplier.entity.CaiGouSchedule;
-import org.springblade.modules.supplier.entity.SupUser;
-import org.springblade.modules.supplier.entity.Supplier;
-import org.springblade.modules.supplier.entity.SupplierSchedule;
+import org.springblade.modules.supplier.dto.*;
+import org.springblade.modules.supplier.entity.*;
 import org.springblade.modules.supplier.service.ISupplierService;
 import org.springblade.modules.supplier.vo.OmsEchrtsOfSupplierVO;
-import org.springblade.modules.supplier.vo.SupplierScheduleVO;
 import org.springblade.modules.supplier.vo.SupplierVO;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.*;
 
+import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import java.math.BigDecimal;
@@ -561,4 +554,32 @@ public class SupplierController extends BladeController {
         return R.status(supplierService.updateMore(supplier));
     }
 
+
+    /**
+     * 供应商生产数据同步
+     */
+    @PostMapping("/synProductData")
+    @ApiOperationSupport(order = 2)
+    @ApiOperation(value = "分页", notes = "传入supplierProductData")
+    @Scheduled(cron="0 0 8 * * ?")
+    public R synProductData() {
+        R r = supplierService.synProductData();
+        return r;
+    }
+
+
+    /**
+     * 供应商生产数据查询
+     */
+    @GetMapping("/getProductData")
+    @ApiOperationSupport(order = 2)
+    @ApiOperation(value = "分页", notes = "getProductData")
+    public
+    R<IPage<SupplierProductDataEntity>> getProductData(SupplierProductDataEntity supplierProductData, Query query) throws RuntimeException{
+        IPage<SupplierProductDataEntity> pages = supplierService.getProductData(Condition.getPage(query), supplierProductData);
+        return R.data(pages);
+    }
+
+
 }
+

@@ -345,4 +345,7 @@ class Item extends BaseEntity{
     @ApiModelProperty(value = "是否标准件")
     private String isStandard;
 
+    @ApiModelProperty(value = "组织代码")
+    private String orgCode;
+
 }

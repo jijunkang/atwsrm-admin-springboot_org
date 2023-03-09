@@ -294,6 +294,7 @@ interface IPoItemService extends BaseService<PoItemEntity> {
     boolean updateReqDateBatch(List<PoItemDTO> poItemDTOS);
 
     boolean updatePromiseDateBatch(List<PoItemDTO> poItemDTOS);
+    boolean updatePromiseDateBatchToU9(List<PoItemDTO> poItemDTOS);
 
     boolean batchUpdateIsUrgent(List<PoItemDTO> poItemDTOS);
 
@@ -308,5 +309,9 @@ interface IPoItemService extends BaseService<PoItemEntity> {
     boolean batchSetUpdateCheckDate(String ids);
 
     IPage<PoItemVO> getHistoryPrice(IPage<PoItemVO> page, String itemCode);
+
+    boolean updatePromiseDateBatchFromShjh(List<PoItemDTO> poItemDTOS);
+
+    void updatePoStatus();
 
 }

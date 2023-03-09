@@ -44,4 +44,7 @@ public class VmiReport implements Serializable {
     @ApiModelProperty(value = "已用但未结算数量")
     private String usedButNotBalNum;
 
+    @ApiModelProperty(value = "组织代码")
+    private String orgCode;
+
 }

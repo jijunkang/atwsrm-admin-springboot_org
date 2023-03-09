@@ -196,4 +196,11 @@ public class PoItemVO extends PoItemEntity {
 
     @ApiModelProperty(value = "组织代码")
     private String orgCode;
+
+    @ApiModelProperty(value = "齐套项目号")
+    private String qtProNo;
+    @ApiModelProperty(value = "齐套需求日期")
+    private Date promiseDateFromQt;
+
+    private Date qtPlanDate;
 }

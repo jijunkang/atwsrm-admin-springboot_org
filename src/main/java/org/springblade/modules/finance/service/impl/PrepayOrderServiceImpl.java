@@ -523,6 +523,7 @@ class PrepayOrderServiceImpl extends BaseServiceImpl<PrepayOrderMapper, PrepayOr
         PaywayEntity paywayEntity = paywayService.getBySupCode(prepayOrderEntity.getSupCode());
         Supplier            supplier          = supplierService.getByCode(prepayOrderEntity.getSupCode());
 
+        result.put("orgCode", prepayOrderEntity.getOrgCode()==null?"001":prepayOrderEntity.getOrgCode());
         result.put("u9Code", prepayOrderEntity.getU9Code());
         result.put("printDate", new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
         result.put("department", "采购部");

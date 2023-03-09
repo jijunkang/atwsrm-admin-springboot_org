@@ -60,6 +60,7 @@
         <result column="is_deleted" property="isDeleted"/>
     </resultMap>
 
+
     <select id="selectSupplierPage" resultType="org.springblade.modules.supplier.vo.SupplierVO">
         select * from atw_supplier where is_deleted = 0 and primary_contact = '1'
         <if test="supplier !=null and supplier.code !=null and supplier.code !='' ">
@@ -88,7 +89,9 @@
         select * from atw_supplier where code = #{supCode} and primary_contact = '1'
     </select>
 
-<!--    <update id="updateOtherCtcInfos">-->
+
+
+    <!--    <update id="updateOtherCtcInfos">-->
 <!--        UPDATE-->
 <!--        atw_supplier-->
 <!--        SET-->
@@ -148,6 +151,332 @@
         find_in_set(code,#{req.supCodes})
     </update>
 
+
+    <insert id="insertSupplierProductData">
+        INSERT INTO supplier_product_data
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="null != tenantId and '' != tenantId">
+                tenant_id,
+            </if>
+            <if test="null != supCode and '' != supCode">
+                sup_code,
+            </if>
+            <if test="null != supName and '' != supName">
+                sup_name,
+            </if>
+            <if test="null != srcId and '' != srcId">
+                src_id,
+            </if>
+            <if test="null != srcStatus and '' != srcStatus">
+                src_status,
+            </if>
+            <if test="null != billDate">
+                bill_date,
+            </if>
+            <if test="null != contractNum and '' != contractNum">
+                contract_num,
+            </if>
+            <if test="null != orderNum and '' != orderNum">
+                order_num,
+            </if>
+            <if test="null != customer and '' != customer">
+                customer,
+            </if>
+            <if test="null != itemCode and '' != itemCode">
+                item_code,
+            </if>
+            <if test="null != circulationNum and '' != circulationNum">
+                circulation_num,
+            </if>
+            <if test="null != itemName and '' != itemName">
+                item_name,
+            </if>
+            <if test="null != itemAttribute and '' != itemAttribute">
+                item_attribute,
+            </if>
+            <if test="null != material and '' != material">
+                material,
+            </if>
+            <if test="null != heatNum and '' != heatNum">
+                heat_num,
+            </if>
+            <if test="null != contractQuantity ">
+                contract_quantity,
+            </if>
+            <if test="null != productionQuantity ">
+                production_quantity,
+            </if>
+            <if test="null != weight and '' != weight">
+                weight,
+            </if>
+            <if test="null != weightTotal and '' != weightTotal">
+                weight_total,
+            </if>
+            <if test="null != unit and '' != unit">
+                unit,
+            </if>
+            <if test="null != deliveryDate">
+                delivery_date,
+            </if>
+            <if test="null != gtFinishQuantity ">
+                gt_finish_quantity,
+            </if>
+            <if test="null != gtScrapQuantity ">
+                gt_scrap_quantity,
+            </if>
+            <if test="null != gtFinishDate">
+                gt_finish_date,
+            </if>
+            <if test="null != shellFinishQuantity ">
+                shell_finish_quantity,
+            </if>
+            <if test="null != shellScrapQuantity ">
+                shell_scrap_quantity,
+            </if>
+            <if test="null != shellScrapDate ">
+                shell_scrap_date,
+            </if>
+            <if test="null != castFinishQuantity ">
+                cast_finish_quantity,
+            </if>
+            <if test="null != castScrapQuantity ">
+                cast_scrap_quantity,
+            </if>
+            <if test="null != castFinishDate ">
+                cast_finish_date,
+            </if>
+            <if test="null != reprocessFinishQuantity ">
+                reprocess_finish_quantity,
+            </if>
+            <if test="null != reprocessScrapQuantity ">
+                reprocess_scrap_quantity,
+            </if>
+            <if test="null != reprocessFinishDate">
+                reprocess_finish_date,
+            </if>
+            <if test="null != inspectQuantity ">
+                inspect_quantity,
+            </if>
+            <if test="null != inspectDate">
+                inspect_date,
+            </if>
+            <if test="null != remark and '' != remark">
+                remark,
+            </if>
+            <if test="null != createUser and '' != createUser">
+                create_user,
+            </if>
+            <if test="null != createDept and '' != createDept">
+                create_dept,
+            </if>
+            <if test="null != createTime ">
+                create_time,
+            </if>
+            <if test="null != updateUser and '' != updateUser">
+                update_user,
+            </if>
+            <if test="null != updateTime">
+                update_time,
+            </if>
+            <if test="null != status and '' != status">
+                status,
+            </if>
+            <if test="null != isDeleted and '' != isDeleted">
+                is_deleted
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="null != tenantId and '' != tenantId">
+                #{tenantId},
+            </if>
+            <if test="null != supCode and '' != supCode">
+                #{supCode},
+            </if>
+            <if test="null != supName and '' != supName">
+                #{supName},
+            </if>
+            <if test="null != srcId and '' != srcId">
+                #{srcId},
+            </if>
+            <if test="null != srcStatus and '' != srcStatus">
+                #{srcStatus},
+            </if>
+            <if test="null != billDate ">
+                #{billDate},
+            </if>
+            <if test="null != contractNum and '' != contractNum">
+                #{contractNum},
+            </if>
+            <if test="null != orderNum and '' != orderNum">
+                #{orderNum},
+            </if>
+            <if test="null != customer and '' != customer">
+                #{customer},
+            </if>
+            <if test="null != itemCode and '' != itemCode">
+                #{itemCode},
+            </if>
+            <if test="null != circulationNum and '' != circulationNum">
+                #{circulationNum},
+            </if>
+            <if test="null != itemName and '' != itemName">
+                #{itemName},
+            </if>
+            <if test="null != itemAttribute and '' != itemAttribute">
+                #{itemAttribute},
+            </if>
+            <if test="null != material and '' != material">
+                #{material},
+            </if>
+            <if test="null != heatNum and '' != heatNum">
+                #{heatNum},
+            </if>
+            <if test="null != contractQuantity ">
+                #{contractQuantity},
+            </if>
+            <if test="null != productionQuantity ">
+                #{productionQuantity},
+            </if>
+            <if test="null != weight and '' != weight">
+                #{weight},
+            </if>
+            <if test="null != weightTotal and '' != weightTotal">
+                #{weightTotal},
+            </if>
+            <if test="null != unit and '' != unit">
+                #{unit},
+            </if>
+            <if test="null != deliveryDate ">
+                #{deliveryDate},
+            </if>
+            <if test="null != gtFinishQuantity ">
+                #{gtFinishQuantity},
+            </if>
+            <if test="null != gtScrapQuantity ">
+                #{gtScrapQuantity},
+            </if>
+            <if test="null != gtFinishDate ">
+                #{gtFinishDate},
+            </if>
+            <if test="null != shellFinishQuantity ">
+                #{shellFinishQuantity},
+            </if>
+            <if test="null != shellScrapQuantity ">
+                #{shellScrapQuantity},
+            </if>
+            <if test="null != shellScrapDate ">
+                #{shellScrapDate},
+            </if>
+            <if test="null != castFinishQuantity ">
+                #{castFinishQuantity},
+            </if>
+            <if test="null != castScrapQuantity ">
+                #{castScrapQuantity},
+            </if>
+            <if test="null != castFinishDate ">
+                #{castFinishDate},
+            </if>
+            <if test="null != reprocessFinishQuantity ">
+                #{reprocessFinishQuantity},
+            </if>
+            <if test="null != reprocessScrapQuantity ">
+                #{reprocessScrapQuantity},
+            </if>
+            <if test="null != reprocessFinishDate ">
+                #{reprocessFinishDate},
+            </if>
+            <if test="null != inspectQuantity">
+                #{inspectQuantity},
+            </if>
+            <if test="null != inspectDate ">
+                #{inspectDate},
+            </if>
+            <if test="null != remark and '' != remark">
+                #{remark},
+            </if>
+            <if test="null != createUser and '' != createUser">
+                #{createUser},
+            </if>
+            <if test="null != createDept and '' != createDept">
+                #{createDept},
+            </if>
+            <if test="null != createTime ">
+                #{createTime},
+            </if>
+            <if test="null != updateUser and '' != updateUser">
+                #{updateUser},
+            </if>
+            <if test="null != updateTime ">
+                #{updateTime},
+            </if>
+            <if test="null != status and '' != status">
+                #{status},
+            </if>
+            <if test="null != isDeleted and '' != isDeleted">
+                #{isDeleted}
+            </if>
+        </trim>
+    </insert>
+
+    <update id="updateSupplierProductData">
+        UPDATE supplier_product_data
+        <set>
+            <if test="null != tenantId and '' != tenantId">tenant_id = #{tenantId},</if>
+            <if test="null != supCode and '' != supCode">sup_code = #{supCode},</if>
+            <if test="null != supName and '' != supName">sup_name = #{supName},</if>
+            <if test="null != srcId and '' != srcId">src_id = #{srcId},</if>
+            <if test="null != srcStatus and '' != srcStatus">src_status = #{srcStatus},</if>
+            <if test="null != billDate ">bill_date = #{billDate},</if>
+            <if test="null != contractNum and '' != contractNum">contract_num = #{contractNum},</if>
+            <if test="null != orderNum and '' != orderNum">order_num = #{orderNum},</if>
+            <if test="null != customer and '' != customer">customer = #{customer},</if>
+            <if test="null != itemCode and '' != itemCode">item_code = #{itemCode},</if>
+            <if test="null != circulationNum and '' != circulationNum">circulation_num = #{circulationNum},</if>
+            <if test="null != itemName and '' != itemName">item_name = #{itemName},</if>
+            <if test="null != itemAttribute and '' != itemAttribute">item_attribute = #{itemAttribute},</if>
+            <if test="null != material and '' != material">material = #{material},</if>
+            <if test="null != heatNum and '' != heatNum">heat_num = #{heatNum},</if>
+            <if test="null != contractQuantity ">contract_quantity = #{contractQuantity},</if>
+            <if test="null != productionQuantity ">production_quantity = #{productionQuantity},</if>
+            <if test="null != weight and '' != weight">weight = #{weight},</if>
+            <if test="null != weightTotal and '' != weightTotal">weight_total = #{weightTotal},</if>
+            <if test="null != unit and '' != unit">unit = #{unit},</if>
+            <if test="null != deliveryDate ">delivery_date = #{deliveryDate},</if>
+            <if test="null != gtFinishQuantity ">gt_finish_quantity = #{gtFinishQuantity},</if>
+            <if test="null != gtScrapQuantity ">gt_scrap_quantity = #{gtScrapQuantity},</if>
+            <if test="null != gtFinishDate ">gt_finish_date = #{gtFinishDate},</if>
+            <if test="null != shellFinishQuantity ">shell_finish_quantity = #{shellFinishQuantity},</if>
+            <if test="null != shellScrapQuantity ">shell_scrap_quantity = #{shellScrapQuantity},</if>
+            <if test="null != shellScrapDate ">shell_scrap_date = #{shellScrapDate},</if>
+            <if test="null != castFinishQuantity ">cast_finish_quantity = #{castFinishQuantity},</if>
+            <if test="null != castScrapQuantity ">cast_scrap_quantity = #{castScrapQuantity},</if>
+            <if test="null != castFinishDate ">cast_finish_date = #{castFinishDate},</if>
+            <if test="null != reprocessFinishQuantity ">reprocess_finish_quantity = #{reprocessFinishQuantity},</if>
+            <if test="null != reprocessScrapQuantity ">reprocess_scrap_quantity = #{reprocessScrapQuantity},</if>
+            <if test="null != reprocessFinishDate ">reprocess_finish_date = #{reprocessFinishDate},</if>
+            <if test="null != inspectQuantity ">inspect_quantity = #{inspectQuantity},</if>
+            <if test="null != inspectDate ">inspect_date = #{inspectDate},</if>
+            <if test="null != remark and '' != remark">remark = #{remark},</if>
+            <if test="null != createUser and '' != createUser">create_user = #{createUser},</if>
+            <if test="null != createDept and '' != createDept">create_dept = #{createDept},</if>
+            <if test="null != createTime ">create_time = #{createTime},</if>
+            <if test="null != updateUser and '' != updateUser">update_user = #{updateUser},</if>
+            <if test="null != updateTime ">update_time = #{updateTime},</if>
+            <if test="null != status and '' != status">status = #{status},</if>
+            <if test="null != isDeleted and '' != isDeleted">is_deleted = #{isDeleted}</if>
+        </set>
+        WHERE src_id = #{srcId}
+    </update>
+
+
+    <select id="selectSupplierProductDataList"
+            resultType="org.springblade.modules.supplier.entity.SupplierProductDataEntity">
+        select * from supplier_product_data WHERE src_id = #{srcId}
+    </select>
+    <select id="selectSupplierProductDataPage"
+            resultType="org.springblade.modules.supplier.entity.SupplierProductDataEntity">
+        select * from supplier_product_data
+    </select>
 
 
 </mapper>

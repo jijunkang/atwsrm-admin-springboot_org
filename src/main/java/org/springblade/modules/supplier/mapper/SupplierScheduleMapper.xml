@@ -107,6 +107,23 @@
             DATE_FORMAT( plan_date, '%Y-%m' )
     </select>
 
+    <select id="getDelayMap" resultType="org.springblade.modules.supplier.entity.OtdReport">
+        SELECT
+        DATE_FORMAT( plan_date, '%Y-%m' ) req_date,
+        count(plan_date) type_number
+        FROM
+        atw_item_otd
+        WHERE
+        DATE_FORMAT( plan_date, '%Y-%m' ) &gt;= #{startDate}
+        AND DATE_FORMAT( plan_date, '%Y-%m-%d' ) &lt;= #{endDate}
+        <include refid="chargeSql"></include>
+        and is_otd = 'N'
+        GROUP BY
+        DATE_FORMAT( plan_date, '%Y-%m' )
+        ORDER BY
+        DATE_FORMAT( plan_date, '%Y-%m' )
+    </select>
+
 
     <select id="getOkMapSeven" resultType="org.springblade.modules.supplier.entity.OtdReport">
         SELECT
@@ -123,6 +140,24 @@
         DATE_FORMAT( plan_date, '%Y-%m' )
         ORDER BY
         DATE_FORMAT( plan_date, '%Y-%m' )
+    </select>
+
+    <select id="getDelayMapSeven" resultType="org.springblade.modules.supplier.entity.OtdReport">
+        SELECT
+        DATE_FORMAT( plan_date, '%Y-%m' ) req_date,
+        count(plan_date) type_number
+        FROM
+        atw_item_otd
+        WHERE
+        DATE_FORMAT( plan_date, '%Y-%m' ) &gt;= #{startDate}
+        AND DATE_FORMAT( plan_date, '%Y-%m-%d' ) &lt;= #{endDate}
+        <include refid="chargeSql"></include>
+        and is_otd_seven = 'N'
+        GROUP BY
+        DATE_FORMAT( plan_date, '%Y-%m' )
+        ORDER BY
+        DATE_FORMAT( plan_date, '%Y-%m' )
+
     </select>
 
     <select id="getTotalMapSeven" resultType="org.springblade.modules.supplier.entity.OtdReport">
@@ -853,8 +888,7 @@
         d.pro_goods_num notRcvNum2,
 
         A.*,
-        case when B.update_user REGEXP '[A-Z]' THEN B.check_update_date_sup ELSE B.check_update_date END
-        check_update_date,
+        B.check_update_date,
 
         IFNULL(bspdrw.remark,ifnull(B.remark,B.remark_sup)) remark,
         B.check_update_date_frist,
@@ -888,7 +922,7 @@
         )
         END sn_create_time,
         CASE
-        WHEN pr.requisition_remark='S&amp;OP备库' and d.STATUS = 20 and substr(d.item_code,0,2) != '17'
+        WHEN (pr.requisition_remark like '%S&amp;OP备库%' or pr.requisition_remark='%提前下单%') and d.STATUS = 20 and substr(d.item_code,0,2) != '17'
         and substr(d.item_code,0,2) != '20' then 'Y' end bkflag
         FROM
         BI_Supdeliv_Plan_Data_Detail_View
@@ -1024,7 +1058,7 @@
         )
         END sn_create_time,
         CASE
-        WHEN pr.requisition_remark='S&amp;OP备库' and d.STATUS = 20 and substr(d.item_code,0,2) != '17'
+        WHEN (pr.requisition_remark like '%S&amp;OP备库%' or pr.requisition_remark='%提前下单%') and d.STATUS = 20 and substr(d.item_code,0,2) != '17'
         and substr(d.item_code,0,2) != '20'  then  'Y' end bkflag
         FROM
         BI_Supdeliv_Plan_Data_Detail_View AS A
@@ -1126,16 +1160,14 @@
         SELECT
         (d.tc_num-d.arv_goods_num) notArvNum,
         d.pro_goods_num notRcvNum2,
-
         A.*,
-        case when B.update_user REGEXP '[A-Z]' THEN B.check_update_date_sup ELSE B.check_update_date END
-        check_update_date,
-
+        IFNULL(bspdrw.limits,ifnull(B.limits,0) ) limits,
+        IFNULL(IFNULL( bspdrw.check_update_date, B.check_update_date ),bspdrw2.check_update_date) check_update_date,
         IFNULL(bspdrw.remark,ifnull(B.remark,B.remark_sup)) remark,
-        B.check_update_date_frist,
+        IFNULL(IFNULL( bspdrw.check_update_date_frist, B.check_update_date_frist ),bspdrw2.check_update_date_frist) check_update_date_frist,
         B.anticipation,
         pr.is_urgent,
-        ifnull(B.limits,0) limits,
+
         C.place_name person,
         IFNULL( e.STATUS, '19' ) doStatusOld,
         case when order_num &lt;&gt;store_num then (case when IFNULL( e.STATUS, '19' ) in ('23','26','27','30') and
@@ -1163,7 +1195,7 @@
         )
         END sn_create_time,
         CASE
-        WHEN pr.requisition_remark='S&amp;OP备库' and d.STATUS = 20 and substr(d.item_code,0,2) != '17'
+        WHEN (pr.requisition_remark like '%S&amp;OP备库%' or pr.requisition_remark='%提前下单%') and d.STATUS = 20 and substr(d.item_code,0,2) != '17'
         and substr(d.item_code,0,2) != '20' then 'Y' end bkflag
         FROM
         atw_caigou_plan_data_lock_view
@@ -1176,6 +1208,7 @@
         LEFT JOIN atw_item item on A.item_code = item.code
         LEFT JOIN bi_supdeliv_plan_data_remark_write bspdrw ON ( A.po_code = bspdrw.po_code AND A.po_ln = bspdrw.po_ln
         AND A.pro_no=bspdrw.pro_no)
+        LEFT JOIN (select * from bi_supdeliv_plan_data_remark_write  where pro_no='') bspdrw2 ON ( A.po_code = bspdrw2.po_code AND A.po_ln = bspdrw2.po_ln  )
         LEFT JOIN (
         SELECT DISTINCT
         pi_id,
@@ -1265,12 +1298,12 @@
         (d.tc_num-d.arv_goods_num) notArvNum,
         d.pro_goods_num notRcvNum2,
         A.*,
-        case when B.update_user REGEXP '[A-Z]' THEN B.check_update_date_sup ELSE B.check_update_date END check_update_date,
 
-        IFNULL(bspdrw.remark,ifnull(B.remark,B.remark_sup))  remark,
+        IFNULL(bspdrw.limits,ifnull(B.limits,0) ) limits,
+        IFNULL(IFNULL( bspdrw.check_update_date, B.check_update_date ),bspdrw2.check_update_date) check_update_date,
+        IFNULL(bspdrw.remark,ifnull(B.remark,B.remark_sup)) remark,
+        IFNULL(IFNULL( bspdrw.check_update_date_frist, B.check_update_date_frist ),bspdrw2.check_update_date_frist) check_update_date_frist,
         B.anticipation,
-        B.check_update_date_frist,
-        B.limits,
         pr.is_urgent,
         C.place_name person,
         IFNULL( e.STATUS, '19' ) doStatusOld,
@@ -1299,7 +1332,7 @@
         )
         END sn_create_time,
         CASE
-        WHEN pr.requisition_remark='S&amp;OP备库' and d.STATUS = 20 and substr(d.item_code,0,2) != '17'
+        WHEN (pr.requisition_remark like '%S&amp;OP备库%' or pr.requisition_remark like '%提前下单%') and d.STATUS = 20 and substr(d.item_code,0,2) != '17'
         and substr(d.item_code,0,2) != '20'  then  'Y' end bkflag
         FROM
         atw_caigou_plan_data_lock_view AS A
@@ -1309,6 +1342,7 @@
         LEFT JOIN atw_u9_pr pr ON ( d.pr_code = pr.pr_code AND d.pr_ln = pr.pr_ln )
         LEFT JOIN BI_Supdeliv_Plan_Data_Detail_Seq s ON s.pro_no = A.pro_no
         LEFT JOIN bi_supdeliv_plan_data_remark_write bspdrw ON ( A.po_code = bspdrw.po_code AND A.po_ln = bspdrw.po_ln AND A.pro_no=bspdrw.pro_no)
+        LEFT JOIN (select * from bi_supdeliv_plan_data_remark_write  where pro_no='') bspdrw2 ON ( A.po_code = bspdrw2.po_code AND A.po_ln = bspdrw2.po_ln  )
         LEFT JOIN atw_item item on A.item_code = item.code
         LEFT JOIN (
         SELECT DISTINCT
@@ -1769,7 +1803,6 @@
         update
             BI_Supdeliv_Plan_Data_Detail_Write
         set
-            check_update_date = #{caiGouSchedule.checkUpdateDate},
             anticipation = #{caiGouSchedule.anticipation},
             update_user = #{updater},
             update_time = #{updateTime},
@@ -1801,7 +1834,12 @@
         update
             bi_supdeliv_plan_data_remark_write
         set
+
+            check_update_date = #{caiGouSchedule.checkUpdateDate},
+            anticipation = #{caiGouSchedule.anticipation},
+            limits = #{caiGouSchedule.limits},
             remark = #{caiGouSchedule.remark},
+            check_update_date_frist = #{caiGouSchedule.checkUpdateDateFrist},
             update_user = #{updater},
             update_time = #{updateTime}
         where
@@ -1834,9 +1872,9 @@
 
     <insert id="insertCaiGou">
         insert into
-            BI_Supdeliv_Plan_Data_Detail_Write(po_code,po_ln,check_update_date,remark,anticipation,create_time,create_user,update_time,update_user,limits,check_update_date_frist )
+            BI_Supdeliv_Plan_Data_Detail_Write(po_code,po_ln,remark,anticipation,create_time,create_user,update_time,update_user,limits,check_update_date_frist )
         VALUES
-            (#{caiGouSchedule.poCode},#{caiGouSchedule.poLn},#{caiGouSchedule.checkUpdateDate},'',#{caiGouSchedule.anticipation},#{updateTime},#{updater},#{updateTime},#{updater},'0',#{caiGouSchedule.checkUpdateDateFrist})
+            (#{caiGouSchedule.poCode},#{caiGouSchedule.poLn},'',#{caiGouSchedule.anticipation},#{updateTime},#{updater},#{updateTime},#{updater},'0',#{caiGouSchedule.checkUpdateDateFrist})
     </insert>
 
     <insert id="insertCaiGouNoProNo">
@@ -1850,9 +1888,9 @@
 
     <insert id="insertCaiGouRemark">
         insert into
-            bi_supdeliv_plan_data_remark_write(po_code,po_ln,remark,create_time,create_user,update_time,update_user,pro_no)
+            bi_supdeliv_plan_data_remark_write(po_code,po_ln,remark,check_update_date,check_update_date_frist,create_time,create_user,update_time,update_user,pro_no)
         VALUES
-            (#{caiGouSchedule.poCode},#{caiGouSchedule.poLn},#{caiGouSchedule.remark},#{updateTime},#{updater},#{updateTime},#{updater},#{caiGouSchedule.proNo})
+            (#{caiGouSchedule.poCode},#{caiGouSchedule.poLn},#{caiGouSchedule.remark},#{caiGouSchedule.checkUpdateDate},#{caiGouSchedule.checkUpdateDateFrist},#{updateTime},#{updater},#{updateTime},#{updater},#{caiGouSchedule.proNo})
 
     </insert>
 
@@ -2533,6 +2571,7 @@
         group by `time`
         order by `time` asc
     </select>
+
 
 
 </mapper>

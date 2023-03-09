@@ -76,19 +76,24 @@
     </update>
 
     <select id="selectItemPage" resultType="org.springblade.modules.item.vo.ItemVO">
-        select a.*,(select req_perpare_num from  jit_management b where b.item_code=a.code) req_perpare_num from  atw_item a
-        WHERE a.is_deleted = 0
+        select a.*,(select req_perpare_num from  jit_management b where b.item_code=a.code) req_perpare_num
+        from
+        (select * from atw_item_org
+                  where 1=1
+        <if test="item !=null and item.orgCode !=null ">
+            AND org_code = #{item.orgCode}
+        </if>
         <if test="item !=null and item.code !=null ">
-          AND code LIKE '%${item.code}%'
+        AND code LIKE '%${item.code}%'
         </if>
         <if test="item !=null and item.name !=null ">
-          AND `name` LIKE '%${item.name}%'
+            AND `name` LIKE '%${item.name}%'
         </if>
         <if test="item !=null and item.mainCode !=null ">
-          AND `main_code` LIKE '%${item.mainCode}%'
+            AND `main_code` LIKE '%${item.mainCode}%'
         </if>
         <if test="item !=null and item.mainName !=null ">
-          AND `main_name` LIKE '%${item.mainName}%'
+            AND `main_name` LIKE '%${item.mainName}%'
         </if>
         <if test="item != null and item.sOrN != null and item.sOrN != '' ">
             <if test="item.sOrN != 'NULL'  ">
@@ -98,12 +103,44 @@
                 AND `s_or_n` is null
             </if>
         </if>
+        UNION
+        select * from atw_item
+        where 1=1
+        <if test="item !=null and item.orgCode !=null ">
+            AND org_code = #{item.orgCode}
+        </if>
+        <if test="item !=null and item.code !=null ">
+            AND code LIKE '%${item.code}%'
+        </if>
+        <if test="item !=null and item.name !=null ">
+            AND `name` LIKE '%${item.name}%'
+        </if>
+        <if test="item !=null and item.mainCode !=null ">
+            AND `main_code` LIKE '%${item.mainCode}%'
+        </if>
+        <if test="item !=null and item.mainName !=null ">
+            AND `main_name` LIKE '%${item.mainName}%'
+        </if>
+        <if test="item != null and item.sOrN != null and item.sOrN != '' ">
+            <if test="item.sOrN != 'NULL'  ">
+                AND `s_or_n` = #{item.sOrN}
+            </if>
+            <if test="item.sOrN == 'NULL' ">
+                AND `s_or_n` is null
+            </if>
+        </if>)  a
+        WHERE a.is_deleted = 0
         ORDER BY a.update_time DESC;
     </select>
 
     <select id="selectItemPageOfList" resultType="org.springblade.modules.item.vo.ItemVO">
-        select a.*,(select req_perpare_num from  jit_management b where b.item_code=a.code) req_perpare_num from  atw_item a
-        WHERE a.is_deleted = 0
+        select a.*,(select req_perpare_num from  jit_management b where b.item_code=a.code) req_perpare_num
+        from
+        (select * from atw_item_org
+        where 1=1
+        <if test="item !=null and item.orgCode !=null ">
+            AND org_code = #{item.orgCode}
+        </if>
         <if test="item !=null and item.code !=null ">
             AND find_in_set(code,#{item.code})
         </if>
@@ -124,6 +161,33 @@
                 AND `s_or_n` is null
             </if>
         </if>
+        UNION
+        select * from atw_item
+        where 1=1
+        <if test="item !=null and item.orgCode !=null ">
+            AND org_code = #{item.orgCode}
+        </if>
+        <if test="item !=null and item.code !=null ">
+            AND find_in_set(code,#{item.code})
+        </if>
+        <if test="item !=null and item.name !=null ">
+            AND `name` LIKE '%${item.name}%'
+        </if>
+        <if test="item !=null and item.mainCode !=null ">
+            AND `main_code` LIKE '%${item.mainCode}%'
+        </if>
+        <if test="item !=null and item.mainName !=null ">
+            AND `main_name` LIKE '%${item.mainName}%'
+        </if>
+        <if test="item != null and item.sOrN != null and item.sOrN != '' ">
+            <if test="item.sOrN != 'NULL'  ">
+                AND `s_or_n` = #{item.sOrN}
+            </if>
+            <if test="item.sOrN == 'NULL' ">
+                AND `s_or_n` is null
+            </if>
+        </if>)  a
+        WHERE a.is_deleted = 0
         ORDER BY a.update_time DESC;
     </select>
 

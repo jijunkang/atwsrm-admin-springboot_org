@@ -169,6 +169,8 @@ public class CaiGouSchedule implements Serializable {
 
     private String status;
 
+    private String orgcode;
+
 
 
 

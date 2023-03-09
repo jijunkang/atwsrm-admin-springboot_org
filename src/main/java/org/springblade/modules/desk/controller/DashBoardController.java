@@ -171,6 +171,7 @@ class DashBoardController{
         Map<String, Object> map1 = new HashMap<>(20);
         map1.put("desk_io_index", prService.toProcessCount());  // 待处理询价请购单行数 ok
         map1.put("desk_io_result_entry", prService.flowCount());  //流标价格录入
+        map1.put("po_reserve_count", prService.poReserveCount());  //预订单数量
         map1.put("desk_io_result_review", ioService.toCheckCount("quote"));  //询价结果审核数量
         map1.put("desk_io_flowinputcheck", ioService.toCheckCount("purch_submit"));  //流标录入审核数量
         // map1.put("desk_po_returnassign", 0 );  //订单退回指派面板

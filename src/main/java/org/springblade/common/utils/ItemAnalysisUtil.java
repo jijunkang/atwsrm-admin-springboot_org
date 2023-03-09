@@ -225,6 +225,94 @@ public class ItemAnalysisUtil {
         }
     }
 
+
+    /**
+     * 把物料描述拆解成物料描述类 - 阀座
+     * @param itemName
+     * @return
+     */
+    public static ItemInfoEntityOfQZ getItemInfoOfFZ(String itemName) {
+        ItemInfoEntityOfQZ itemInfoEntity = new ItemInfoEntityOfQZ();
+        try {
+            String[] splitFrist = itemName.split("\\+");
+
+            // **** 涂层 G06  ****
+            String coat = splitFrist[1];
+            if(splitFrist.length>2) {
+                coat = coat + "+" + splitFrist[2];
+            }
+
+            // 球座组件-球体-2G6Y-PHA-Q50-X6-B-F316L
+            String usedStr = splitFrist[0];
+
+            // **** 物料分类 ****
+            String itemize = usedStr.split("-")[0];
+
+            // 切割 有效字符串数组
+            String[] usedStrList = usedStr.split("-");
+
+            // **** 材质 F316L ****
+            String material = usedStrList[usedStrList.length-1];
+
+            // **** 等级 B ****
+            String grade = usedStrList[usedStrList.length-2];
+
+            // 2G6Y
+            String sizeAndPound = usedStrList[1];
+            Pattern patternOfString = Pattern.compile("[a-zA-Z]");
+
+            // 从 2G6Y 中 匹配第一个字母的位置，以获得 2（尺寸）
+            Matcher matcherOfSize = patternOfString.matcher(sizeAndPound);
+            matcherOfSize.find();
+            // *** 尺寸 ****
+            String size = sizeAndPound.substring(0, sizeAndPound.indexOf(matcherOfSize.group()));
+
+            // 拆掉尺寸后 -> G6Y
+            String poundAndOthers = sizeAndPound.substring(sizeAndPound.indexOf(matcherOfSize.group()));
+
+            // 类别：G
+            String form = poundAndOthers.substring(0,1);
+
+            // **** 磅级 ****
+            String pound = Pattern.compile("[^0-9]").matcher(poundAndOthers).replaceAll("").trim();
+
+            // 其余的部分 PHA-Q50-X6
+            /*List<String> usedStrStrList = Arrays.asList(usedStrList);
+            List<String> newUsedStrStrList = new ArrayList<>(usedStrStrList);
+            int oldSize = newUsedStrStrList.size();
+            newUsedStrStrList.remove(oldSize-1);
+            newUsedStrStrList.remove(oldSize-2);
+            newUsedStrStrList.remove(0);
+            newUsedStrStrList.remove(0);
+            newUsedStrStrList.remove(0);
+
+            // **** 特殊规则 ****
+            String specialRule = "";
+            if(usedStrStrList.contains("SZ")) {
+                 specialRule = "SZ";
+            } else if (usedStrStrList.contains("GP")) {
+                 specialRule = "GP";
+            } else {
+                 specialRule = "";
+            }*/
+            String specialRule = "";
+            itemInfoEntity.setItemize(itemize);
+            itemInfoEntity.setForm(form);
+            itemInfoEntity.setCoat(itemize.equals("球体")?coat:"");
+            itemInfoEntity.setFzCoat(itemize.equals("阀座")?coat:"");
+            itemInfoEntity.setSize(size);
+            itemInfoEntity.setPound(pound);
+            itemInfoEntity.setGrade(itemize.equals("阀座")?"":grade);
+            itemInfoEntity.setMaterial(material);
+            itemInfoEntity.setSpecialRule(specialRule);
+        } catch (IllegalStateException e) {
+            System.out.println("此物料号不符合自动拆解功能");
+            return itemInfoEntity;
+        } finally {
+            return itemInfoEntity;
+        }
+    }
+
     /**
      * 铸件自动下单报表
      * @param itemName

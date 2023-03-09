@@ -1,9 +1,12 @@
 package org.springblade.modules.po.controller;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.api.client.util.Lists;
+import com.google.common.collect.Maps;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiOperationSupport;
@@ -33,8 +36,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import java.math.BigDecimal;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 
 /**
@@ -210,7 +212,31 @@ public class PoReceiveController extends BladeController {
     @ApiOperationSupport(order = 4)
     @ApiOperation(value = "创建送货单", notes = "传入poReceive")
     public R save(@Valid @RequestBody List<PoReceiveDTO> poReceiveList) {
-        return poReceiveService.createAsR(poReceiveList);
+        //分001  002 组织
+        List<PoReceiveDTO> PoReceiveDTO1=new ArrayList<>();
+        List<PoReceiveDTO> PoReceiveDTO2=new ArrayList<>();
+
+        for (PoReceiveDTO poReceiveDTO:poReceiveList) {
+            if (StringUtil.isEmpty(poReceiveDTO.getOrgCode())||"001".equals(poReceiveDTO.getOrgCode())){
+                PoReceiveDTO1.add(poReceiveDTO);
+            }else{
+                PoReceiveDTO2.add(poReceiveDTO);
+            }
+
+        }
+        R asR1 = poReceiveService.createAsR(PoReceiveDTO1);
+        R asR2 = poReceiveService.createAsR(PoReceiveDTO2);
+        String data1 = (String) asR1.getData();
+        String data2 = (String) asR2.getData();
+        String rcvnum="";
+        if(StringUtil.isEmpty(data1)){
+            rcvnum=data2;
+        }else if(StringUtil.isEmpty(data2)){
+            rcvnum=data1;
+        }else{
+            rcvnum=data1+","+data2;
+        }
+        return R.data(rcvnum);
     }
 
     /**
@@ -259,6 +285,48 @@ public class PoReceiveController extends BladeController {
     @ApiOperation(value = "补打送货单", notes = "传入poReceive")
     public
     R reCreate(@Valid @RequestBody List<PoReceiveDTO> poReceiveList) {
+
+        /*//分001  002 组织
+        List<PoReceiveDTO> PoReceiveDTO1=new ArrayList<>();
+        List<PoReceiveDTO> PoReceiveDTO2=new ArrayList<>();
+
+        for (PoReceiveDTO poReceiveDTO:poReceiveList) {
+            if (StringUtil.isEmpty(poReceiveDTO.getOrgCode())||"001".equals(poReceiveDTO.getOrgCode())){
+                PoReceiveDTO1.add(poReceiveDTO);
+            }else{
+                PoReceiveDTO2.add(poReceiveDTO);
+            }
+
+        }
+        R asR1 =null;
+        R asR2=null;
+        if(PoReceiveDTO1.size()>0){
+            asR1 = poReceiveService.reCreateAsR(PoReceiveDTO1);
+        }
+        if (PoReceiveDTO2.size()>0){
+            asR2 = poReceiveService.reCreateAsR(PoReceiveDTO2);
+        }
+
+        HashMap<String,String> data1 = null;
+        HashMap<String,String> data2 = null;
+        if(asR1!=null){
+            data1= (HashMap) asR1.getData();
+        }
+        if(asR2!=null){
+            data2= (HashMap) asR2.getData();
+        }
+        String rcvnum="";
+        if(data1==null &&data2!=null){
+            rcvnum= data2.get("rcvCode");
+        }else if(data2==null &&data1!=null){
+            rcvnum= data1.get("rcvCode");;
+        }else{
+            rcvnum=data1.get("rcvCode")+","+data2.get("rcvCode");
+        }
+
+        Map<String, String> retMap = Maps.newHashMap();
+        retMap.put("rcvCode", rcvnum);
+        return R.data(retMap);*/
         return poReceiveService.reCreateAsR(poReceiveList);
     }
 

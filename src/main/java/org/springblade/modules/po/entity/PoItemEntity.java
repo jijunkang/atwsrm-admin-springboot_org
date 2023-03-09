@@ -283,6 +283,9 @@ class PoItemEntity extends BaseEntity{
     @ApiModelProperty(value = "组织代码")
     private String orgCode;
 
+    private String isReserve;
+
+
     public
     void setAmount(BigDecimal amount){
         if(amount == null){

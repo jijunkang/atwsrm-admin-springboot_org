@@ -7,6 +7,8 @@ import org.apache.ibatis.annotations.Select;
 import org.springblade.modules.supplier.dto.SupplierUpdateReq;
 import org.springblade.modules.supplier.entity.SupUser;
 import org.springblade.modules.supplier.entity.Supplier;
+import org.springblade.modules.supplier.dto.SupplierProductData;
+import org.springblade.modules.supplier.entity.SupplierProductDataEntity;
 import org.springblade.modules.supplier.entity.SupplierSchedule;
 import org.springblade.modules.supplier.vo.SupplierVO;
 
@@ -113,4 +115,16 @@ public interface SupplierMapper extends BaseMapper<Supplier> {
 
     @Select("SELECT count(*) FROM atw_supplier where sup_brief = #{supBrief} ")
     Integer getCountSupBrief(@Param("supBrief")String supBrief);
+
+
+
+    IPage<SupplierProductDataEntity> selectSupplierProductDataPage(IPage page, SupplierProductDataEntity supplierProductData);
+
+    List<SupplierProductDataEntity> selectSupplierProductDataList(SupplierProductDataEntity supplierProductData);
+
+    Boolean insertSupplierProductData(SupplierProductDataEntity supplierProductData);
+
+    Boolean updateSupplierProductData(SupplierProductDataEntity supplierProductData);
+
+
 }

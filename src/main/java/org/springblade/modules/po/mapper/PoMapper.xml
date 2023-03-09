@@ -112,6 +112,9 @@
         <if test="poDTO.status != null and poDTO.status !=''">
             and po.status = #{poDTO.status}
         </if>
+        <if test="poDTO.isReserve != null and poDTO.isReserve !=''">
+            and po.is_reserve = 'Y'
+        </if>
         <if test="poDTO.supCode != null and poDTO.supCode !=''">
             AND po.sup_code LIKE concat('%', #{poDTO.supCode}, '%')
         </if>
@@ -190,6 +193,9 @@
         left join atw_supplier s on ( po.sup_code = s.code and s.primary_contact =1 and s.is_deleted = 0)
         where po.is_deleted = 0
             and po.order_code not like "VMI%"
+        <if test="poDTO.isReserve != null and poDTO.isReserve !=''">
+            and po.is_reserve = 'Y'
+        </if>
         <if test="poDTO.status != null and poDTO.status !=''">
             and po.status = #{poDTO.status}
         </if>

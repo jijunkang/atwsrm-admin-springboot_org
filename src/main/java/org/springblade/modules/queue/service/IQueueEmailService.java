@@ -15,6 +15,8 @@ public interface IQueueEmailService extends BaseService<QueueEmailEntity> {
 
     String AP_INTI_SENDER = "srm3@antiwearvalve.com";
     String AP_SUBJECT_DP = "来自安特威的应付单";
+
+    String AP_SUBJECT_MSG= "来自安特威的消息";
     String AP_CONTENT_DP = "您有新的应付单，请不要错过，传送门：http://atwsrm.oms.antiwearvalve.com";
     String AP_PARAM_KEY = "ap_financer_email";
 

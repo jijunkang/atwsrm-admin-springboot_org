@@ -92,6 +92,9 @@ public interface SupplierScheduleMapper {
     @Select("SELECT count(*) from bi_supdeliv_plan_data_remark_write where po_code = #{caiGouSchedule.poCode} and po_ln = #{caiGouSchedule.poLn} and pro_no= #{caiGouSchedule.proNo}")
     Integer isExistedByRemark(@Param("caiGouSchedule") CaiGouSchedule caiGouSchedule);
 
+    @Select("SELECT * from bi_supdeliv_plan_data_remark_write where po_code = #{caiGouSchedule.poCode} and po_ln = #{caiGouSchedule.poLn} and pro_no= #{caiGouSchedule.proNo} limit 1")
+    CaiGouSchedule selectCaiGouSchedule(@Param("caiGouSchedule") CaiGouSchedule caiGouSchedule);
+
     boolean updateCaiGouSeq(@Param("caiGouSchedule") CaiGouSchedule caiGouSchedule);
 
     boolean insertCaiGouSeq(@Param("caiGouSchedule") CaiGouSchedule caiGouSchedule);
@@ -158,7 +161,8 @@ public interface SupplierScheduleMapper {
         "\tplan_date,\n" +
         "\tpro_num,\n" +
         "\treq_date,\n" +
-        "\tSUM( req_num ) req_num \n" +
+        "\tSUM( req_num ) req_num ,\n" +
+        "\torgcode\n" +
         "FROM\n" +
         "\tBI_Supdeliv_Plan_Data_Detail_View \n" +
         "WHERE\n" +
@@ -170,17 +174,18 @@ public interface SupplierScheduleMapper {
         "\t\tOR item_code LIKE '130102%' \n" +
         "\t\tOR item_code LIKE '131111%' \n" +
         "\t\tOR item_code LIKE '131106%' \n" +
+        "\t\tOR item_name LIKE '%锻%' \n" +
         "\t) \n" +
-        "\tAND pro_no IS NOT NULL  \n" +
+        "\tAND pro_no IS NOT NULL \n" +
         "\tAND plan_date IS NOT NULL \n" +
-        "\tAND plan_date >= DATE_FORMAT( CURDATE(), '%Y-%m-01' ) \n" +
         "GROUP BY\n" +
         "\tpro_no,\n" +
         "\titem_code,\n" +
         "\tagree_date,\n" +
         "\tplan_date,\n" +
         "\treq_date,\n" +
-        "\tpro_num \n" +
+        "\tpro_num,\n" +
+        "\torgcode \n" +
         "ORDER BY\n" +
         "\tplan_date")
     List<CaiGouSchedule> selectAllCaiGouPlan();
@@ -188,28 +193,45 @@ public interface SupplierScheduleMapper {
 
 
 
-    @Select(" SELECT * FROM atw_caigou_plan_data_lock a WHERE not  EXISTS (select * from BI_Supdeliv_Plan_Data_Detail b where a.pro_no=b.pro_no and a.item_code=b.item_code ) or (a.po_code like 'PR%') ")
+    @Select(" SELECT * FROM atw_caigou_plan_data_lock a WHERE not  EXISTS (select * from BI_Supdeliv_Plan_Data_Detail b where a.pro_no=b.pro_no and a.item_code=b.item_code )  ")
     List<CaiGouSchedule> selectCaiGouPlandiff();
 
-    @Select("SELECT * FROM (SELECT (SELECT IFNULL(SUM(acpdl.req_num), 0) FROM atw_caigou_plan_data_lock acpdl WHERE acpdl.po_code = a.po_code AND acpdl.po_ln = a.po_ln and acpdl.is_deleted=0) ysdsl, (SELECT api.tc_num - api.arv_goods_num FROM atw_po_item api WHERE api.po_code = a.po_code AND api.po_ln = a.po_ln) wshsl, a.* FROM BI_Supdeliv_Plan_Data_Detail_View a WHERE item_code = #{itemcode}  ) selectpo WHERE wshsl > ysdsl GROUP BY po_code_ln  ORDER BY wwpo_date")
-    List<CaiGouSchedule> selectAllCaiGouPlanPo(@Param("itemcode") String itemcode );
+    @Select("SELECT * FROM atw_caigou_plan_data_lock a WHERE po_code_ln NOT IN (SELECT po_code_ln FROM BI_Supdeliv_Plan_Data_Detail) or  req_num<=0 ")
+    List<CaiGouSchedule> selectCaiGouPlandiff2();
+
+    @Select("SELECT * FROM (SELECT (SELECT IFNULL(SUM(acpdl.req_num), 0) FROM atw_caigou_plan_data_lock acpdl WHERE acpdl.po_code = a.po_code AND acpdl.po_ln = a.po_ln and acpdl.is_deleted=0) ysdsl, (SELECT api.tc_num - api.arv_goods_num FROM atw_po_item api WHERE api.po_code = a.po_code AND api.po_ln = a.po_ln) wshsl, a.* FROM BI_Supdeliv_Plan_Data_Detail_View a WHERE item_code = #{itemcode}  ) selectpo WHERE wshsl > ysdsl and orgcode=#{orgcode} GROUP BY po_code_ln  ORDER BY wwpo_date")
+    List<CaiGouSchedule> selectAllCaiGouPlanPo(@Param("itemcode") String itemcode ,@Param("orgcode") String orgcode);
+
+    @Select("SELECT * from BI_Supdeliv_Plan_Data_Detail_View where po_code=#{pr_code} and po_ln=#{pr_ln}")
+    List<CaiGouSchedule> getDataFromShjh(@Param("pr_code") String pr_code,@Param("pr_ln") String pr_ln);
+
+    @Select("SELECT * from atw_po_item where pr_code=#{pr_code} and pr_ln=#{pr_ln} and is_deleted=0")
+    List<PoItemEntity> getPoItemFromPR(@Param("pr_code") String pr_code,@Param("pr_ln") String pr_ln);
 
 
-    @Select("SELECT * FROM (SELECT (SELECT IFNULL(SUM(acpdl.req_num), 0) FROM atw_caigou_plan_data_lock acpdl WHERE acpdl.po_code = a.po_code AND acpdl.po_ln = a.po_ln and acpdl.is_deleted=0) ysdsl, (SELECT api.tc_num - api.arv_goods_num FROM atw_po_item api WHERE api.po_code = a.po_code AND api.po_ln = a.po_ln) wshsl, a.* FROM BI_Supdeliv_Plan_Data_Detail_View a WHERE item_code = #{itemcode}  ) selectpo WHERE  po_code_ln=#{poln} GROUP BY po_code_ln ORDER BY wwpo_date")
-    List<CaiGouSchedule> selectAllCaiGouPlanPoWithPoln(@Param("itemcode") String itemcode ,@Param("poln") String poln);
+    @Select("SELECT * FROM (SELECT (SELECT IFNULL(SUM(acpdl.req_num), 0) FROM atw_caigou_plan_data_lock acpdl WHERE acpdl.po_code = a.po_code AND acpdl.po_ln = a.po_ln and acpdl.is_deleted=0) ysdsl, IFNULL((\n" +
+        "\t\tSELECT\n" +
+        "\t\t\tapi.tc_num - api.arv_goods_num \n" +
+        "\t\tFROM\n" +
+        "\t\t\tatw_po_item api \n" +
+        "\t\tWHERE\n" +
+        "\t\t\tapi.po_code = a.po_code \n" +
+        "\t\t\tAND api.po_ln = a.po_ln \n" +
+        "\t\t) ,(select tc_num from atw_u9_pr where pr_code=a.po_code  and pr_ln=a.po_ln)) wshsl, a.* FROM BI_Supdeliv_Plan_Data_Detail_View a WHERE item_code = #{itemcode}  ) selectpo WHERE  po_code_ln=#{poln} and orgcode=#{orgcode} GROUP BY po_code_ln ORDER BY wwpo_date")
+    List<CaiGouSchedule> selectAllCaiGouPlanPoWithPoln(@Param("itemcode") String itemcode ,@Param("poln") String poln,@Param("orgcode") String orgcode);
 
 
     @Select("select  * from atw_caigou_plan_data_lock where pro_no =#{prono} and item_code=#{itemcode}  ")
     List<CaiGouSchedule> selectLockData(@Param("itemcode") String itemcode ,@Param("prono") String prono);
 
-    @Select("select * from BI_Supdeliv_Plan_Data_Detail_View where pro_no =#{prono} and item_code=#{itemcode} limit 1")
-    CaiGouSchedule selectQtData(@Param("itemcode") String itemcode ,@Param("prono") String prono);
+    @Select("select * from BI_Supdeliv_Plan_Data_Detail_View where pro_no =#{prono} and item_code=#{itemcode} ")
+    List<CaiGouSchedule> selectQtData(@Param("itemcode") String itemcode ,@Param("prono") String prono);
 
     @Select("select * from BI_Supdeliv_Plan_Data_Detail_View where po_code_ln=#{poln} and pro_no=#{prono} and req_num is not null limit 1")
     CaiGouSchedule selectQtDataReqNum(@Param("poln") String poln,@Param("prono") String prono);
 
-    @Select("select b.pr_date,a.* from BI_Supdeliv_Plan_Data_Detail_View a left join atw_u9_pr b on a.po_code=b.pr_code and a.po_ln=b.pr_ln where a.item_code=#{itemcode}  and b.pr_date is not null ORDER BY b.pr_date LIMIT 1 ")
-    CaiGouSchedule selectCaiGouPlanPR(@Param("itemcode") String itemcode );
+    @Select("select * from (select (SELECT IFNULL(SUM(acpdl.req_num), 0) FROM atw_caigou_plan_data_lock acpdl WHERE acpdl.po_code = a.po_code AND acpdl.po_ln = a.po_ln and acpdl.is_deleted=0) ysdsl, b.tc_num,b.pr_date,a.* from BI_Supdeliv_Plan_Data_Detail_View a left join atw_u9_pr b on a.po_code=b.pr_code and a.po_ln=b.pr_ln where  a.item_code=#{itemcode}  and a.orgcode=#{orgcode} and b.pr_date is not null ORDER BY b.pr_date) p where tc_num>ysdsl LIMIT 1 ")
+    CaiGouSchedule selectCaiGouPlanPR(@Param("itemcode") String itemcode,@Param("orgcode") String orgcode );
 
     boolean insertLockCaiGou(@Param("caiGouSchedule") CaiGouSchedule caiGouSchedule);
 
@@ -230,7 +252,7 @@ public interface SupplierScheduleMapper {
     @Select("SELECT * from BI_Supdeliv_Plan_Data_Detail where pro_no = #{proNo}")
     List<CaiGouSchedule> selectNewBIInfo(@Param("proNo") String proNo);
 
-    @Select("SELECT * from atw_po_item where po_code = #{poCode} and po_ln = #{poLn} and is_deleted = 0")
+    @Select("SELECT * from d where po_code = #{poCode} and po_ln = #{poLn} and is_deleted = 0")
     PoItemEntity selectPoItemInfo(@Param("poCode") String poCode,@Param("poLn") String poLn);
 
     @Delete("delete from BI_Supdeliv_Plan_Data_Detail_Lock where pro_no = #{proNo} and po_code = #{poCode} and po_ln = #{poLn}")
@@ -279,7 +301,13 @@ public interface SupplierScheduleMapper {
     List<OtdReport> getOkMap(@Param("startDate") String startDate, @Param("endDate") String endDate, @Param("type") String type);
 
     @SqlParser(filter = true)
+    List<OtdReport> getDelayMap(@Param("startDate") String startDate, @Param("endDate") String endDate, @Param("type") String type);
+
+    @SqlParser(filter = true)
     List<OtdReport> getOkMapSeven(@Param("startDate") String startDate, @Param("endDate") String endDate, @Param("type") String type);
+
+    @SqlParser(filter = true)
+    List<OtdReport> getDelayMapSeven(@Param("startDate") String startDate, @Param("endDate") String endDate, @Param("type") String type);
 
     @SqlParser(filter = true)
     List<OtdReport> getTotalMap(@Param("startDate") String startDate,@Param("endDate")  String endDate, @Param("type") String type);

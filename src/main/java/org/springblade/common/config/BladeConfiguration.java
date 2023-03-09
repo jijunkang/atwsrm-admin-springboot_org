@@ -60,6 +60,9 @@ public class BladeConfiguration implements WebMvcConfigurer {
         secureRegistry.excludePathPatterns("/blade-po/po/downLoadPo");
         secureRegistry.excludePathPatterns("/blade-pricelib/pricelib/importexcelfromESB");
         secureRegistry.excludePathPatterns("/blade-poreceive/poReceive/createFromESB");
+        secureRegistry.excludePathPatterns("/blade-ap/aprcv/deleteVmiSettle");
+        secureRegistry.excludePathPatterns("/blade-supplier/supplier/synProductData");
+        secureRegistry.excludePathPatterns("/blade-poitem/po_item/updateReseverPo");
 		return secureRegistry;
 	}
 

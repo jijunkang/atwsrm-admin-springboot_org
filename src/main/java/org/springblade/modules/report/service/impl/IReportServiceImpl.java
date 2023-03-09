@@ -129,6 +129,11 @@ class IReportServiceImpl implements IReportService {
                 sqlListBuilder.append(" and itemName like '%").append(vmiReportReq.getItemName()).append("%'");
                 sqlCountBuilder.append(" and itemName like '%").append(vmiReportReq.getItemName()).append("%'");
             }
+            // 组织代码
+            if (vmiReportReq.getOrgCode() != null && !vmiReportReq.getOrgCode().equals("")) {
+                sqlListBuilder.append(" and code='").append(vmiReportReq.getOrgCode()).append("'");
+                sqlCountBuilder.append(" and code='").append(vmiReportReq.getOrgCode()).append("'");
+            }
 
             // 分页
             long pageIndex = page.getCurrent();
@@ -158,6 +163,7 @@ class IReportServiceImpl implements IReportService {
                 vmiReport.setBalNum(resultSetList.getString("balQty"));// 结算数量
                 vmiReport.setUsedButNotBalNum(new BigDecimal(vmiReport.getStoreTotalNum()).subtract(new BigDecimal(vmiReport.getStoreNum())).subtract(new BigDecimal(vmiReport.getBalNum())).toString());// 已用但未结算数量
                 vmiReport.setNotBalNum(new BigDecimal(vmiReport.getStoreTotalNum()).subtract(new BigDecimal(vmiReport.getBalNum())).toString());// 未结算数量
+                vmiReport.setOrgCode(resultSetList.getString("code"));// 组织代码
                 vmiReports.add(vmiReport);
             }
 

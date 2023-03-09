@@ -3,17 +3,17 @@ package org.springblade.modules.supplier.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import lombok.SneakyThrows;
 import org.springblade.core.mp.base.BaseService;
-import org.springblade.modules.material.dto.MaterialPriceDTO;
-import org.springblade.modules.pr.dto.PrReq;
+import org.springblade.core.tool.api.R;
 import org.springblade.modules.supplier.dto.CaiGouScheduleReq;
 import org.springblade.modules.supplier.dto.SupplierDTO;
 import org.springblade.modules.supplier.dto.SupplierScheduleReq;
 import org.springblade.modules.supplier.dto.SupplierUpdateReq;
 import org.springblade.modules.supplier.entity.CaiGouSchedule;
 import org.springblade.modules.supplier.entity.Supplier;
+import org.springblade.modules.supplier.dto.SupplierProductData;
+import org.springblade.modules.supplier.entity.SupplierProductDataEntity;
 import org.springblade.modules.supplier.entity.SupplierSchedule;
 import org.springblade.modules.supplier.vo.OmsEchrtsOfSupplierVO;
-import org.springblade.modules.supplier.vo.SupplierScheduleVO;
 import org.springblade.modules.supplier.vo.SupplierVO;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -147,4 +147,9 @@ public interface ISupplierService extends BaseService<Supplier> {
     int getTraceTabCount();
 
     void otdExport(SupplierScheduleReq supplierScheduleReq, HttpServletResponse response) throws Exception;
+
+    R synProductData();
+    IPage<SupplierProductDataEntity> getProductData(IPage<SupplierProductDataEntity> page, SupplierProductDataEntity supplierProductDataEntity);
+
+
 }

@@ -3,6 +3,7 @@ package org.springblade.modules.ap.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import org.springblade.core.mp.base.BaseService;
+import org.springblade.core.tool.api.R;
 import org.springblade.modules.ap.dto.ApRcvDTO;
 import org.springblade.modules.ap.dto.ApReq;
 import org.springblade.modules.ap.entity.ApRcvEntity;
@@ -42,6 +43,8 @@ public interface IApRcvService extends BaseService<ApRcvEntity> {
     IPage<ApRcvEntity> getPage(IPage<ApRcvEntity> page, ApReq apReq);
 
     IPage<ApRcvReqEntity> getVmiPage(IPage<ApRcvEntity> page, ApReq apReq);
+
+    R deleteVmiSettle(ApReq apReq);
 
     int getListCount();
 

@@ -6,23 +6,35 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiOperationSupport;
 import io.swagger.annotations.ApiParam;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
 import org.springblade.core.boot.ctrl.BladeController;
 import org.springblade.core.mp.support.Condition;
 import org.springblade.core.mp.support.Query;
 import org.springblade.core.tool.api.R;
+import org.springblade.core.tool.utils.BeanUtil;
 import org.springblade.core.tool.utils.Func;
 import org.springblade.modules.outpr.entity.OutPrItemEntity;
 import org.springblade.modules.outpr.service.IOutPrItemService;
 import org.springblade.modules.po.dto.PoItemDTO;
 import org.springblade.modules.po.dto.PoItemNodeReq;
 import org.springblade.modules.po.dto.PoUpDateReq;
+import org.springblade.modules.po.entity.PoEntity;
 import org.springblade.modules.po.entity.PoItemEntity;
+import org.springblade.modules.po.mapper.PoItemMapper;
 import org.springblade.modules.po.service.IPoItemService;
 import org.springblade.modules.po.vo.PoItemNewReportVO;
 import org.springblade.modules.po.vo.PoItemReqRepotVO;
 import org.springblade.modules.po.vo.PoItemVO;
 import org.springblade.modules.pr.entity.U9PrEntity;
 import org.springblade.modules.pr.service.IU9PrService;
+import org.springblade.modules.queue.entity.QueueEmailEntity;
+import org.springblade.modules.queue.service.IQueueEmailService;
+import org.springblade.modules.supplier.entity.CaiGouSchedule;
+import org.springblade.modules.supplier.entity.Supplier;
+import org.springblade.modules.supplier.service.ISupplierService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -33,6 +45,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 
@@ -41,6 +55,7 @@ import java.util.List;
  *
  * @author Will
  */
+
 @RestController
 @AllArgsConstructor
 @RequestMapping("/blade-poitem/po_item")
@@ -52,6 +67,14 @@ public class PoItemController extends BladeController {
     private IU9PrService prService;
 
     IOutPrItemService outPrItemService;
+
+    private PoItemMapper poItemMapper;
+
+    private ISupplierService iSupplierService;
+    @Autowired
+    private IQueueEmailService queueEmailService;
+
+
     /**
      * 详情
      */
@@ -342,6 +365,16 @@ public class PoItemController extends BladeController {
         poItemService.craftCtrlExport(poItem,  response);
     }
 
+    /**
+     * 批量查询承诺交期
+     */
+    @PostMapping("/updatePromiseDateBatchFromShjh")
+    @ApiOperationSupport(order = 4)
+    @ApiOperation(value = "批量修改要求交期", notes = "传入poItemDTOS")
+    public R updatePromiseDateBatchFromShjh(@Valid @RequestBody List<PoItemDTO> poItemDTOS){
+        return R.status( poItemService.updatePromiseDateBatchFromShjh(poItemDTOS));
+    }
+
 
     /**
      * 批量修改要求交期
@@ -362,6 +395,16 @@ public class PoItemController extends BladeController {
     @ApiOperation(value = "批量修改承诺交期", notes = "传入poItemDTOS")
     public R updatePromiseDateBatch(@Valid @RequestBody List<PoItemDTO> poItemDTOS){
         return R.status(poItemService.updatePromiseDateBatch(poItemDTOS));
+    }
+
+    /**
+     * 批量修改承诺交期同步到U9
+     */
+    @PostMapping("/updatePromiseDateBatchToU9")
+    @ApiOperationSupport(order = 4)
+    @ApiOperation(value = "批量修改承诺交期", notes = "传入poItemDTOS")
+    public R updatePromiseDateBatchToU9(@Valid @RequestBody List<PoItemDTO> poItemDTOS){
+        return R.status(poItemService.updatePromiseDateBatchToU9(poItemDTOS));
     }
 
 
@@ -528,5 +571,45 @@ public class PoItemController extends BladeController {
     public R batchSetUpdateCheckDate(String ids) {
         return R.status(poItemService.batchSetUpdateCheckDate(ids));
     }
+
+
+    /**
+     * job 更新预PO
+     */
+    @GetMapping("/updateReseverPo")
+    @Scheduled(cron="0 0 8 * * ?")
+    public void updateReseverPo(){
+        //遍历所有预PO，判断PR，PO有没有被锁定
+        List<PoItemDTO> poItemDTOS =new ArrayList<>();
+
+        List<PoItemEntity> poItemEntities = poItemMapper.selectPoItemLock();
+        for (PoItemEntity poItemEntity:poItemEntities) {
+            CaiGouSchedule locked=null;
+            locked = poItemMapper.isLocked(poItemEntity.getPoCode(), String.valueOf(poItemEntity.getPoLn()));
+
+            if (locked==null){
+                locked = poItemMapper.isLocked(poItemEntity.getPrCode(), String.valueOf(poItemEntity.getPrLn()));
+            }
+
+            if(locked!=null){
+                Date PlanDate = locked.getPlanDate();
+                PlanDate=cn.hutool.core.date.DateUtil.offsetDay(PlanDate,-25);
+                long PlanDate_sjc = PlanDate.getTime()/1000;
+                if(poItemEntity.getPoCode()!=null){
+                    poItemMapper.updateSupConfirmDateJOB(PlanDate_sjc,poItemEntity.getPoCode(), String.valueOf(poItemEntity.getPoLn()));
+                    //调用接口同步承诺交期到U9
+                    PoItemDTO poItemDTO = new PoItemDTO();
+                    BeanUtil.copy(poItemEntity,poItemDTO);
+                    poItemDTO.setSupConfirmDate(PlanDate_sjc);
+                    poItemDTOS.add(poItemDTO);
+                }
+
+
+            }
+        }
+
+        poItemService.updatePromiseDateBatchToU9(poItemDTOS);
+    }
+
 
 }

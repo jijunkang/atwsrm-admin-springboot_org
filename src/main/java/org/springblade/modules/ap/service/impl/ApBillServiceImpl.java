@@ -508,6 +508,7 @@ class ApBillServiceImpl extends BaseServiceImpl<ApBillMapper, ApBillEntity> impl
         Supplier            supplier     = supplierService.getByCode(apBillEntity.getSupCode());
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
+        result.put("orgCode", apBillEntity.getOrgCode()==null?"001":apBillEntity.getOrgCode());
         result.put("u9Code", apBillEntity.getU9Code());
         result.put("billCode", apBillEntity.getBillCode());
         result.put("printDate", sdf.format(new Date()));
